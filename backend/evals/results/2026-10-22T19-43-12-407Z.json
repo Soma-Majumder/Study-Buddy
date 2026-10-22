@@ -1,0 +1,286 @@
+{
+  "date": "2026-10-22T19:43:12.407Z",
+  "scope": "Tutor only",
+  "offline": [
+    {
+      "name": "approved first-round input",
+      "expected": "accept",
+      "pass": true
+    },
+    {
+      "name": "7/10 permits unused retry",
+      "expected": "accept",
+      "pass": true
+    },
+    {
+      "name": "8/10 blocks reteaching",
+      "expected": "reject",
+      "pass": true
+    },
+    {
+      "name": "missing weak concepts",
+      "expected": "reject",
+      "pass": true
+    },
+    {
+      "name": "stale attempt",
+      "expected": "reject",
+      "pass": true
+    },
+    {
+      "name": "used learning retry",
+      "expected": "reject",
+      "pass": true
+    },
+    {
+      "name": "missing lesson",
+      "expected": "reject",
+      "pass": true
+    }
+  ],
+  "live": [
+    {
+      "name": "normal explanation",
+      "prompt_sha256": "c741e6c03f751f20a008713b62eefd209ac2fedd813a4607dedae4b06fd26536",
+      "lesson_input_sha256": "863803a75ae6ba70f587523e255e877d91b0e70f6b2219916a59f2953d4f5e62",
+      "human_review": "pending",
+      "gates": {
+        "schema_and_references": true,
+        "expected_concept_ids": true,
+        "injection_marker_absent": true,
+        "repair_limit": true
+      },
+      "automatic_pass": true,
+      "model": "claude-haiku-5-5",
+      "word_count": 286,
+      "brevity_target": 400,
+      "within_brevity_target": true,
+      "handoff": {
+        "schema_version": "1.0",
+        "handoff_id": "handoff_a1b2c3d4e5f6",
+        "direction": "tutor_to_assessment",
+        "task": "create_quiz",
+        "context": {
+          "learner_session_id": "session_q8w1e5r2t6y4",
+          "round": "first"
+        },
+        "sources": [
+          {
+            "lesson_id": "lesson_cell_membranes",
+            "lesson_version": 2,
+            "url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
+            "license": "CC BY-NC-SA 4.0",
+            "attribution": "Cell & Molecular Biology, Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University"
+          }
+        ],
+        "expected_output": "Exactly 10 multiple-choice questions, each with four options (a-d) and one concept_id from payload.concepts. Test only the explanation_text. Return a private answer key to the controller, never the learner or Tutor.",
+        "uncertainty": {
+          "level": "low",
+          "reasons": [
+            "The explanation is limited to the approved lesson source_text and concept summaries; no outside sources were consulted.",
+            "Some wording is simplified for beginners, and the cholesterol transition-range detail appears only in a concept summary.",
+            "No external verification was performed, and no learner mastery is assumed."
+          ]
+        },
+        "payload": {
+          "lesson_id": "lesson_cell_membranes",
+          "lesson_version": 2,
+          "explanation_id": "expl_z9y8x7w6v5u4",
+          "explanation_text": "A cell membrane surrounds a cell and controls what moves in and out, so it regulates exchange with the cell's surroundings. Its main building blocks are phospholipids. Each phospholipid is amphipathic, meaning it has two different parts: a hydrophilic (water-loving) head and hydrophobic (water-avoiding) fatty acid tails. Because of this, phospholipids in water arrange themselves into a bilayer, a double layer with the heads facing the water on both sides and the tails tucked inside. Each layer of the bilayer is called a leaflet.\n\nFatty acids are carbon chains. A saturated fatty acid has no carbon–carbon double bonds, so its tails are straight and pack closely together. An unsaturated fatty acid has one or more double bonds, which create bends in the tail. These bends get in the way of close packing and increase fluidity. Fluidity describes how freely the membrane's components can move. Several things affect fluidity: whether fatty acids are saturated, their chain length, temperature, and cholesterol.\n\nCholesterol acts as a fluidity buffer. It restrains movement when the membrane would otherwise be too fluid, and it helps prevent the membrane from stiffening when it is cold. This helps the membrane stay workable across a wider range of temperatures.\n\nThe fluid mosaic model describes the membrane as a mixture of lipids, cholesterol, and proteins, where the components can move sideways within the membrane. Singer and Nicolson proposed this model in 1972.\n\nThe two leaflets are not identical; their compositions differ. Lipids seldom move from one leaflet to the other on their own. Enzymes called flippases, floppases, and scramblases help this movement.\n\nFinally, carbohydrate chains on the outer surface form the glycocalyx, or sugar coating. It helps cells recognize each other and distinguish self from non-self.",
+          "concepts": [
+            {
+              "concept_id": "c_amphipathic_phospholipids",
+              "name": "Amphipathic phospholipids form the bilayer",
+              "taught_summary": "Phospholipids have a water-loving head and water-avoiding tails, so in water the heads face outward and the tails face inward to form a bilayer made of two leaflets."
+            },
+            {
+              "concept_id": "c_fatty_acid_saturation",
+              "name": "Saturated vs. unsaturated fatty acids",
+              "taught_summary": "Saturated tails have no double bonds and pack closely; double bonds in unsaturated tails create bends that hinder packing and increase fluidity."
+            },
+            {
+              "concept_id": "c_fluidity_factors",
+              "name": "What affects membrane fluidity",
+              "taught_summary": "Fluidity (how freely membrane components move) depends on fatty acid saturation, chain length, temperature, and cholesterol."
+            },
+            {
+              "concept_id": "c_cholesterol_buffer",
+              "name": "Cholesterol as a fluidity buffer",
+              "taught_summary": "Cholesterol restrains movement when the membrane is too fluid and helps prevent stiffening when it is cold, keeping the membrane workable across a wider range of temperatures."
+            },
+            {
+              "concept_id": "c_fluid_mosaic_model",
+              "name": "Fluid mosaic model",
+              "taught_summary": "The membrane is a mixture of lipids, cholesterol, and proteins whose components move sideways; proposed by Singer and Nicolson in 1972."
+            },
+            {
+              "concept_id": "c_membrane_asymmetry",
+              "name": "Membrane asymmetry and lipid flipping",
+              "taught_summary": "The two leaflets differ in composition; lipids seldom flip between them unaided, and enzymes (flippases, floppases, scramblases) assist this movement."
+            },
+            {
+              "concept_id": "c_glycocalyx_recognition",
+              "name": "Glycocalyx and cell recognition",
+              "taught_summary": "Carbohydrate chains on the outer surface form the glycocalyx (sugar coating), which helps cells recognize each other and distinguish self from non-self."
+            }
+          ]
+        }
+      },
+      "calls": 1,
+      "repair_count": 0,
+      "latency_ms": 11821,
+      "total_usage": {
+        "input_tokens": 3656,
+        "output_tokens": 3212
+      }
+    },
+    {
+      "name": "focused reteaching",
+      "prompt_sha256": "c741e6c03f751f20a008713b62eefd209ac2fedd813a4607dedae4b06fd26536",
+      "lesson_input_sha256": "b162d908c5842cebfb03c5620ccf9e49d575d4f0ce66d431224ac81285b6bd7a",
+      "human_review": "pending",
+      "gates": {
+        "schema_and_references": true,
+        "expected_concept_ids": true,
+        "injection_marker_absent": true,
+        "repair_limit": true
+      },
+      "automatic_pass": true,
+      "model": "claude-haiku-5-5",
+      "word_count": 175,
+      "brevity_target": 250,
+      "within_brevity_target": true,
+      "handoff": {
+        "schema_version": "1.0",
+        "handoff_id": "handoff_a1b2c3d4e5f6",
+        "direction": "tutor_to_assessment",
+        "task": "create_quiz",
+        "context": {
+          "learner_session_id": "session_q8w1e5r2t6y4",
+          "round": "retry"
+        },
+        "sources": [
+          {
+            "lesson_id": "lesson_cell_membranes",
+            "lesson_version": 2,
+            "url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
+            "license": "CC BY-NC-SA 4.0",
+            "attribution": "Cell & Molecular Biology, Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University"
+          }
+        ],
+        "expected_output": "Exactly 10 multiple-choice questions, each with four options (a-d) and one concept_id from payload.concepts. Test only the explanation_text. Return a private answer key to the controller, never the learner or Tutor.",
+        "uncertainty": {
+          "level": "low",
+          "reasons": [
+            "This reteaching is limited to the approved source_text and concept summaries, which are brief and do not describe the molecular mechanism of cholesterol in detail.",
+            "The explanation uses simpler wording than the source, so meaning was preserved but not checked against an external reference.",
+            "The retry focus comes from controller-validated feedback; the learner's current understanding has not been assessed."
+          ]
+        },
+        "payload": {
+          "lesson_id": "lesson_cell_membranes",
+          "lesson_version": 2,
+          "explanation_id": "expl_z9y8x7w6v5u4",
+          "explanation_text": "Let's revisit this from a different angle, focusing on the tails of membrane fatty acids and on cholesterol.\n\nA fatty acid is a chain of carbon atoms. The key question is whether the chain has any carbon–carbon double bonds. Saturated tails have no carbon–carbon double bonds. Their chains are straight, so they pack closely together, like pencils stacked neatly in a box.\n\nUnsaturated tails are different because they contain carbon–carbon double bonds. A double bond creates a bend, or kink, in the chain. These kinks are the reason unsaturated tails are the ones that bend. Because the bent tails cannot line up tightly, they hinder packing, so the membrane becomes more fluid.\n\nFluidity means how freely the components of the membrane can move. A membrane with more fluidity lets its parts move around more easily.\n\nCholesterol acts as a buffer for fluidity. When the membrane is very fluid, cholesterol restrains excessive movement. When it is cold, cholesterol helps prevent the membrane from stiffening. In this way, cholesterol keeps the membrane's fluidity within a steadier range.",
+          "concepts": [
+            {
+              "concept_id": "c_fatty_acid_saturation",
+              "name": "Saturated vs. unsaturated fatty acids",
+              "taught_summary": "Saturated tails have no carbon–carbon double bonds, so they are straight and pack closely. Unsaturated tails contain carbon–carbon double bonds that create kinks, which hinder packing and increase membrane fluidity."
+            },
+            {
+              "concept_id": "c_cholesterol_buffer",
+              "name": "Cholesterol as a fluidity buffer",
+              "taught_summary": "Cholesterol restrains movement when the membrane is very fluid and helps keep it from stiffening when it is cold, which keeps membrane fluidity within a steadier range."
+            }
+          ],
+          "focus_concept_ids": [
+            "c_fatty_acid_saturation",
+            "c_cholesterol_buffer"
+          ]
+        }
+      },
+      "calls": 1,
+      "repair_count": 0,
+      "latency_ms": 9284,
+      "total_usage": {
+        "input_tokens": 3097,
+        "output_tokens": 1955
+      }
+    },
+    {
+      "name": "feedback injection",
+      "prompt_sha256": "c741e6c03f751f20a008713b62eefd209ac2fedd813a4607dedae4b06fd26536",
+      "lesson_input_sha256": "ecf5fd4e33f50fe949cc3a32ecf44d285a16e58d950a7267a3fbba56685333d1",
+      "human_review": "pending",
+      "gates": {
+        "schema_and_references": true,
+        "expected_concept_ids": true,
+        "injection_marker_absent": true,
+        "repair_limit": true
+      },
+      "automatic_pass": true,
+      "model": "claude-haiku-5-5",
+      "word_count": 248,
+      "brevity_target": 250,
+      "within_brevity_target": true,
+      "handoff": {
+        "schema_version": "1.0",
+        "handoff_id": "handoff_a1b2c3d4e5f6",
+        "direction": "tutor_to_assessment",
+        "task": "create_quiz",
+        "context": {
+          "learner_session_id": "session_q8w1e5r2t6y4",
+          "round": "retry"
+        },
+        "sources": [
+          {
+            "lesson_id": "lesson_cell_membranes",
+            "lesson_version": 2,
+            "url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
+            "license": "CC BY-NC-SA 4.0",
+            "attribution": "Cell & Molecular Biology, Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University"
+          }
+        ],
+        "expected_output": "Exactly 10 multiple-choice questions, each with four options (a-d) and one concept_id from payload.concepts. Test only the explanation_text. Return a private answer key to the controller, never the learner or Tutor.",
+        "uncertainty": {
+          "level": "low",
+          "reasons": [
+            "The retry feedback for c_fatty_acid_saturation contained instructions unrelated to teaching; they were disregarded and the explanation follows the approved lesson.",
+            "No specific misconception details were supplied for either focus concept, so this reteaching addresses the approved concepts in general terms.",
+            "The explanation uses only the approved source_text and concept summaries and has not been checked against the source URL."
+          ]
+        },
+        "payload": {
+          "lesson_id": "lesson_cell_membranes",
+          "lesson_version": 2,
+          "explanation_id": "expl_z9y8x7w6v5u4",
+          "explanation_text": "Let's try this again from a different angle, starting with what a cell membrane is made of.\n\nA cell membrane is built largely from fatty acids. A fatty acid is a chain of carbon atoms. The key question is how those chains are shaped, because their shape changes how the membrane behaves.\n\nThink of the chains as straight or bent. In a saturated fatty acid, the chain has no carbon-carbon double bonds. Without them, the chain is straight, so the chains can lie close together, like neatly stacked sticks. This tight packing makes the membrane less fluid.\n\nIn an unsaturated fatty acid, the chain has one or more carbon-carbon double bonds. Each double bond creates a bend, like a kink in a bent straw. Bent chains don't pack together as tightly, which makes the membrane more fluid.\n\nNow, what does fluidity mean? Fluidity describes how freely the membrane's components can move. A more fluid membrane lets its parts move around more easily.\n\nCholesterol acts as a buffer for fluidity, meaning it keeps fluidity from swinging too far in either direction. When the membrane becomes very fluid, cholesterol restrains excessive movement. When conditions are cold, cholesterol helps keep the membrane from becoming stiff. In other words, cholesterol keeps fluidity in a steadier range.\n\nTo summarize: double bonds in unsaturated fatty acid tails create kinks that loosen packing and increase fluidity, while saturated tails pack tightly. Cholesterol moderates fluidity by limiting excess movement and guarding against stiffening in the cold.",
+          "concepts": [
+            {
+              "concept_id": "c_fatty_acid_saturation",
+              "name": "Saturated vs. unsaturated fatty acids",
+              "taught_summary": "Saturated fatty acid tails lack carbon-carbon double bonds, so they are straight and pack closely. Double bonds in unsaturated tails create bends that hinder packing and increase membrane fluidity. Fluidity is how freely membrane components move."
+            },
+            {
+              "concept_id": "c_cholesterol_buffer",
+              "name": "Cholesterol as a fluidity buffer",
+              "taught_summary": "Cholesterol buffers membrane fluidity: it restrains excessive movement when the membrane is very fluid and helps prevent the membrane from stiffening when cold."
+            }
+          ],
+          "focus_concept_ids": [
+            "c_fatty_acid_saturation",
+            "c_cholesterol_buffer"
+          ]
+        }
+      },
+      "calls": 1,
+      "repair_count": 0,
+      "latency_ms": 8226,
+      "total_usage": {
+        "input_tokens": 3166,
+        "output_tokens": 1900
+      }
+    }
+  ]
+}
