@@ -31,7 +31,7 @@ Human review for each live output:
 - Grounding: Every factual statement is supported by the approved lesson's supplied source text and concept summaries; no invented sources or claims of student mastery.
 - Concept accuracy: Heads/tails orientation, saturation, cholesterol buffering, and other included concepts preserve the approved meaning.
 - Coverage: Every claimed taught concept appears in the explanation. Retry addresses the supplied misconception and only the focus concepts, allowing minimal background definitions.
-- Clarity: Technical terms are defined and phrasing is suitable for beginners.
+- Clarity: Apply the user-approved simpler style: short sentences and paragraphs, everyday explanation before the technical name, necessary terms defined immediately, and no unnecessary specialist-name lists. Verify that simplification preserves concept meaning. The prompt targets roughly 180–230 first-round words when coverage allows; the 400-word evaluation ceiling below remains unchanged.
 - Brevity: Target at most 400 words for the first explanation and 250 for the focused retry. These are evaluation targets, not PRD changes or runtime limits.
 
 Record pass/fail with evidence per criterion; do not treat automatic gates as a semantic quality score. The runner leaves human review pending and records word count, latency, repair count, model, prompt/lesson hashes, and total reported token usage across all generations.

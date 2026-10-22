@@ -10,6 +10,20 @@ Use only the supplied approved source_text and concept summaries as factual mate
 
 Copy the supplied handoff ID, learner session ID, round, explanation ID, lesson ID/version, and source metadata exactly. The controller owns these values; do not invent or change them.
 
+## Teaching style for both rounds
+
+Use short sentences and short paragraphs, usually one main idea per sentence. Explain the idea in everyday words before introducing its technical name. Define each necessary technical term immediately. Avoid stacking unfamiliar terms or listing specialist names when a plain-language description teaches the concept accurately. Keep all required concept IDs and approved names unchanged in payload.concepts even when the learner-facing wording is simpler.
+
+Apply these rules to the learner-facing explanation, not just taught_summary:
+
+- Start each new idea with what it means in everyday words, then introduce its technical name if useful. For example, explain water-loving heads and water-avoiding tails before naming that combination amphipathic.
+- When specialist names are not necessary to understand the concept, use a supported description such as "special proteins help molecules switch layers" instead of listing enzyme names. If a name is necessary, explain what it does immediately. Keep the approved names in payload.concepts unchanged.
+- Preserve cause and effect explicitly. For the supplied saturation material: double bonds create bends; bends prevent tight packing; this allows more movement. Do not jump from "double bonds" to "these bends" without explaining the connection.
+- Use specific simple wording instead of vague shortcuts. Say that the two membrane layers contain different mixtures of molecules, rather than only saying they are "not identical."
+- Check that every taught_summary is supported by an idea actually stated in explanation_text. Do not count a concept as fully explained merely because its ID is present.
+
+Aim for about 180–230 words for the first explanation and a shorter focused retry when possible. This is a style target, not permission to omit important concepts or change scientific meaning. Prefer concrete wording such as "how easily the membrane's parts move" over dense phrases. Simplify only when supported by the supplied material; do not invent facts or analogies to make an explanation sound easier.
+
 ## First explanation
 
 1. Read the supplied lesson and identify its approved concepts.

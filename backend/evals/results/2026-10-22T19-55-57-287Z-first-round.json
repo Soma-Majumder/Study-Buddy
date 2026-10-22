@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-22T19:55:57.287Z",
+  "scope": "First-round Tutor with final prompt",
+  "prompt_sha256": "31fee1c6142fc873c80cd4869f2148a1fa10580d28baef534f0f50b804e3af60",
+  "lesson_input_sha256": "863803a75ae6ba70f587523e255e877d91b0e70f6b2219916a59f2953d4f5e62",
+  "model": "claude-haiku-5-5",
+  "repair_count": 0,
+  "total_usage": {
+    "input_tokens": 4467,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 2987
+  },
+  "latency_ms": 11717,
+  "gates": {
+    "schema_and_references": true,
+    "all_seven_concept_ids": true
+  },
+  "word_count": 236,
+  "human_review": "pending",
+  "handoff": {
+    "schema_version": "1.0",
+    "handoff_id": "handoff_a1b2c3d4e5f6",
+    "direction": "tutor_to_assessment",
+    "task": "create_quiz",
+    "context": {
+      "learner_session_id": "session_q8w1e5r2t6y4",
+      "round": "first"
+    },
+    "sources": [
+      {
+        "lesson_id": "lesson_cell_membranes",
+        "lesson_version": 2,
+        "url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
+        "license": "CC BY-NC-SA 4.0",
+        "attribution": "Cell & Molecular Biology, Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University"
+      }
+    ],
+    "expected_output": "Exactly 10 multiple-choice questions, each with four options (a-d) and one concept_id from payload.concepts. Test only the explanation_text. Return a private answer key to the controller, never the learner or Tutor.",
+    "uncertainty": {
+      "level": "low",
+      "reasons": [
+        "The explanation is a simplified restatement of the supplied lesson source_text and has not been checked against the original web page.",
+        "Some concepts are covered in one or two short sentences, so the learner may need more detail on them.",
+        "Concept summaries were used only to confirm scope; no outside facts were added."
+      ]
+    },
+    "payload": {
+      "lesson_id": "lesson_cell_membranes",
+      "lesson_version": 2,
+      "explanation_id": "expl_z9y8x7w6v5u4",
+      "explanation_text": "A cell membrane surrounds the cell. It controls what moves in and out.\n\nThe membrane is built from phospholipids. Each phospholipid has two parts. The head likes water. The tails avoid water. A molecule with both kinds of parts is called amphipathic. In water, the heads face outward and the tails hide inside. This forms a double layer called a bilayer. Each layer is a leaflet.\n\nThe tails are fatty acids. A fatty acid is a chain of carbon atoms. Saturated tails have no double bonds. Their straight shape lets them pack tightly. Unsaturated tails have double bonds. Each double bond creates a bend. These bends make tight packing harder. This allows more movement. Fluidity means how freely membrane parts move.\n\nSeveral things affect fluidity. These include saturation, chain length, temperature, and cholesterol.\n\nCholesterol acts as a buffer. When the membrane is too fluid, cholesterol restrains excess movement. When it is cold, cholesterol helps keep the membrane from stiffening.\n\nThe fluid mosaic model describes this structure. The membrane is a mixture of lipids, cholesterol, and proteins. These parts can move sideways.\n\nThe two leaflets contain different mixtures of molecules. Lipids rarely switch leaflets on their own. Special enzymes help them move. These enzymes include flippases, floppases, and scramblases.\n\nSugar chains on the outer surface form the glycocalyx, or sugar coating. The glycocalyx helps cells recognize each other. It also helps a cell tell self from non-self.",
+      "concepts": [
+        {
+          "concept_id": "c_amphipathic_phospholipids",
+          "name": "Amphipathic phospholipids form the bilayer",
+          "taught_summary": "Phospholipids have a water-loving head and water-avoiding tails. In water, the heads face outward and the tails face inward, forming a bilayer made of two leaflets."
+        },
+        {
+          "concept_id": "c_fatty_acid_saturation",
+          "name": "Saturated vs. unsaturated fatty acids",
+          "taught_summary": "Saturated tails have no double bonds and pack tightly. Double bonds in unsaturated tails create bends that make tight packing harder and allow more movement."
+        },
+        {
+          "concept_id": "c_fluidity_factors",
+          "name": "What affects membrane fluidity",
+          "taught_summary": "Fluidity is how freely membrane parts move. Saturation, chain length, temperature, and cholesterol affect fluidity."
+        },
+        {
+          "concept_id": "c_cholesterol_buffer",
+          "name": "Cholesterol as a fluidity buffer",
+          "taught_summary": "Cholesterol restrains excess movement when the membrane is too fluid. It also helps keep the membrane from stiffening when it is cold."
+        },
+        {
+          "concept_id": "c_fluid_mosaic_model",
+          "name": "Fluid mosaic model",
+          "taught_summary": "The membrane is a mixture of lipids, cholesterol, and proteins. These components can move sideways."
+        },
+        {
+          "concept_id": "c_membrane_asymmetry",
+          "name": "Membrane asymmetry and lipid flipping",
+          "taught_summary": "The two leaflets contain different mixtures of molecules. Lipids rarely switch leaflets without help from enzymes such as flippases, floppases, and scramblases."
+        },
+        {
+          "concept_id": "c_glycocalyx_recognition",
+          "name": "Glycocalyx and cell recognition",
+          "taught_summary": "Sugar chains on the outer surface form the glycocalyx. It helps cells recognize each other and tell self from non-self."
+        }
+      ]
+    }
+  }
+}
