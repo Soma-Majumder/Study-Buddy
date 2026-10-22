@@ -8,7 +8,7 @@
   "license": "CC BY-NC-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
   "license_notes": "Non-commercial use only. Attribution required. Derivatives must use the same license. Figures are credited to other sources; check each before reuse. No AI-use restriction found on the front page, table of contents or chapter 2.1 text read; chapter-level terms not exhaustively checked.",
-  "approved": false,
+  "approved": true,
   "concepts": [
     {
       "concept_id": "c_amphipathic_phospholipids",
