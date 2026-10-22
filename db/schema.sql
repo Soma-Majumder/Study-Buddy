@@ -89,7 +89,8 @@ CREATE TABLE questions (
 -- Private answer keys. Backend only; never sent to the client before submission.
 CREATE TABLE answer_keys (
   question_id    TEXT PRIMARY KEY REFERENCES questions (question_id),
-  correct_option TEXT NOT NULL CHECK (correct_option IN ('a', 'b', 'c', 'd'))
+  correct_option TEXT NOT NULL CHECK (correct_option IN ('a', 'b', 'c', 'd')),
+  rationale      TEXT  -- why the option is right; private until the quiz is graded
 );
 
 CREATE TABLE attempts (
