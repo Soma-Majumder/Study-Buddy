@@ -1,0 +1,25 @@
+{
+  "lesson_id": "biology.photosynthesis.basics",
+  "content_version": "1.0.0-draft",
+  "approval_status": "pending_partner_review",
+  "title": "Photosynthesis basics",
+  "subject": "Biology",
+  "difficulty": "beginner",
+  "source": {
+    "publisher": "NASA",
+    "title": "Photosynthesis STEMonstration Classroom Connection",
+    "url": "https://www.nasa.gov/wp-content/uploads/2023/08/photosynthesis-cc-ngs-082823.pdf",
+    "location": "Page 1: learning objectives, equation, and discussion",
+    "checked_on": "2026-10-22",
+    "attribution": "Adapted from NASA, Photosynthesis STEMonstration Classroom Connection, educator notes, page 1.",
+    "reuse_guidance_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+  },
+  "source_text": "In photosynthesis, plants use sunlight, water, and carbon dioxide to produce glucose, a sugar used as food, and release oxygen. Sunlight supplies energy for this process. Water and carbon dioxide are inputs; glucose and oxygen are products. The lesson asks students to predict how limiting sunlight, water, or carbon dioxide could affect a plant. This introductory lesson focuses on these requirements and products.",
+  "concepts": [
+    {"concept_id": "photosynthesis.sunlight_energy", "description": "Sunlight supplies energy for photosynthesis."},
+    {"concept_id": "photosynthesis.water_input", "description": "Water is an input to photosynthesis."},
+    {"concept_id": "photosynthesis.carbon_dioxide_input", "description": "Carbon dioxide is an input to photosynthesis."},
+    {"concept_id": "photosynthesis.glucose_food", "description": "Glucose is a sugar produced as food."},
+    {"concept_id": "photosynthesis.oxygen_output", "description": "Oxygen is a product of photosynthesis."}
+  ]
+}
