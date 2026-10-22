@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "handoff_id": "handoff_0003",
+  "direction": "tutor_to_assessment",
+  "task": "create_quiz",
+  "context": {
+    "learner_session_id": "session_0001",
+    "round": "retry"
+  },
+  "sources": [
+    {
+      "lesson_id": "lesson_cell_membranes",
+      "lesson_version": 1,
+      "url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
+      "license": "CC BY-NC-SA 4.0",
+      "attribution": "Cell & Molecular Biology, Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University"
+    }
+  ],
+  "expected_output": "Exactly 10 multiple-choice questions, each with four options (a-d) and one concept_id from payload.concepts. Test only the explanation_text. Return a private answer key to the controller, never the learner or Tutor.",
+  "uncertainty": {
+    "level": "low",
+    "reasons": [
+      "This hand-written retry follows assessment_to_tutor.example.json for the same session and lesson, after a score of 6/10.",
+      "Only the two weak concepts are retaught. Do not ask about the other first-round concepts or detailed chemical mechanisms."
+    ]
+  },
+  "payload": {
+    "lesson_id": "lesson_cell_membranes",
+    "lesson_version": 1,
+    "explanation_id": "expl_0002",
+    "explanation_text": "Compare straight and bent tails. Saturated fatty acid tails fit closely together. Double bonds bend unsaturated tails, leaving more room for movement and increasing fluidity. Cholesterol helps balance that movement. When the membrane is very fluid, cholesterol restrains movement; in the cold, it prevents excessive stiffening. It buffers fluidity rather than always increasing it.",
+    "concepts": [
+      {
+        "concept_id": "c_fatty_acid_saturation",
+        "name": "Saturated vs. unsaturated fatty acids",
+        "taught_summary": "Saturated tails pack closely; double bonds kink unsaturated tails, hindering close packing and increasing fluidity."
+      },
+      {
+        "concept_id": "c_cholesterol_buffer",
+        "name": "Cholesterol as a fluidity buffer",
+        "taught_summary": "Cholesterol restrains movement in a very fluid membrane and prevents excessive stiffening in the cold."
+      }
+    ],
+    "focus_concept_ids": [
+      "c_fatty_acid_saturation",
+      "c_cholesterol_buffer"
+    ]
+  }
+}
