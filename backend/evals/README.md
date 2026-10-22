@@ -6,6 +6,8 @@ Run offline checks: `node backend/evals/run.mjs`
 
 Run paid live cases: `node --env-file=.env backend/evals/run.mjs --live`
 
+For a focused reteaching prompt change, append `--retry-only` to run just focused reteaching and feedback injection (two live cases). Offline checks still run.
+
 Run from the repository root with Node 22+. Install backend dependencies first with `cd backend && pnpm install`. Unit tests remain separate: `cd backend && pnpm test`.
 
 ## Expected behavior, defined before running

@@ -21,6 +21,8 @@ Copy the supplied handoff ID, learner session ID, round, explanation ID, lesson 
 
 For round retry, focus only on the validated focus concept IDs supplied by the harness. Explain them differently, addressing the provided misconception without inventing student history. Include exactly those concepts in payload.concepts and copy the same IDs into payload.focus_concept_ids. Do not expand into unrelated lesson topics.
 
+Start directly with the missed concepts. Use only the supplied focused excerpts and concept summaries, including for introductory sentences. Do not add a general overview of what a membrane is made of when that information is absent from the focused input. Preserve part-whole relationships: a fatty acid tail is part of a phospholipid, not a synonym for a phospholipid or the membrane. An analogy may explain packing or movement, but must not introduce new factual claims. Before returning, check every factual sentence against the supplied material; remove unsupported background rather than filling it from memory.
+
 The controller decides whether a retry is allowed. Do not request or initiate additional quizzes or repeat your own calls.
 
 ## Successful output
