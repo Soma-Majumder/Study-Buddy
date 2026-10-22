@@ -2,6 +2,8 @@
 -- so this is plain SQL that runs on SQLite and is easy to port to Postgres.
 -- Only controller code writes to these tables (PRD: "Controller code only").
 -- IDs are text; formats are defined in docs/ids-and-records.md.
+-- Lesson JSON files in lessons/ are the source of truth; study_buddy/lessons.py loads them into
+-- the lessons and concepts tables, so the two cannot drift.
 
 PRAGMA foreign_keys = ON;
 
@@ -14,6 +16,10 @@ CREATE TABLE lessons (
   license      TEXT NOT NULL,
   attribution  TEXT NOT NULL,
   approved     INTEGER NOT NULL DEFAULT 0 CHECK (approved IN (0, 1)),
+  book         TEXT NOT NULL DEFAULT '',
+  authors      TEXT NOT NULL DEFAULT '',
+  adaptation_notice TEXT NOT NULL DEFAULT '',  -- shown with the lesson (CC BY-NC-SA: say what changed)
+  approval     TEXT,                           -- JSON: who approved the teaching text, when, what changed
   PRIMARY KEY (lesson_id, version)
 );
 
@@ -23,6 +29,7 @@ CREATE TABLE concepts (
   lesson_version INTEGER NOT NULL,
   name           TEXT NOT NULL,
   summary        TEXT NOT NULL,
+  source_passage TEXT NOT NULL DEFAULT '',     -- approved excerpt used when reteaching this concept
   FOREIGN KEY (lesson_id, lesson_version) REFERENCES lessons (lesson_id, version)
 );
 
