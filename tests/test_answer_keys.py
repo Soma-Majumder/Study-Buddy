@@ -12,9 +12,16 @@ QUIZ = json.loads((ROOT / "schemas/v1/examples/quiz_output.example.json").read_t
 def fresh_db():
     conn = sqlite3.connect(":memory:")
     conn.executescript((ROOT / "db/schema.sql").read_text())
-    conn.execute("INSERT INTO lessons VALUES ('lesson_cell_membranes', 1, 't', 's', 'u', 'l', 'a', 1)")
+    conn.execute(
+        "INSERT INTO lessons (lesson_id, version, topic, source_text, source_url, license, attribution, approved)"
+        " VALUES ('lesson_cell_membranes', 1, 't', 's', 'u', 'l', 'a', 1)"
+    )
     for c in {q["concept_id"] for q in QUIZ["quiz"]["questions"]}:
-        conn.execute("INSERT INTO concepts VALUES (?, 'lesson_cell_membranes', 1, 'n', 's')", (c,))
+        conn.execute(
+            "INSERT INTO concepts (concept_id, lesson_id, lesson_version, name, summary)"
+            " VALUES (?, 'lesson_cell_membranes', 1, 'n', 's')",
+            (c,),
+        )
     conn.execute("INSERT INTO learners VALUES ('learner_a')")
     conn.execute(
         "INSERT INTO study_sessions VALUES ('session_a', 'learner_a', 'lesson_cell_membranes', 1,"

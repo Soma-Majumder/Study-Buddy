@@ -63,7 +63,6 @@ export async function runTutor(context, claudeOptions = {}, repairState = {count
         };
       }
     }
-    throw new TutorRunError('output validation', repairState.count, usage);
   } catch {
     throw new TutorRunError(stage, repairState.count, usage);
   }
