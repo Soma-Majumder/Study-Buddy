@@ -1,6 +1,6 @@
 {
   "lesson_id": "lesson_cell_membranes",
-  "version": 1,
+  "version": 2,
   "title": "Membrane Structure & Composition",
   "book": "Cell & Molecular Biology",
   "authors": "Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University",
@@ -50,5 +50,20 @@
     "Membrane proteins (transmembrane vs. peripheral) and lipid rafts were only seen in a summary, not verified text. Add as concepts after checking the live page.",
     "Mark approved: true only after a builder reviews the license and concept list.",
     "Confirm exact copyright line on the live page."
-  ]
+  ],
+  "source_text": "A cell membrane surrounds a cell and regulates exchange with its surroundings. Its phospholipids are amphipathic: each has a hydrophilic (water-loving) head and hydrophobic (water-avoiding) fatty acid tails. In water, they form a bilayer with heads facing water on both sides and tails inside. Each layer is a leaflet.\n\nFatty acids are carbon chains. Saturated chains lack carbon–carbon double bonds and pack closely. Double bonds in unsaturated tails create bends that hinder packing and increase fluidity. Fluidity means how freely membrane components move. Saturation, chain length, temperature, and cholesterol affect it.\n\nCholesterol buffers fluidity: it restrains excessive movement and helps prevent cold-induced stiffening. The fluid mosaic model describes a mixture of lipids, cholesterol, and proteins with components moving sideways.\n\nThe leaflets differ in composition. Lipids seldom switch leaflets unaided; flippases, floppases, and scramblases assist this movement. Outer-surface carbohydrate chains form the glycocalyx, or sugar coating, supporting cell recognition and self/non-self distinction.",
+  "source_text_approval": {
+    "approved_by": "Ivaylo Nanev",
+    "approved_on": "2026-10-22",
+    "changes": "Added reviewed teaching passage and focused excerpts; concept IDs unchanged."
+  },
+  "source_passages": {
+    "c_amphipathic_phospholipids": "A cell membrane surrounds a cell and regulates exchange with its surroundings. Its phospholipids are amphipathic: each has a hydrophilic (water-loving) head and hydrophobic (water-avoiding) fatty acid tails. In water, they form a bilayer with heads facing water on both sides and tails inside. Each layer is a leaflet.",
+    "c_fatty_acid_saturation": "Fatty acids are carbon chains. Saturated chains lack carbon–carbon double bonds and pack closely. Double bonds in unsaturated tails create bends that hinder packing and increase fluidity. Fluidity means how freely membrane components move.",
+    "c_fluidity_factors": "Fluidity means how freely membrane components move. Saturation, chain length, temperature, and cholesterol affect it.",
+    "c_cholesterol_buffer": "Fluidity means how freely membrane components move. Cholesterol buffers fluidity: it restrains excessive movement and helps prevent cold-induced stiffening.",
+    "c_fluid_mosaic_model": "The fluid mosaic model describes a mixture of lipids, cholesterol, and proteins with components moving sideways.",
+    "c_membrane_asymmetry": "Each layer is a leaflet. The leaflets differ in composition. Lipids seldom switch leaflets unaided; flippases, floppases, and scramblases assist this movement.",
+    "c_glycocalyx_recognition": "Outer-surface carbohydrate chains form the glycocalyx, or sugar coating, supporting cell recognition and self/non-self distinction."
+  }
 }

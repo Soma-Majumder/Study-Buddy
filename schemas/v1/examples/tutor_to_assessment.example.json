@@ -10,7 +10,7 @@
   "sources": [
     {
       "lesson_id": "lesson_cell_membranes",
-      "lesson_version": 1,
+      "lesson_version": 2,
       "url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
       "license": "CC BY-NC-SA 4.0",
       "attribution": "Cell & Molecular Biology, Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University"
@@ -26,7 +26,7 @@
   },
   "payload": {
     "lesson_id": "lesson_cell_membranes",
-    "lesson_version": 1,
+    "lesson_version": 2,
     "explanation_id": "expl_0001",
     "explanation_text": "A cell membrane is a flexible boundary. Phospholipids have water-loving heads and water-avoiding tails: this combination is called amphipathic. They form a bilayer with heads toward water on both sides and tails tucked inside. Saturated fatty acid tails pack closely. Double bonds kink unsaturated tails, making close packing harder and increasing fluidity. Fluidity describes how freely membrane components move. Tail saturation, chain length, temperature, and cholesterol affect it. Cholesterol buffers fluidity: it restrains movement when the membrane is very fluid and prevents excessive stiffening in the cold. The fluid mosaic model describes a mixture of lipids, cholesterol, and proteins whose components can move sideways. The two membrane layers, or leaflets, differ in composition. Lipids rarely switch leaflets without enzymes such as flippases, floppases, and scramblases. Sugars on the outer surface form the glycocalyx and help cells recognize one another, including distinguishing self from non-self.",
     "concepts": [

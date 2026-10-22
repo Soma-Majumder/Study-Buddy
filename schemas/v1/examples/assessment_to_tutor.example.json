@@ -10,7 +10,7 @@
   "sources": [
     {
       "lesson_id": "lesson_cell_membranes",
-      "lesson_version": 1,
+      "lesson_version": 2,
       "url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
       "license": "CC BY-NC-SA 4.0",
       "attribution": "Cell & Molecular Biology, Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University"
@@ -23,7 +23,7 @@
   },
   "payload": {
     "lesson_id": "lesson_cell_membranes",
-    "lesson_version": 1,
+    "lesson_version": 2,
     "quiz_id": "quiz_0001",
     "attempt_id": "attempt_0001",
     "score": 6,
