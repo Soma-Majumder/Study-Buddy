@@ -27,7 +27,7 @@ Rules:
 
 | Table | What it holds | PRD item |
 |---|---|---|
-| `lessons`, `concepts` | Approved lesson text, source link, license, credit, and its concepts | lessons |
+| `lessons`, `concepts` | Approved lesson text, source link, license, credit, adaptation notice, approval record, and its concepts with their source passages. **Source of truth is `lessons/*.json`**; `study_buddy/lessons.py` loads approved files into these tables | lessons |
 | `learners` | One row per learner. Every history query is filtered by `learner_id` | learner isolation |
 | `study_sessions` | Learner, lesson, status, learning retry count (0 or 1), failure reason | study_sessions |
 | `handoff_repairs` | Repair count (0 or 1) per `handoff_id`. Separate from learning retries | repair counts |

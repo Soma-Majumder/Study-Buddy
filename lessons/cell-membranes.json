@@ -8,6 +8,7 @@
   "license": "CC BY-NC-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
   "license_notes": "Non-commercial use only. Attribution required. Derivatives must use the same license. Figures are credited to other sources; check each before reuse. No AI-use restriction found on the front page, table of contents or chapter 2.1 text read; chapter-level terms not exhaustively checked.",
+  "adaptation_notice": "Adapted and simplified from Cell & Molecular Biology, section 2.1, by Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University (https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/), licensed CC BY-NC-SA 4.0. Changes: beginner-friendly paraphrase and selected concepts only; no source figures included. This adaptation is shared under the same license.",
   "approved": true,
   "concepts": [
     {
@@ -46,11 +47,6 @@
       "summary": "Sugars on the outer surface help cells recognize each other and tell self from non-self."
     }
   ],
-  "open_items": [
-    "Membrane proteins (transmembrane vs. peripheral) and lipid rafts were only seen in a summary, not verified text. Add as concepts after checking the live page.",
-    "Mark approved: true only after a builder reviews the license and concept list.",
-    "Confirm exact copyright line on the live page."
-  ],
   "source_text": "A cell membrane surrounds a cell and regulates exchange with its surroundings. Its phospholipids are amphipathic: each has a hydrophilic (water-loving) head and hydrophobic (water-avoiding) fatty acid tails. In water, they form a bilayer with heads facing water on both sides and tails inside. Each layer is a leaflet.\n\nFatty acids are carbon chains. Saturated chains lack carbon–carbon double bonds and pack closely. Double bonds in unsaturated tails create bends that hinder packing and increase fluidity. Fluidity means how freely membrane components move. Saturation, chain length, temperature, and cholesterol affect it.\n\nCholesterol buffers fluidity: it restrains excessive movement and helps prevent cold-induced stiffening. The fluid mosaic model describes a mixture of lipids, cholesterol, and proteins with components moving sideways.\n\nThe leaflets differ in composition. Lipids seldom switch leaflets unaided; flippases, floppases, and scramblases assist this movement. Outer-surface carbohydrate chains form the glycocalyx, or sugar coating, supporting cell recognition and self/non-self distinction.",
   "source_text_approval": {
     "approved_by": "Ivaylo Nanev",
@@ -65,5 +61,9 @@
     "c_fluid_mosaic_model": "The fluid mosaic model describes a mixture of lipids, cholesterol, and proteins with components moving sideways.",
     "c_membrane_asymmetry": "Each layer is a leaflet. The leaflets differ in composition. Lipids seldom switch leaflets unaided; flippases, floppases, and scramblases assist this movement.",
     "c_glycocalyx_recognition": "Outer-surface carbohydrate chains form the glycocalyx, or sugar coating, supporting cell recognition and self/non-self distinction."
-  }
+  },
+  "not_covered": [
+    "Membrane proteins (transmembrane vs. peripheral)",
+    "Lipid rafts"
+  ]
 }
