@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "study-buddy/result-explanation/v1",
+  "title": "Assessment result explanation (v1)",
+  "description": "Returned by Assessment after the controller grades an attempt. The controller owns the score and the weak-concept list; this output must agree with them (see study_buddy/result_check.py). Feedback is keyed by question position.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "quiz_id",
+    "attempt_id",
+    "feedback",
+    "weak_concepts",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "quiz_id": {
+      "$ref": "#/$defs/id"
+    },
+    "attempt_id": {
+      "$ref": "#/$defs/id"
+    },
+    "feedback": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "position",
+          "explanation"
+        ],
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "weak_concepts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "concept_id",
+          "missed_count"
+        ],
+        "properties": {
+          "concept_id": {
+            "$ref": "#/$defs/id"
+          },
+          "missed_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "minLength": 3
+    }
+  }
+}

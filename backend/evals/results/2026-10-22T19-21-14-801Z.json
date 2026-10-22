@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-22T19:21:14.801Z",
+  "scope": "Tutor only",
+  "offline": [
+    {
+      "name": "approved first-round input",
+      "expected": "accept",
+      "pass": true
+    },
+    {
+      "name": "7/10 permits unused retry",
+      "expected": "accept",
+      "pass": true
+    },
+    {
+      "name": "8/10 blocks reteaching",
+      "expected": "reject",
+      "pass": true
+    },
+    {
+      "name": "missing weak concepts",
+      "expected": "reject",
+      "pass": true
+    },
+    {
+      "name": "stale attempt",
+      "expected": "reject",
+      "pass": true
+    },
+    {
+      "name": "used learning retry",
+      "expected": "reject",
+      "pass": true
+    },
+    {
+      "name": "missing lesson",
+      "expected": "reject",
+      "pass": true
+    }
+  ],
+  "live": []
+}

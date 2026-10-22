@@ -1,0 +1,74 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { callClaude } from './claude.mjs';
+
+const input = {system: 'Tutor instructions', user: '{"lesson":"approved material"}'};
+const key = 'fake-test-key';
+const response = overrides => ({ok: true, json: async () => ({
+  stop_reason: 'end_turn', content: [{type: 'text', text: '{"payload":{}}'}],
+  model: 'test-model', usage: {input_tokens: 10, output_tokens: 5}, ...overrides,
+})});
+
+test('sends one request with separate instructions and data, returning unvalidated text', async () => {
+  let calls = 0;
+  const result = await callClaude(input, {apiKey: key, model: 'test-model', fetchImpl: async (url, options) => {
+    calls++;
+    assert.equal(url, 'https://api.anthropic.com/v1/messages');
+    assert.equal(options.headers['x-api-key'], key);
+    const body = JSON.parse(options.body);
+    assert.equal(body.system, input.system);
+    assert.deepEqual(body.messages, [{role: 'user', content: input.user}]);
+    assert.equal(body.max_tokens, 4096);
+    assert.ok(!options.body.includes(key));
+    return response();
+  }});
+  assert.equal(calls, 1);
+  assert.equal(result.text, '{"payload":{}}');
+  assert.equal(result.model, 'test-model');
+});
+
+test('rejects missing key before network access', async () => {
+  await assert.rejects(callClaude(input, {apiKey: '', fetchImpl: () => assert.fail('No network expected')}), /API_KEY is required/);
+});
+
+test('API rejection is not retried and does not expose its body', async () => {
+  let calls = 0;
+  await assert.rejects(callClaude(input, {apiKey: key, fetchImpl: async () => {
+    calls++;
+    return {ok: false, status: 401, json: () => assert.fail('Do not read error body')};
+  }}), {message: 'Claude request failed (HTTP 401).'});
+  assert.equal(calls, 1);
+});
+
+test('rejects truncated, empty, or unexpected responses', async () => {
+  for (const data of [
+    {stop_reason: 'max_tokens'}, {content: []},
+    {content: [{type: 'text', text: ' '}]},
+    {content: [{type: 'tool_use', name: 'unsupported_tool'}]},
+  ]) {
+    await assert.rejects(callClaude(input, {apiKey: key, fetchImpl: async () => response(data)}), /Claude (did not finish|returned)/);
+  }
+});
+
+test('transport errors do not leak their raw message', async () => {
+  await assert.rejects(callClaude(input, {apiKey: key, fetchImpl: async () => {throw new Error(key);}}),
+    {message: 'Could not reach Claude or read its response.'});
+});
+
+test('timeout stops a stalled request', async () => {
+  await assert.rejects(callClaude(input, {apiKey: key, timeoutMs: 10,
+    fetchImpl: async (_url, {signal}) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new Error('aborted')), {once: true});
+    }),
+  }), {message: 'Claude request timed out.'});
+});
+
+test('extracts only text when Claude also returns thinking blocks', async () => {
+  const result = await callClaude(input, {apiKey: key, fetchImpl: async () => response({content: [
+    {type: 'thinking', thinking: 'private reasoning'},
+    {type: 'redacted_thinking', data: 'opaque'},
+    {type: 'text', text: '{"payload":{}}'},
+  ]})});
+  assert.equal(result.text, '{"payload":{}}');
+  assert.ok(!JSON.stringify(result).includes('private reasoning'));
+});

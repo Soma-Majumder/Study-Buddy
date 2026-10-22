@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "quiz_id": "quiz_0001",
+  "attempt_id": "attempt_0001",
+  "feedback": [
+    {
+      "position": 1,
+      "explanation": "Correct. Heads love water and tails avoid it; the explanation calls this combination amphipathic."
+    },
+    {
+      "position": 2,
+      "explanation": "Correct. Tails are water-avoiding, so they are tucked inside while heads face the water on both sides."
+    },
+    {
+      "position": 3,
+      "explanation": "Not quite. Saturated tails pack closely; double bonds kink unsaturated tails."
+    },
+    {
+      "position": 4,
+      "explanation": "Not quite. Kinks make close packing harder, which increases fluidity."
+    },
+    {
+      "position": 5,
+      "explanation": "Correct. The explanation lists tail saturation, chain length, temperature and cholesterol."
+    },
+    {
+      "position": 6,
+      "explanation": "Not quite. Cholesterol buffers fluidity: it restrains movement in a very fluid membrane."
+    },
+    {
+      "position": 7,
+      "explanation": "Not quite. Cholesterol prevents excessive stiffening in the cold."
+    },
+    {
+      "position": 8,
+      "explanation": "Correct. The model describes lipids, cholesterol and proteins whose components can move sideways."
+    },
+    {
+      "position": 9,
+      "explanation": "Correct. Lipids rarely switch leaflets without enzymes such as flippases, floppases and scramblases."
+    },
+    {
+      "position": 10,
+      "explanation": "Correct. They help cells recognize one another, including telling self from non-self."
+    }
+  ],
+  "weak_concepts": [
+    {
+      "concept_id": "c_cholesterol_buffer",
+      "missed_count": 2,
+      "note": "Review what cholesterol does in a very fluid membrane and in the cold."
+    },
+    {
+      "concept_id": "c_fatty_acid_saturation",
+      "missed_count": 2,
+      "note": "Review which tails pack closely and why kinks increase fluidity."
+    }
+  ],
+  "summary": "You scored 6/10. Phospholipids, fluidity factors, the fluid mosaic model, membrane asymmetry and the glycocalyx are solid. Revisit saturated vs. unsaturated tails and cholesterol as a buffer."
+}
