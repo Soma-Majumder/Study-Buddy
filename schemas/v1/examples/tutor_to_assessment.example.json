@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "handoff_id": "handoff_0001",
+  "direction": "tutor_to_assessment",
+  "task": "create_quiz",
+  "context": {
+    "learner_session_id": "session_0001",
+    "round": "first"
+  },
+  "sources": [
+    {
+      "lesson_id": "lesson_cell_membranes",
+      "lesson_version": 1,
+      "url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
+      "license": "CC BY-NC-SA 4.0",
+      "attribution": "Cell & Molecular Biology, Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University"
+    }
+  ],
+  "expected_output": "Ten multiple-choice questions covering only the concepts listed, each tagged with one concept_id, plus a private answer key.",
+  "uncertainty": {
+    "level": "low",
+    "reasons": [
+      "Chapter covers membrane proteins and lipid rafts, which are not part of this lesson's concept list."
+    ]
+  },
+  "payload": {
+    "lesson_id": "lesson_cell_membranes",
+    "lesson_version": 1,
+    "explanation_id": "expl_0001",
+    "explanation_text": "Cell membranes are made of phospholipids, which have a water-loving head and two water-avoiding tails. In water they line up in two layers with the tails tucked inside. (Example text; the real Tutor writes the full explanation.)",
+    "concepts": [
+      {
+        "concept_id": "c_amphipathic_phospholipids",
+        "name": "Amphipathic phospholipids form the bilayer",
+        "taught_summary": "Heads face the water and tails face inward, forming a two-layer membrane."
+      },
+      {
+        "concept_id": "c_fatty_acid_saturation",
+        "name": "Saturated vs. unsaturated fatty acids",
+        "taught_summary": "Saturated tails pack tightly; kinks from double bonds in unsaturated tails increase fluidity."
+      },
+      {
+        "concept_id": "c_cholesterol_buffer",
+        "name": "Cholesterol as a fluidity buffer",
+        "taught_summary": "Cholesterol keeps the membrane from becoming too fluid when warm or too stiff when cold."
+      }
+    ]
+  }
+}
