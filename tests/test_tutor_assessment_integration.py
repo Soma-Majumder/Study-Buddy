@@ -15,6 +15,7 @@ import unittest
 from scripts.validate_quiz import check
 from study_buddy.answer_keys import get_answer_key, get_client_quiz, save_quiz
 from study_buddy.grading import grade
+from study_buddy.lessons import load_lessons
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -73,14 +74,12 @@ console.log(JSON.stringify({handoff: result.handoff, calls}));
         session = self.handoff["context"]["learner_session_id"]
         with sqlite3.connect(":memory:") as conn:
             conn.executescript((ROOT / "db/schema.sql").read_text())
-            conn.execute("INSERT INTO lessons VALUES (?, ?, ?, ?, ?, ?, ?, 1)", (
-                lesson["lesson_id"], lesson["version"], lesson["title"], lesson["source_text"],
-                lesson["source_url"], lesson["license"], self.handoff["sources"][0]["attribution"],
-            ))
-            for c in lesson["concepts"]:
-                conn.execute("INSERT INTO concepts VALUES (?, ?, ?, ?, ?)", (
-                    c["concept_id"], lesson["lesson_id"], lesson["version"], c["name"], c["summary"],
-                ))
+            self.assertIn((p["lesson_id"], p["lesson_version"]), load_lessons(conn))
+            stored = conn.execute(
+                "SELECT source_text, attribution FROM lessons WHERE lesson_id = ? AND version = ?",
+                (p["lesson_id"], p["lesson_version"]),
+            ).fetchone()
+            self.assertEqual(stored, (lesson["source_text"], self.handoff["sources"][0]["attribution"]))
             conn.execute("INSERT INTO learners VALUES ('learner_integration')")
             conn.execute("INSERT INTO study_sessions VALUES (?, 'learner_integration', ?, ?, 'teaching', NULL, 0, 'test')",
                          (session, p["lesson_id"], p["lesson_version"]))
