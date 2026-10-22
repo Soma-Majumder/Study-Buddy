@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "study-buddy/quiz-output/v1",
+  "title": "Assessment quiz output (v1)",
+  "description": "What Assessment returns to the controller when it builds a quiz. 'quiz' may be shown to the learner. 'answer_key' is private: the controller stores it in answer_keys and never sends it to the client or the Tutor before submission. Questions test only concepts taught in the explanation of the handoff.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "handoff_id",
+    "explanation_id",
+    "round",
+    "quiz",
+    "answer_key"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "handoff_id": {
+      "$ref": "#/$defs/id"
+    },
+    "explanation_id": {
+      "$ref": "#/$defs/id"
+    },
+    "round": {
+      "enum": [
+        "first",
+        "retry"
+      ]
+    },
+    "quiz": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "questions"
+      ],
+      "properties": {
+        "questions": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "position",
+              "concept_id",
+              "prompt",
+              "options"
+            ],
+            "properties": {
+              "position": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "concept_id": {
+                "$ref": "#/$defs/id"
+              },
+              "prompt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "options": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "a",
+                  "b",
+                  "c",
+                  "d"
+                ],
+                "properties": {
+                  "a": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "b": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "c": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "d": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "answer_key": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "position",
+          "correct_option",
+          "rationale"
+        ],
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "correct_option": {
+            "enum": [
+              "a",
+              "b",
+              "c",
+              "d"
+            ]
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Why this option is right, in terms of the explanation. Private until the quiz is graded."
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "minLength": 3
+    }
+  }
+}
