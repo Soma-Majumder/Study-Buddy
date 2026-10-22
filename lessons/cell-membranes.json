@@ -1,0 +1,54 @@
+{
+  "lesson_id": "lesson_cell_membranes",
+  "version": 1,
+  "title": "Membrane Structure & Composition",
+  "book": "Cell & Molecular Biology",
+  "authors": "Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University",
+  "source_url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
+  "license": "CC BY-NC-SA 4.0",
+  "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "license_notes": "Non-commercial use only. Attribution required. Derivatives must use the same license. Figures are credited to other sources; check each before reuse. No AI-use restriction found on the front page, table of contents or chapter 2.1 text read; chapter-level terms not exhaustively checked.",
+  "approved": false,
+  "concepts": [
+    {
+      "concept_id": "c_amphipathic_phospholipids",
+      "name": "Amphipathic phospholipids form the bilayer",
+      "summary": "Phospholipids have a water-loving head and water-avoiding tails, so in water the heads face outward and the tails face inward."
+    },
+    {
+      "concept_id": "c_fatty_acid_saturation",
+      "name": "Saturated vs. unsaturated fatty acids",
+      "summary": "Saturated tails pack tightly; double bonds in unsaturated tails create kinks that increase fluidity."
+    },
+    {
+      "concept_id": "c_fluidity_factors",
+      "name": "What affects membrane fluidity",
+      "summary": "Fluidity depends on fatty acid saturation and chain length, temperature, and cholesterol."
+    },
+    {
+      "concept_id": "c_cholesterol_buffer",
+      "name": "Cholesterol as a fluidity buffer",
+      "summary": "Cholesterol restricts motion when the membrane is very fluid and keeps it from stiffening when it is cold, widening the transition range."
+    },
+    {
+      "concept_id": "c_fluid_mosaic_model",
+      "name": "Fluid mosaic model",
+      "summary": "The membrane is a mosaic of lipids, cholesterol and proteins whose components can move sideways (Singer and Nicolson, 1972)."
+    },
+    {
+      "concept_id": "c_membrane_asymmetry",
+      "name": "Membrane asymmetry and lipid flipping",
+      "summary": "The two leaflets differ in composition; lipids rarely flip between them without enzymes (flippases, floppases, scramblases)."
+    },
+    {
+      "concept_id": "c_glycocalyx_recognition",
+      "name": "Glycocalyx and cell recognition",
+      "summary": "Sugars on the outer surface help cells recognize each other and tell self from non-self."
+    }
+  ],
+  "open_items": [
+    "Membrane proteins (transmembrane vs. peripheral) and lipid rafts were only seen in a summary, not verified text. Add as concepts after checking the live page.",
+    "Mark approved: true only after a builder reviews the license and concept list.",
+    "Confirm exact copyright line on the live page."
+  ]
+}
