@@ -188,7 +188,7 @@
       }
     }
   ],
-  "review": "Structured output with strict result envelope passed live API and controller validation on first generation. Ten questions/private keys saved, no repair, no learner key leak. Content quality not scored in this format-focused evaluation.",
+  "review": "Format passed live on first call. Completed manual quality review: keyed answers/rationales appear grounded and no clear answer overlap found, but only 2/10 understanding items, weak distractors, and mostly repetitive rationales. Needs revision; see ../assessment-quality-review-2026-10-26.md.",
   "assessment_structured_output": true,
   "assessment_effort": "low",
   "assessment_max_tokens": 8192,
@@ -414,5 +414,143 @@
     "cache_read_input_tokens": 0,
     "thinking_tokens": 4459,
     "thinking_share_of_output": 0.7095798854232973
+  },
+  "quality_review": {
+    "verdict": "needs_revision",
+    "reviewer": "coding assistant, not independent educator",
+    "reference": "Supplied Tutor explanation only; no independent scientific source verification",
+    "questions": [
+      {
+        "position": 1,
+        "concept_id": "c_amphipathic_phospholipids",
+        "primary_demand": "recall",
+        "supporting_sentence": "They form a bilayer with heads toward water on both sides and tails tucked inside.",
+        "grounding_correctness": true,
+        "one_defensible_answer": true,
+        "plausible_distractors": false,
+        "clarity_fair_cues": true,
+        "useful_rationale": true,
+        "notes": "Wrong choices a and d both place heads toward tails; redundant distractors reduce the useful alternatives."
+      },
+      {
+        "position": 2,
+        "concept_id": "c_amphipathic_phospholipids",
+        "primary_demand": "cause/effect",
+        "supporting_sentence": "Phospholipids have water-loving heads and water-avoiding tails: this combination is called amphipathic.",
+        "grounding_correctness": true,
+        "one_defensible_answer": true,
+        "plausible_distractors": false,
+        "clarity_fair_cues": true,
+        "useful_rationale": true,
+        "notes": "Sugar attraction and surface-protein binding are unrelated explanations absent from the teaching; overlaps Q1 on bilayer arrangement."
+      },
+      {
+        "position": 3,
+        "concept_id": "c_fatty_acid_saturation",
+        "primary_demand": "cause/effect",
+        "supporting_sentence": "Double bonds kink unsaturated tails, making close packing harder and increasing fluidity.",
+        "grounding_correctness": true,
+        "one_defensible_answer": true,
+        "plausible_distractors": false,
+        "clarity_fair_cues": true,
+        "useful_rationale": true,
+        "notes": "Packing reversal is plausible, but leaflet flipping and attracting water are weak alternatives; this is the strongest reasoning item."
+      },
+      {
+        "position": 4,
+        "concept_id": "c_fluidity_factors",
+        "primary_demand": "recall",
+        "supporting_sentence": "Tail saturation, chain length, temperature, and cholesterol affect it.",
+        "grounding_correctness": true,
+        "one_defensible_answer": true,
+        "plausible_distractors": false,
+        "clarity_fair_cues": true,
+        "useful_rationale": false,
+        "notes": "Asks for the memorized list; three distractor lists mix unrelated processes. Rationale just repeats the list."
+      },
+      {
+        "position": 5,
+        "concept_id": "c_cholesterol_buffer",
+        "primary_demand": "recall",
+        "supporting_sentence": "Cholesterol buffers fluidity: it restrains movement when the membrane is very fluid and prevents excessive stiffening in the cold.",
+        "grounding_correctness": true,
+        "one_defensible_answer": true,
+        "plausible_distractors": false,
+        "clarity_fair_cues": true,
+        "useful_rationale": false,
+        "notes": "One useful reversed-motion distractor, plus unrelated sugar/leaflet roles. Rationale restates the keyed role."
+      },
+      {
+        "position": 6,
+        "concept_id": "c_cholesterol_buffer",
+        "primary_demand": "recall",
+        "supporting_sentence": "Cholesterol buffers fluidity: it restrains movement when the membrane is very fluid and prevents excessive stiffening in the cold.",
+        "grounding_correctness": true,
+        "one_defensible_answer": true,
+        "plausible_distractors": false,
+        "clarity_fair_cues": true,
+        "useful_rationale": false,
+        "notes": "Clear cold-condition answer without the earlier synonym overlap, but identical leaflets and glycocalyx alternatives are implausible."
+      },
+      {
+        "position": 7,
+        "concept_id": "c_fluid_mosaic_model",
+        "primary_demand": "recall",
+        "supporting_sentence": "The fluid mosaic model describes a mixture of lipids, cholesterol, and proteins whose components can move sideways.",
+        "grounding_correctness": true,
+        "one_defensible_answer": true,
+        "plausible_distractors": false,
+        "clarity_fair_cues": false,
+        "useful_rationale": false,
+        "notes": "Single continuous sheet describes structure, not a parallel kind of movement. Rationale repeats move sideways."
+      },
+      {
+        "position": 8,
+        "concept_id": "c_membrane_asymmetry",
+        "primary_demand": "recall",
+        "supporting_sentence": "Lipids rarely switch leaflets without enzymes such as flippases, floppases, and scramblases.",
+        "grounding_correctness": true,
+        "one_defensible_answer": true,
+        "plausible_distractors": false,
+        "clarity_fair_cues": false,
+        "useful_rationale": false,
+        "notes": "Correct choice is the only enzyme category; this still tests recognition of a specialist-name cue rather than the movement/help relationship."
+      },
+      {
+        "position": 9,
+        "concept_id": "c_glycocalyx_recognition",
+        "primary_demand": "recall",
+        "supporting_sentence": "Sugars on the outer surface form the glycocalyx and help cells recognize one another, including distinguishing self from non-self.",
+        "grounding_correctness": true,
+        "one_defensible_answer": true,
+        "plausible_distractors": false,
+        "clarity_fair_cues": false,
+        "useful_rationale": false,
+        "notes": "Correct role is the longest and most detailed choice; other roles are unrelated. Rationale mainly repeats recognition."
+      },
+      {
+        "position": 10,
+        "concept_id": "c_membrane_asymmetry",
+        "primary_demand": "recall",
+        "supporting_sentence": "The two membrane layers, or leaflets, differ in composition.",
+        "grounding_correctness": true,
+        "one_defensible_answer": true,
+        "plausible_distractors": false,
+        "clarity_fair_cues": false,
+        "useful_rationale": false,
+        "notes": "Only proteins and cholesterol layers are easy unsupported contrasts. The word compare does not make recognizing differ in composition a reasoning task."
+      }
+    ],
+    "understanding_items": [
+      2,
+      3
+    ],
+    "understanding_target": 6,
+    "rationale_word_range": [
+      9,
+      13
+    ],
+    "all_seven_taught_concepts_covered": true,
+    "caveat": "These manual judgments are not runtime enforcement or a reliability estimate."
   }
 }

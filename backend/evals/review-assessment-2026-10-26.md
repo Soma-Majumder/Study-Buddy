@@ -240,3 +240,8 @@ Successful report: `results/2026-10-26T19-10-34-267200+00-00-assessment-controll
 All 64 JavaScript and 109 Python tests passed; preexisting unclosed SQLite connection warnings remain. New tests verify grammar rejection of the recurring extra fields, success/error branches, API request merging, unsupported-bound projection, and original-schema enforcement of ten items. Existing fake-provider bridge tests were updated to return the transport envelope without bypassing controller validation.
 
 This is a verified format fix on one live sample, not a reliability estimate or semantic-quality approval. Some constraints are not expressible in the provider grammar and still require local validation. No content-quality claim is made for the newly accepted quiz; review ambiguity, distractors, and grounding separately.
+
+
+## Completed quality review of the schema-valid quiz
+
+See `assessment-quality-review-2026-10-26.md` and the saved report's quality_review object for per-question evidence and rubric judgments. All ten keys/rationales appear supported; no clear answer overlap was found in this sample. Coverage includes seven concepts, with 9–13-word rationales. Only Q2/Q3 clearly test understanding; other items mostly require recall. Weak distractors and some unfair cues mean needs_revision. This is manual report metadata, not a runtime quality gate or an independent scientific/educator review. No paid call or prompt change was made.
