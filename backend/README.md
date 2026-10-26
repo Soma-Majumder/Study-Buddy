@@ -438,3 +438,10 @@ The guard applies to Tutor, Assessment generation/technical repair/content revis
 Normal application/bridge calls stay disabled until a developer deliberately enables the server process. No real `.env` was edited or opt-in enabled by this change. `backend/evals/assessment-quiz.mjs --live` explicitly passes permission after its existing one-call CLI check. The controller evaluator enables its child process only after both `--live --quality-gate` checks (up to five calls). These are paid entry points; never run them in ordinary CI.
 
 Existing offline tests opt in only around their fake transports and fake keys. Python/Node subprocess tests install a fake fetch preload and enable the flag in that temporary test environment; direct JS tests pass the boolean alongside a stub. Dedicated tests disable opt-in, install fetch tripwires, and prove that a key/custom transport/model-authored permission cannot trigger requests. CI identity or an API key is not an opt-in. No live model request was made to verify this feature.
+
+
+### Maintenance worker: one cycle
+
+`study_buddy.maintenance_worker.run_maintenance_cycle(database, limit=100)` is the worker entry point for one bounded expiry sweep. It opens only an existing SQLite database, enables foreign keys, owns and closes its connection, and waits at most five seconds for a SQLite lock. It returns aggregate counts after the existing sweeper commits; database errors propagate rather than becoming a successful cycle or triggering an automatic retry. Invalid limits fail before opening the database.
+
+The existing `python -B scripts/expire_quality_operations.py /absolute/path/to/study-buddy.db --limit 100` command now uses this entry point and retains its counts-only output. The database must already contain the required application tables. This cycle does not run migrations, call agents, reset budgets, or start a recurring process. A repeating loop, shutdown handling, and deployment scheduling are later steps.
