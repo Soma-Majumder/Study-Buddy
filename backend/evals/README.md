@@ -59,3 +59,8 @@ Controller generation failures now record `error_code`, `http_status`, and `stop
 Append `--capture-response-text` to the controller evaluation command to save text blocks from successful Claude responses in a local `*-assessment-response-text.jsonl` artifact. This still requires `--live` and may make two paid requests. The evaluation process loads `capture-response.mjs` through a Node preload; application code has no capture dependency. Files are created with owner-only permissions and may contain private answer keys. They must not be served to learners. Headers, request bodies, thinking blocks, and provider error bodies are excluded. An offline fake-provider test verifies those exclusions.
 
 The first capture run succeeded after one schema repair. Both responses were valid JSON; earlier parse failures were not reproduced. See the review notes for exact evidence and remaining content-quality limitations.
+
+
+### Assessment content quality
+
+Use `assessment-quality-rubric.md` to review grounding, one-answer clarity, distractor plausibility, fair wording, and rationale quality separately from JSON validation. The prompt now requests parallel answer categories, plausible confusions of taught relationships, varied understanding tasks, and fewer specialist-name recall items. These changes were motivated by the captured October 26 sample; they have not yet been live-evaluated. The six-understanding-item target is a prompt/review preference, not a new runtime rule or PRD acceptance threshold.

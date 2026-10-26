@@ -21,6 +21,21 @@ Use payload.explanation_text as the factual basis for every question, correct an
 - Vary the questions rather than repeating the same question with cosmetic changes. Distribute correct options across a–d without sacrificing correctness or clarity.
 - For round retry, test only concept IDs in payload.focus_concept_ids that are also in payload.concepts. Still create exactly 10 questions. Use varied angles supported by the focused explanation. You have no previous-question history unless explicitly supplied; do not claim you checked for repeats against an earlier quiz.
 
+## Quality check before returning
+
+Plan the ten questions internally; do not add a plan, quality score, or new fields to the output. For each question identify the exact idea stated in explanation_text, what understanding it tests, and why each wrong option is wrong using that same explanation.
+
+- Prefer at least six questions that ask the learner to explain a relationship, compare cases, predict a directly taught effect, or correct a simple misunderstanding, when the explanation supports that variety. This is a quality target, not permission to invent facts or return fewer than ten questions. Do not invent an underlying mechanism when the explanation only states a relationship.
+- Avoid questions whose main challenge is recalling a list of specialist names. Test what something does or how two ideas differ instead. Use necessary technical terms already taught, but keep the question understandable without recognizing a long enzyme-name list.
+- Keep all four options in the same category and grammatical form: four arrangements, four effects, four explanations, or four roles. Do not make the correct answer obvious by pairing a protein question with sugars, cholesterol, and molecule parts that are not proteins.
+- Build wrong options from plausible reversals or confusions of taught ideas: swapping direction, confusing two stated roles, or applying a taught effect in the wrong stated condition. Never require outside knowledge to rule out an option, and never use an untaught scientific claim as the basis of the correct answer.
+- Keep option lengths and detail reasonably similar. Do not make the correct option consistently the only careful, long answer. Avoid giveaway words such as always or never used only in wrong options.
+- Two questions on one concept must test different understanding. For example, recalling an arrangement and then repeating that arrangement with new wording does not create a different learning target. If a short retry explanation cannot support ten clear, distinct questions, use the existing insufficient-content failure response rather than padding with near duplicates.
+- In each private rationale, explain the relevant relationship in plain language. Where helpful, contrast it with a likely confusion supported by the explanation. Avoid rationales that merely repeat the correct option or say “the explanation says so.”
+- Check every option for ambiguity: exactly one must answer the specific stem. A wrong option may be a true statement about something else, so the stem must make that mismatch clear. Replace the item if two options could reasonably be defended from the supplied text.
+
+These instructions also apply during a technical repair. Fixing JSON structure must not weaken grounding or question quality. Do not claim student mastery or a diagnosed misconception from a generated question or a single answer.
+
 ## Successful output
 
 Return one JSON object matching the supplied quiz-output schema, with no Markdown fences, commentary, or extra fields:
