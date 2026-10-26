@@ -464,3 +464,24 @@ The process is:
 `study_buddy.migration_baseline.plan_baseline(conn, through_version=8)` implements steps 2–4 as a read-only eligibility check. Success reports `baseline_ready`, a schema SHA-256, the eight file fingerprints it would record, and `records_written=0`. The command opens SQLite with `mode=ro`, never creates a missing database, never initializes history, and never executes application migration SQL against the target. It builds only an isolated in-memory reference from the repository schema. The preview can become stale; locking/revalidation belongs to the recording step.
 
 Tests verify full-schema eligibility without data/history changes; explicit version selection; empty versus recorded history; tracking metadata integrity; missing/extra tables and indexes; altered CHECK/FK definitions; conservative DDL normalization; existing data violations; caller-transaction preservation; and the real read-only CLI. No actual application database was baselined. Atomic baseline recording and the migration runner remain next steps.
+
+### Record an explicitly verified baseline atomically
+
+`record_verified_baseline` now implements the adoption step described above. It requires version 8, the exact schema and manifest SHA-256 values from a fresh baseline preview, a nonempty operator identity and a reason. It refuses a connection with pending caller work. Under `BEGIN IMMEDIATE`, it rechecks schema/data integrity and file fingerprints, initializes tracking, records all eight versions, and inserts one `schema_baselines` audit row. Migration history and audit commit together; any exception (including interruption) rolls back every change, including newly created metadata tables. Repeating adoption on already recorded history is rejected without rewriting its original evidence.
+
+The audit definition is `db/migration_baseline_audit.sql`. It stores the adopted version, schema/file-manifest fingerprints, exact file manifest, operator, reason and UTC adoption timestamp. This is baseline adoption evidence, not proof or a claimed date of original migration execution. Application tables and rows are not changed. A later ordinary migration status reports the eight recorded files as up to date.
+
+For deliberate maintenance, pause application writes, obtain fingerprints using `baseline_status.py`, and run:
+
+```sh
+python -B scripts/baseline_database.py /absolute/path/to/study-buddy.db \
+  --record-baseline --through-version 8 \
+  --schema-sha256 <schema_sha256_from_preview> \
+  --manifest-sha256 <manifest_sha256_from_preview> \
+  --recorded-by "operator name" --reason "Adopt verified existing full schema" \
+  --backup /absolute/path/to/new-backup.db
+```
+
+Replace the angle-bracket placeholders with the preview values; they are not shell literals. The command opens an existing database with `mode=rw`, creates a new owner-only SQLite backup before adoption, and refuses to overwrite an existing backup path. Without `--record-baseline`, it exits before opening/writing files. A stale preview, unsupported schema/version or recorded history is rejected. If adoption fails after backup, retain that backup for inspection; no partial baseline is claimed. No actual application database was modified during implementation/testing; CLI tests use temporary databases and no model calls.
+
+Tests cover migration/audit atomicity, rollback mid-history and during audit insertion, stale fingerprints/schema, changed manifest during recheck, existing history, pending caller transactions, concurrent recording, explicit CLI authorization, preserved application data, backup contents/permissions, existing backup refusal and missing database paths. The SQL migration execution runner remains a separate next step.

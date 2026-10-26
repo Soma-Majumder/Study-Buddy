@@ -1,6 +1,6 @@
-"""Read-only baseline eligibility for the current complete SQLite schema.
+"""Baseline preview and explicit atomic adoption for the complete SQLite schema.
 
-This preview never creates tracking records and never applies migrations.
+The preview never creates tracking records and never applies migrations.
 Only the current full schema through 008 is supported; partial adoption needs
 an explicitly reviewed historical reference, not table-name inference.
 """
@@ -12,7 +12,7 @@ import re
 import sqlite3
 
 from study_buddy.migrations import (discover_migrations, initialize_migration_tracking, list_applied_migrations,
-                                   MigrationTrackingRejected)
+                                   record_applied_migration, MigrationTrackingRejected)
 
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE_VERSION = 8
@@ -66,6 +66,53 @@ def plan_baseline(conn, *, through_version):
     if conn.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
         raise MigrationTrackingRejected('Database integrity check failed; repair it before baselining.')
     fingerprint = hashlib.sha256(json.dumps(actual, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
+    manifest = [{key:m[key] for key in ('version','filename','sha256')} for m in files]
     return dict(status='baseline_ready', through_version=BASELINE_VERSION,
-                schema_sha256=fingerprint, would_record=[{key:m[key] for key in ('version','filename','sha256')} for m in files],
+                schema_sha256=fingerprint, manifest_sha256=_manifest_hash(manifest), would_record=manifest,
                 records_written=0)
+
+
+def _manifest_hash(manifest):
+    return hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
+
+
+def record_verified_baseline(conn, *, through_version, expected_schema_sha256, expected_manifest_sha256,
+                             recorded_by, reason):
+    """Explicit adoption: lock, reverify approved preview, record all or none.
+
+    Owns its transaction; reject a caller's pending transaction instead of
+    committing it. The operator must take a backup first (the CLI does so).
+    Existing recorded history is rejected, never replaced or backfilled.
+    """
+    if conn.in_transaction:
+        raise MigrationTrackingRejected('Baseline recording requires a connection without pending work.')
+    if (any(not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{64}', value)
+            for value in (expected_schema_sha256, expected_manifest_sha256)) or
+            not isinstance(recorded_by, str) or not recorded_by.strip() or len(recorded_by)>200 or
+            not isinstance(reason, str) or not reason.strip() or len(reason)>2000):
+        raise MigrationTrackingRejected('Explicit preview fingerprints, operator and reason are required.')
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        preview = plan_baseline(conn, through_version=through_version)
+        if (preview['schema_sha256'], preview['manifest_sha256']) != (expected_schema_sha256, expected_manifest_sha256):
+            raise MigrationTrackingRejected('Database schema or migration files changed since the approved preview.')
+        files = discover_migrations()
+        manifest = [{key:m[key] for key in ('version','filename','sha256')} for m in files]
+        if _manifest_hash(manifest) != expected_manifest_sha256:
+            raise MigrationTrackingRejected('Migration files changed during baseline verification.')
+        initialize_migration_tracking(conn)
+        conn.execute((ROOT/'db/migration_baseline_audit.sql').read_text())
+        for migration in files:
+            record_applied_migration(conn, migration['filename'], migration['sql_bytes'], manage_transaction=False)
+        conn.execute('INSERT INTO schema_baselines '
+                     '(baseline_id, through_version, schema_sha256, manifest_sha256, migration_manifest, recorded_by, reason) '
+                     'VALUES (1, ?, ?, ?, ?, ?, ?)',
+                     (through_version, expected_schema_sha256, expected_manifest_sha256,
+                      json.dumps(manifest, sort_keys=True, separators=(',', ':')), recorded_by.strip(), reason.strip()))
+        recorded_at = conn.execute('SELECT recorded_at FROM schema_baselines WHERE baseline_id=1').fetchone()[0]
+        conn.commit()
+        return dict(status='baselined', through_version=through_version, records_written=len(files),
+                    schema_sha256=expected_schema_sha256, manifest_sha256=expected_manifest_sha256, recorded_at=recorded_at)
+    except BaseException:
+        conn.rollback()
+        raise
