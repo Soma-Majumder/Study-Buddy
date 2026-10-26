@@ -443,9 +443,9 @@ Tests cover empty/idempotent initialization, exact fingerprints/timestamps, dupl
 
 `discover_migrations(directory=...)` loads the current migration files (001–008) in numeric order with exact bytes and SHA-256 fingerprints. It rejects duplicate/gapped versions, invalid SQL filenames, symlinks/non-files, empty content and non-UTF-8 SQL. Non-SQL notes are ignored. The directory is trusted backend configuration. No migration SQL is executed.
 
-`plan_migrations(conn, directory=...)` compares those files with recorded history without initializing tracking or writing/committing anything. It rejects changed/renamed/missing recorded files and histories that are not a continuous prefix. The report contains recorded `applied` metadata, unrecorded `pending` metadata and status `pending`, `up_to_date`, or `baseline_required`. It omits SQL contents. This is a read-only snapshot, not authorization to execute; the future runner must recheck files/history inside its write transaction.
+`plan_migrations(conn, directory=...)` compares those files with recorded history without initializing tracking or writing/committing anything. It rejects changed/renamed/missing recorded files and histories that are not a continuous prefix. The report contains recorded `applied` metadata, unrecorded `pending` metadata and status `pending`, `up_to_date`, or `baseline_required`. It omits SQL contents. This is a read-only snapshot, not authorization to execute; the runner must recheck files/history inside its write transaction.
 
-For an existing database, `python -B scripts/migration_status.py /absolute/path/to/study-buddy.db` opens it with SQLite `mode=ro` and prints that report. A missing path fails without creating a database. Tables already present with no recorded migrations trigger `baseline_required`, even if an empty tracking table exists. In that case, `pending` means **unrecorded**, not proven unapplied: both fresh-schema databases and older manually migrated databases need an explicit baseline decision before applying anything. No automatic baseline or SQL runner exists yet.
+For an existing database, `python -B scripts/migration_status.py /absolute/path/to/study-buddy.db` opens it with SQLite `mode=ro` and prints that report. A missing path fails without creating a database. Tables already present with no recorded migrations trigger `baseline_required`, even if an empty tracking table exists. In that case, `pending` means **unrecorded**, not proven unapplied: both fresh-schema databases and older manually migrated databases need an explicit baseline decision before applying anything. Baseline adoption and SQL execution require the explicit maintenance commands documented below.
 
 Discovery tests cover the repository's eight files, clean/partially recorded/up-to-date plans, fingerprint drift, file/history gaps, ordering, invalid inputs, baseline detection, caller-transaction preservation and the real read-only status command. No application database was changed by these tests.
 
@@ -458,12 +458,12 @@ The process is:
 2. Run the read-only preview: `python -B scripts/baseline_status.py /absolute/path/to/study-buddy.db --through-version 8`.
 3. Verify the reported schema fingerprint and exact file manifest. The preview compares all application tables and explicit indexes with `db/schema.sql`, including constraints and foreign keys. It normalizes only comments, whitespace and unquoted case; quoted values remain exact. Structurally equivalent but differently expressed DDL may be rejected conservatively for manual review. Extra objects are also rejected. Existing tracking must be empty and have the reviewed metadata schema.
 4. Require clean `foreign_key_check` and `quick_check` results. The preview does not fix data or return private rows.
-5. A future explicit recorder must acquire the write lock, recheck the schema and manifest, record all versions 001–008 and a baseline audit entry in one transaction, or roll everything back. Audit metadata should distinguish baseline adoption time/operator/reason from original migration execution dates. A preview alone never authorizes or records adoption.
+5. The explicit recorder must acquire the write lock, recheck the schema and manifest, record all versions 001–008 and a baseline audit entry in one transaction, or roll everything back. Audit metadata should distinguish baseline adoption time/operator/reason from original migration execution dates. A preview alone never authorizes or records adoption.
 6. Recheck normal migration status afterward. Only migrations added after the adopted prefix can become executable pending work.
 
 `study_buddy.migration_baseline.plan_baseline(conn, through_version=8)` implements steps 2–4 as a read-only eligibility check. Success reports `baseline_ready`, a schema SHA-256, the eight file fingerprints it would record, and `records_written=0`. The command opens SQLite with `mode=ro`, never creates a missing database, never initializes history, and never executes application migration SQL against the target. It builds only an isolated in-memory reference from the repository schema. The preview can become stale; locking/revalidation belongs to the recording step.
 
-Tests verify full-schema eligibility without data/history changes; explicit version selection; empty versus recorded history; tracking metadata integrity; missing/extra tables and indexes; altered CHECK/FK definitions; conservative DDL normalization; existing data violations; caller-transaction preservation; and the real read-only CLI. No actual application database was baselined. Atomic baseline recording and the migration runner remain next steps.
+Tests verify full-schema eligibility without data/history changes; explicit version selection; empty versus recorded history; tracking metadata integrity; missing/extra tables and indexes; altered CHECK/FK definitions; conservative DDL normalization; existing data violations; caller-transaction preservation; and the real read-only CLI. No actual application database was baselined. Atomic baseline recording and migration execution are documented below.
 
 ### Record an explicitly verified baseline atomically
 
@@ -484,4 +484,24 @@ python -B scripts/baseline_database.py /absolute/path/to/study-buddy.db \
 
 Replace the angle-bracket placeholders with the preview values; they are not shell literals. The command opens an existing database with `mode=rw`, creates a new owner-only SQLite backup before adoption, and refuses to overwrite an existing backup path. Without `--record-baseline`, it exits before opening/writing files. A stale preview, unsupported schema/version or recorded history is rejected. If adoption fails after backup, retain that backup for inspection; no partial baseline is claimed. No actual application database was modified during implementation/testing; CLI tests use temporary databases and no model calls.
 
-Tests cover migration/audit atomicity, rollback mid-history and during audit insertion, stale fingerprints/schema, changed manifest during recheck, existing history, pending caller transactions, concurrent recording, explicit CLI authorization, preserved application data, backup contents/permissions, existing backup refusal and missing database paths. The SQL migration execution runner remains a separate next step.
+Tests cover migration/audit atomicity, rollback mid-history and during audit insertion, stale fingerprints/schema, changed manifest during recheck, existing history, pending caller transactions, concurrent recording, explicit CLI authorization, preserved application data, backup contents/permissions, existing backup refusal and missing database paths. The SQL migration execution runner is documented below.
+
+
+### Execute a reviewed pending migration batch
+
+The read-only `migration_status.py` report now includes `pending_sha256`, binding the ordered pending versions, filenames and exact SQL fingerprints. Pause application writes, inspect the pending SQL and report, then explicitly apply that plan:
+
+```sh
+python -B scripts/migration_status.py /absolute/path/to/study-buddy.db
+python -B scripts/migrate_database.py /absolute/path/to/study-buddy.db \
+  --apply --pending-sha256 <pending_sha256_from_status> \
+  --backup /absolute/path/to/new-backup.db
+```
+
+The command requires an existing database and creates a new owner-only SQLite backup before execution; existing backup paths are never overwritten. If execution fails, retain the backup. Both commands support `--migrations-dir` for a trusted, reviewed directory.
+
+`run_pending_migrations` requires a dedicated connection with foreign keys enabled and no pending caller work or custom authorizer. It acquires `BEGIN IMMEDIATE`, rechecks history and the approved pending manifest, freezes/rechecks file bytes, and checks database integrity. It executes statements individually, records each exact fingerprint, and commits the whole batch together. Any failure rolls back application SQL and history, including newly created tracking tables. Replaying a completed plan returns `up_to_date`; changed recorded files still fail validation. Error reports identify the migration, stage and statement number without returning raw database error text.
+
+Migration SQL cannot control transactions, attach databases, issue PRAGMAs, create temporary objects/triggers, load extensions, or modify tracking/audit tables. Unsupported migrations need a separately reviewed maintenance approach. This guard is for trusted migration code, not an arbitrary-SQL sandbox. Never use `executescript` inside this transaction.
+
+Existing untracked schemas require verified baseline adoption first. Repository migrations 001–008 are incremental additions and do not create the original base tables: initialize the full schema and baseline it before using this runner. No application database was migrated during development; tests use temporary databases and no paid model calls.

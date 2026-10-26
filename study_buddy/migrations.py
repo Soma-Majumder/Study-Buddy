@@ -1,6 +1,7 @@
 """Migration tracking only: this module never executes application migration SQL."""
 from contextlib import nullcontext
 import hashlib
+import json
 from pathlib import Path
 import re
 
@@ -117,4 +118,9 @@ def plan_migrations(conn, directory=DEFAULT_MIGRATIONS):
     baseline_required = bool(tables - {'schema_migrations'}) and not applied
     return dict(status='baseline_required' if baseline_required else 'pending' if pending else 'up_to_date',
                 baseline_required=baseline_required, tracking_initialized='schema_migrations' in tables,
-                applied=applied, pending=pending)
+                applied=applied, pending=pending, pending_sha256=migration_manifest_hash(pending))
+
+
+def migration_manifest_hash(manifest):
+    """Stable approval fingerprint for ordered filename/version/content metadata."""
+    return hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
