@@ -46,6 +46,9 @@ def main():
             return output
         except Exception as error:
             row['error_stage'] = getattr(error, 'stage', 'evaluation')
+            row['error_code'] = getattr(error, 'code', 'adapter_error')
+            row['http_status'] = getattr(error, 'http_status', None)
+            row['stop_reason'] = getattr(error, 'stop_reason', None)
             raise
         finally:
             row['latency_ms'] = round((time.monotonic() - started) * 1000)

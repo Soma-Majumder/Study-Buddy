@@ -1,11 +1,14 @@
 import { buildAssessmentInput } from './assessment-input.mjs';
-import { callClaude } from './claude.mjs';
+import { callClaude, ClaudeCallError } from './claude.mjs';
 
 export class AssessmentRunError extends Error {
-  constructor(stage) {
+  constructor(stage, diagnostic = {}) {
     super(`Assessment failed during ${stage}.`);
     this.name = 'AssessmentRunError';
     this.stage = stage;
+    this.code = diagnostic.code || (stage === 'input preparation' ? 'invalid_input' : 'adapter_error');
+    if (diagnostic.httpStatus !== undefined) this.httpStatus = diagnostic.httpStatus;
+    if (diagnostic.stopReason !== undefined) this.stopReason = diagnostic.stopReason;
   }
 }
 
@@ -33,8 +36,8 @@ export async function runAssessmentQuiz(handoff, {repairRequest = null, claudeOp
     let output = null;
     try { output = JSON.parse(response.text); } catch { /* invalid generation */ }
     return {output, model: response.model, usage: response.usage};
-  } catch {
+  } catch (error) {
     // Provider errors and malformed input stop; do not leak provider bodies.
-    throw new AssessmentRunError(stage);
+    throw new AssessmentRunError(stage, error instanceof ClaudeCallError ? error : {});
   }
 }

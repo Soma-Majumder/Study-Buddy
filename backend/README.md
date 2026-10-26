@@ -238,3 +238,25 @@ A nonempty, trusted controller `repairRequest` selects a fixed correction instru
 `start_quiz_session` and `dispatch_retry_quiz` now default to this real provider bridge, while still accepting injected callbacks. Calling them without an Assessment callback can spend API credits when valid input and credentials are present. The controller alone validates output, reserves the remaining technical repair, and saves quizzes/private keys atomically. This supersedes earlier notes that quiz generation has no default adapter. Assessment result-explanation generation still requires an injected callback and is not implemented by this quiz adapter.
 
 Six bridge tests exercise real Python/Node input packaging, fake provider transport, safe quiz persistence, one reserved repair, explicit failure after exhausted repairs, provider errors, bad input, and broken/timeout process responses. Run `python -B -m unittest tests.test_assessment_bridge -v`. These tests inject a fake fetch through a temporary Node preload; production code has no fixture-response switch. They do not establish live quiz quality. Model/usage metadata is returned by JavaScript but not persisted by this Python bridge yet.
+
+
+## Safe Assessment failure diagnostics
+
+Claude transport errors now use `ClaudeCallError` with a fixed code. The Assessment adapter and stdin/stdout bridge preserve that code, an integer HTTP status where available, and an allowlisted stop reason. Python exposes `AssessmentFailure.code`, `.http_status`, and `.stop_reason`. The evaluation runners save these fields. Learner-facing controller messages remain generic; these diagnostics are not yet stored in session records. No provider error bodies, raw exception messages, credentials, headers, or private reasoning are added to diagnostics.
+
+| Code | Meaning |
+| --- | --- |
+| `missing_api_key` | No configured Claude key; no request made |
+| `authentication_failed` | HTTP 401 or 403 |
+| `rate_limited` | HTTP 429 |
+| `provider_unavailable` | Provider HTTP 5xx |
+| `api_rejected` | Other non-success HTTP response; status is preserved |
+| `output_truncated` | Provider stopped at `max_tokens` |
+| `incomplete_response` | Another non-end-turn stop; unknown reasons become `unknown` |
+| `request_timeout` | Shared Claude request timeout fired |
+| `transport_error` | Network/read failure; precise underlying cause is intentionally omitted |
+| `unexpected_response`, `empty_response` | Unusable provider content |
+| `process_timeout` | Python's Node subprocess deadline fired |
+| `process_unavailable`, `invalid_envelope` | Node launch failed or command output could not be read |
+
+Input/configuration errors use `invalid_input` or `invalid_timeout`; otherwise unexpected adapter failures use `adapter_error`. Codes do not grant retries or change budgets. The earlier live controller failure cannot be retrospectively classified; another explicitly authorized live run is needed to observe its current outcome.

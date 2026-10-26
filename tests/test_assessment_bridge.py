@@ -29,6 +29,8 @@ globalThis.fetch = async (_url, request) => {
   const data = JSON.parse(JSON.parse(request.body).messages[0].content);
   await appendFile(process.env.BRIDGE_TEST_LOG, JSON.stringify({repair: !!data.repair_request}) + '\n');
   if (process.env.BRIDGE_TEST_MODE === 'provider') throw new Error('private-provider-body');
+  if (process.env.BRIDGE_TEST_MODE === 'truncated') return {ok: true, json: async () => ({stop_reason: 'max_tokens'})};
+  if (process.env.BRIDGE_TEST_MODE === 'rate') return {ok: false, status: 429};
   let text = 'not JSON';
   if (process.env.BRIDGE_TEST_MODE === 'valid' || (process.env.BRIDGE_TEST_MODE === 'repair' && data.repair_request)) {
     const quiz = JSON.parse(await readFile('schemas/v1/examples/quiz_output.example.json', 'utf8'));
@@ -99,3 +101,25 @@ globalThis.fetch = async (_url, request) => {
             with patch('study_buddy.assessment.subprocess.run', **kwargs):
                 with self.assertRaises(AssessmentFailure):
                     run_assessment({})
+
+    def test_safe_diagnostics_cross_real_python_node_boundary(self):
+        h = json.loads((ROOT / 'schemas/v1/examples/tutor_to_assessment.example.json').read_text())
+        for mode, code, status, reason in [('truncated', 'output_truncated', None, 'max_tokens'),
+                                           ('rate', 'rate_limited', 429, None),
+                                           ('provider', 'transport_error', None, None)]:
+            os.environ['BRIDGE_TEST_MODE'] = mode
+            with self.assertRaises(AssessmentFailure) as raised:
+                run_assessment(h)
+            self.assertEqual((raised.exception.code, raised.exception.http_status, raised.exception.stop_reason),
+                             (code, status, reason))
+            self.assertNotIn('private-provider-body', str(raised.exception))
+
+    def test_unknown_process_diagnostics_are_not_forwarded(self):
+        from types import SimpleNamespace
+        envelope = dict(ok=False, error=dict(stage='private-stage', code='private-code',
+                                             http_status='private-status', stop_reason='private-reason'))
+        with patch('study_buddy.assessment.subprocess.run', return_value=SimpleNamespace(returncode=1, stdout=json.dumps(envelope))):
+            with self.assertRaises(AssessmentFailure) as raised:
+                run_assessment({})
+        self.assertEqual((raised.exception.stage, raised.exception.code, raised.exception.http_status, raised.exception.stop_reason),
+                         ('provider adapter', 'adapter_error', None, None))

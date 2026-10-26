@@ -49,3 +49,6 @@ Run one paid first-round generation explicitly with `node --env-file=.env backen
 ### Controller routing evaluation
 
 With `ANTHROPIC_API_KEY` privately loaded into the process environment and Node on PATH (or `STUDY_BUDDY_NODE` set), run `python -B backend/evals/assessment_controller.py --live`. This authorizes a first generation and at most one controller-reserved repair, using the fixture Tutor and an isolated in-memory database. It records generation validation errors, actual saved counts, status/counters, key isolation, and foreign-key checks. It does not run a live Tutor, assess learner outcomes, or complete a full study session. Reports may contain private quiz keys. The initial revised-prompt controller run failed during model call, before validation; see the review notes.
+
+
+Controller generation failures now record `error_code`, `http_status`, and `stop_reason` alongside `error_stage`. The single-generation JavaScript runner records the same safe metadata when available. Existing reports are preserved without inventing missing diagnostics. Offline fake-provider tests cover propagation across the real Python/Node boundary; no additional live call was made to verify error reporting.

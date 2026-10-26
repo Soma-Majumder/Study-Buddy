@@ -72,3 +72,35 @@ test('extracts only text when Claude also returns thinking blocks', async () => 
   assert.equal(result.text, '{"payload":{}}');
   assert.ok(!JSON.stringify(result).includes('private reasoning'));
 });
+
+
+test('reports fixed HTTP categories without reading provider error bodies', async () => {
+  for (const [status, code] of [[401, 'authentication_failed'], [403, 'authentication_failed'],
+    [429, 'rate_limited'], [503, 'provider_unavailable'], [400, 'api_rejected']]) {
+    await assert.rejects(callClaude(input, {apiKey: key, fetchImpl: async () => ({ok: false, status,
+      json: () => assert.fail('Never read rejected provider body')})}), error => {
+      assert.equal(error.code, code);
+      assert.equal(error.httpStatus, status);
+      assert.equal(error.cause, undefined);
+      return true;
+    });
+  }
+});
+
+test('distinguishes token truncation from other incomplete responses and sanitizes unknown reasons', async () => {
+  for (const [reason, code, safeReason] of [['max_tokens', 'output_truncated', 'max_tokens'],
+    ['refusal', 'incomplete_response', 'refusal'], ['secret-provider-text', 'incomplete_response', 'unknown']]) {
+    await assert.rejects(callClaude(input, {apiKey: key, fetchImpl: async () => response({stop_reason: reason})}), error => {
+      assert.equal(error.code, code);
+      assert.equal(error.stopReason, safeReason);
+      assert.ok(!JSON.stringify(error).includes('secret-provider-text'));
+      return true;
+    });
+  }
+});
+
+test('network exceptions become fixed diagnostics even when their messages mimic safe errors', async () => {
+  await assert.rejects(callClaude(input, {apiKey: key, fetchImpl: async () => {
+    throw new Error('Claude request failed (HTTP 999).');
+  }}), error => error.code === 'transport_error' && error.httpStatus === undefined);
+});

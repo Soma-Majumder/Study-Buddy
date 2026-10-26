@@ -25,6 +25,9 @@ try {
   report.usage = result.usage;
 } catch (error) {
   report.error_stage = error.stage || 'request';
+  report.error_code = error.code || 'adapter_error';
+  if (error.httpStatus !== undefined) report.http_status = error.httpStatus;
+  if (error.stopReason !== undefined) report.stop_reason = error.stopReason;
 }
 report.calls = calls;
 report.latency_ms = Math.round(performance.now() - started);

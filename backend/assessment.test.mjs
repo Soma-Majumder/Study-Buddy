@@ -75,3 +75,12 @@ test('invalid repair metadata stops before a provider request', async () => {
     repairRequest: true, claudeOptions: options(() => assert.fail('No request expected')),
   }), /input preparation/);
 });
+
+
+test('Assessment preserves safe truncation and API diagnostics without raw provider content', async () => {
+  const h = await fixture('tutor_to_assessment');
+  await assert.rejects(runAssessmentQuiz(h, {claudeOptions: options(async () => ({ok: true,
+    json: async () => ({stop_reason: 'max_tokens', content: [{type: 'text', text: 'private-generated-text'}]})}))}),
+  error => error.stage === 'model call' && error.code === 'output_truncated' && error.stopReason === 'max_tokens'
+    && !JSON.stringify(error).includes('private-generated-text'));
+});

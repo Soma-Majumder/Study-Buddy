@@ -8,9 +8,16 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class AssessmentFailure(Exception):
-    def __init__(self, stage='provider adapter'):
+    def __init__(self, stage='provider adapter', code='adapter_error', http_status=None, stop_reason=None):
         super().__init__('Assessment could not create a quiz.')
         self.stage = stage
+        allowed = {'missing_api_key', 'invalid_input', 'invalid_timeout', 'authentication_failed',
+                   'rate_limited', 'provider_unavailable', 'api_rejected', 'output_truncated',
+                   'incomplete_response', 'unexpected_response', 'empty_response', 'request_timeout',
+                   'transport_error', 'adapter_error', 'process_timeout', 'invalid_envelope', 'process_unavailable'}
+        self.code = code if code in allowed else 'adapter_error'
+        self.http_status = http_status if type(http_status) is int and 100 <= http_status <= 599 else None
+        self.stop_reason = stop_reason if stop_reason in ('max_tokens', 'stop_sequence', 'tool_use', 'pause_turn', 'refusal', 'unknown') else None
 
 
 def run_assessment(handoff, *, repair_request=None):
@@ -27,10 +34,18 @@ def run_assessment(handoff, *, repair_request=None):
         )
         body = json.loads(process.stdout)
         if not isinstance(body, dict) or process.returncode != 0 or body.get('ok') is not True:
-            stage = body.get('error', {}).get('stage') if isinstance(body, dict) else None
-            raise AssessmentFailure(stage if stage in ('input preparation', 'model call') else 'provider adapter')
+            error = body.get('error', {}) if isinstance(body, dict) else {}
+            if not isinstance(error, dict):
+                raise AssessmentFailure(code='invalid_envelope')
+            stage = error.get('stage')
+            raise AssessmentFailure(stage if stage in ('input preparation', 'model call') else 'provider adapter',
+                                    error.get('code', 'invalid_envelope'), error.get('http_status'), error.get('stop_reason'))
         return body['result']['output']
     except AssessmentFailure:
         raise
-    except (OSError, subprocess.TimeoutExpired, ValueError, KeyError, TypeError, AttributeError):
-        raise AssessmentFailure() from None
+    except subprocess.TimeoutExpired:
+        raise AssessmentFailure(code='process_timeout') from None
+    except OSError:
+        raise AssessmentFailure(code='process_unavailable') from None
+    except (ValueError, KeyError, TypeError, AttributeError):
+        raise AssessmentFailure(code='invalid_envelope') from None

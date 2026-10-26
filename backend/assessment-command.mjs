@@ -10,6 +10,9 @@ try {
 } catch (error) {
   console.log(JSON.stringify({ok: false, error: {
     stage: error instanceof AssessmentRunError ? error.stage : 'input preparation',
+    code: error instanceof AssessmentRunError ? error.code : 'invalid_input',
+    ...(error instanceof AssessmentRunError && error.httpStatus !== undefined ? {http_status: error.httpStatus} : {}),
+    ...(error instanceof AssessmentRunError && error.stopReason !== undefined ? {stop_reason: error.stopReason} : {}),
   }}));
   process.exitCode = 1;
 }
