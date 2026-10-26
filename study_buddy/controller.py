@@ -177,7 +177,52 @@ class SubmissionRejected(ValueError):
     """Invalid, unauthorized, stale, or already-submitted learner input."""
 
 
+def _saved_submission(conn, learner_id, quiz_id, session_id, status, answers):
+    rows = conn.execute('SELECT attempt_id FROM attempts WHERE quiz_id=? AND learner_id=?',
+                        (quiz_id, learner_id)).fetchall()
+    if not rows:
+        return None
+    if len(rows) != 1:
+        raise SubmissionRejected('Saved submission evidence is inconsistent.')
+    attempt_id = rows[0][0]
+    saved_answers = dict(conn.execute('SELECT question_id, selected_option FROM responses WHERE attempt_id=?', (attempt_id,)))
+    if answers != saved_answers:
+        raise SubmissionRejected('This quiz was already submitted with different answers.')
+    result = conn.execute('SELECT result_id, score, passed FROM results WHERE attempt_id=?', (attempt_id,)).fetchone()
+    items = [dict(position=row[0], question_id=row[1], concept_id=row[2], selected=row[3],
+                  correct_option=row[4], is_correct=bool(row[5]), rationale=row[6]) for row in conn.execute(
+        'SELECT q.position,q.question_id,q.concept_id,r.selected_option,k.correct_option,r.is_correct,k.rationale '
+        'FROM questions q JOIN responses r ON r.question_id=q.question_id AND r.attempt_id=? '
+        'JOIN answer_keys k ON k.question_id=q.question_id WHERE q.quiz_id=? ORDER BY q.position',
+        (attempt_id, quiz_id))]
+    if result is None or len(items) != 10 or len(saved_answers) != 10 or sum(item['is_correct'] for item in items) != result[1]:
+        raise SubmissionRejected('Saved submission evidence is incomplete; no new attempt was created.')
+    weak = [dict(concept_id=row[0], missed_count=row[1]) for row in conn.execute(
+        'SELECT concept_id,missed_count FROM weak_concepts WHERE source_attempt_id=? AND learner_id=? '
+        'ORDER BY missed_count DESC,concept_id', (attempt_id, learner_id))]
+    # Read saved evidence only: never grade again, reserve retries, or rewind state.
+    feedback_started = conn.execute('SELECT 1 FROM feedback_operations WHERE attempt_id=?', (attempt_id,)).fetchone()
+    return dict(session_id=session_id, quiz_id=quiz_id, attempt_id=attempt_id, result_id=result[0],
+                status=status, next_step='assessment_feedback' if status == 'grading' and not feedback_started else None,
+                graded=dict(score=result[1], passed=bool(result[2]), items=items, weak_concepts=weak), error=None)
+
+
 def submit_answers(conn, learner_id, quiz_id, answers):
+    """Save once; identical retries read saved evidence, changed answers conflict.
+
+    Serialize ownership/state/evidence reads with the claim so concurrent callers
+    see the winner's committed attempt before deciding whether they are replays.
+    """
+    with conn:
+        owned = conn.execute(
+            'UPDATE study_sessions SET status=status WHERE learner_id=? AND session_id IN '
+            '(SELECT session_id FROM quizzes WHERE quiz_id=?)', (learner_id, quiz_id)).rowcount
+        if not owned:
+            raise SubmissionRejected('Quiz is unavailable for this learner.')
+        return _submit_answers_locked(conn, learner_id, quiz_id, answers)
+
+
+def _submit_answers_locked(conn, learner_id, quiz_id, answers):
     """Grade one complete submission and atomically save verified evidence.
 
     Rejected input creates no attempt or score. A claimed submission writes
@@ -192,12 +237,15 @@ def submit_answers(conn, learner_id, quiz_id, answers):
     if row is None:
         raise SubmissionRejected('Quiz is unavailable for this learner.')
     session_id, lesson_id, status = row
-    if status != 'awaiting_answers':
-        raise SubmissionRejected('This session is not accepting answers.')
     questions = {r[0] for r in conn.execute('SELECT question_id FROM questions WHERE quiz_id = ?', (quiz_id,))}
     if (not isinstance(answers, dict) or set(answers) != questions or
             any(not isinstance(v, str) or v not in ('a', 'b', 'c', 'd') for v in answers.values())):
         raise SubmissionRejected('Answer every quiz question with one option from a to d.')
+    saved = _saved_submission(conn, learner_id, quiz_id, session_id, status, answers)
+    if saved is not None:
+        return saved
+    if status != 'awaiting_answers':
+        raise SubmissionRejected('This session is not accepting answers.')
     keys = get_answer_key(conn, quiz_id)
     if len(questions) != 10 or len(keys) != 10 or {k['question_id'] for k in keys} != questions:
         # A technical defect never becomes a learner's wrong answer.
