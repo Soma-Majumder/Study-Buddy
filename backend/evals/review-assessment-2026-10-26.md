@@ -252,3 +252,8 @@ See `assessment-quality-review-2026-10-26.md` and the saved report's quality_rev
 Added `backend/prompts/assessment-quality-reference.md` and wired it into the system instructions, replacing the previous generic design section with a short reference directive. The runtime guide contains design methods derived from the manual revision rather than the question text, private key, session IDs, or lesson-specific examples. First-round and retry requests retain the original explanation and concept/focus scope.
 
 Offline verification: 65 JavaScript tests plus 12 bridge/capture tests passed. New regression checks ensure no manual question stems or stored handoff ID enter requests and that focus/payload remain unchanged. The evaluation records a separate hash for the reference. No paid model call was made. Whether generation quality improves remains unverified; this does not add another agent, a quality-revision call, or a new technical/learning retry budget.
+
+
+## Reference-guided live evaluation
+
+See `reference-guidance-review-2026-10-26.md` and the run at 19:22:35. First generation passed structure and persistence with no repair, but the unchanged quality rubric still yields needs_revision. Cold-condition choices overlap, a distractor contradicts itself, the first rationale labels heads amphipathic incorrectly, and most items remain recall. No meaningful quality improvement is established. Numeric usage and per-item evidence are saved; no extra generation or new quality-review budget was added.
