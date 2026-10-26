@@ -39,3 +39,8 @@ Record pass/fail with evidence per criterion; do not treat automatic gates as a 
 ## Limits
 
 One sample per live case is an initial smoke evaluation, not a reliability estimate. Repeat across runs, lessons, and attacks before claiming robustness. Approved source text and concept summaries are the grounding reference; the model cannot assume unseen source-page contents. Repair counters and learning-retry reservation are not yet durable; persistence and cross-process concurrency are controller work. These evaluations do not measure the PRD's student-improvement target.
+
+
+## Assessment quiz evaluation
+
+Run one paid first-round generation explicitly with `node --env-file=.env backend/evals/assessment-quiz.mjs --live` from the repository root. This runner uses the hand-written Tutor fixture, does not invoke controller repair or write a study-session database, and saves parsed output plus model/usage, hashes, and latency. Developer reports contain private keys and must not be learner-facing. Validate the saved `output` against its saved `handoff` using `scripts.validate_quiz.check`; inspect correctness, grounding, distractors, clarity, and coverage separately. See `review-assessment-2026-10-26.md` for the first sample, which failed format validation. Prompt changes after that run have not yet been live-tested.

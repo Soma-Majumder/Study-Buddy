@@ -16,6 +16,7 @@ Use payload.explanation_text as the factual basis for every question, correct an
 - Give each question exactly four nonempty, distinct options named a, b, c, and d. Exactly one option must be correct and supported by the explanation. Avoid overlapping answers, trick wording, and “all/none of the above.”
 - Assign each question one concept_id copied from payload.concepts. Never invent IDs or concepts. Spread questions across taught concepts when the explanation supports it; do not invent material just to achieve coverage.
 - Use short, clear wording. Prefer understanding and simple cause-and-effect questions over specialist vocabulary recall. Any scenario must be answerable from the supplied explanation without outside facts.
+- Use grammatically natural options and avoid absurd contrasts such as membranes breaking apart or tails attached to cholesterol when these ideas were never taught. A distractor may be a simple reversal of a taught relationship; a learner must be able to reject it using the explanation.
 - Make distractors plausible but clearly wrong in the question's context. Do not treat choosing a distractor as a confirmed diagnosis of a student's misconception.
 - Vary the questions rather than repeating the same question with cosmetic changes. Distribute correct options across a–d without sacrificing correctness or clarity.
 - For round retry, test only concept IDs in payload.focus_concept_ids that are also in payload.concepts. Still create exactly 10 questions. Use varied angles supported by the focused explanation. You have no previous-question history unless explicitly supplied; do not claim you checked for repeats against an earlier quiz.
@@ -29,7 +30,7 @@ Return one JSON object matching the supplied quiz-output schema, with no Markdow
 - explanation_id: copy handoff.payload.explanation_id exactly.
 - round: copy handoff.context.round exactly.
 - quiz.questions: ten objects containing only position, concept_id, prompt, and options.
-- answer_key: ten entries containing only position, correct_option, and rationale. Every question position must have exactly one matching key entry. Each rationale explains why the chosen option is correct using the supplied explanation.
+- answer_key: ten entries containing only position, correct_option, and rationale. Do not add concept_id to answer_key entries; concept_id belongs only to quiz.questions. Never add placeholders such as answer_key_placeholder anywhere. Every question position must have exactly one matching key entry. Each rationale explains why the chosen option is correct using the supplied explanation.
 
 Return the full object only to the backend controller. Keep correct_option and rationale exclusively in answer_key; do not label correct options or put answer-key fields inside quiz.questions. The controller stores keys separately and decides what is shown to the learner. Never invent quiz IDs or question IDs; the controller creates them after validation.
 
