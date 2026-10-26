@@ -35,6 +35,7 @@ Rules:
 | `quizzes`, `questions` | Ten questions per quiz, each tied to one concept, no answers inside | quizzes & questions |
 | `answer_keys` | Correct option per question. Backend only, in its own table so it cannot leak by accident | private keys |
 | `attempts`, `responses` | A student's submitted answers, graded by the controller | attempts & responses |
+| `retry_quiz_operations` | One focused retry-quiz generation per session/source attempt; running/ready/failed state and saved quiz ID prevent duplicate dispatch | bounded retry quiz |
 | `session_routes` | One saved decision per attempt; a unique retry route per session records controller-built return context and reserved/pending state | bounded learning retry |
 | `feedback_operations` | One persisted Assessment feedback operation per attempt, its return handoff ID, and running/ready/failed state; duplicates reuse it rather than refreshing the repair budget | feedback routing |
 | `results` | Score out of 10, feedback, pass/fail for each attempt | scores, feedback |
