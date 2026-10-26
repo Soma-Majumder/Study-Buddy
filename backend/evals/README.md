@@ -67,3 +67,10 @@ Use `assessment-quality-rubric.md` to review grounding, one-answer clarity, dist
 
 
 The latest longer-deadline evaluation completed after 35 seconds but hit the 8192-token cap. Partial content included an ambiguous cold-condition question, so no quality improvement is claimed. Assessment now defaults to 60 seconds, with a 70-second Python bridge deadline; Tutor keeps the shared 30-second request default. See the review notes before changing budgets or rerunning live evaluations.
+
+
+### Token-usage diagnostics
+
+With explicit response capture enabled, records include allowlisted numeric input/output/cache counts and thinking-token totals when the provider supplies them. Controller reports include `token_usage` per generation and `token_usage_totals` across all generations, including repairs. Unknown counts remain null; they are not estimated from text length. Thinking share is computed only with consistent reported counts. Private thinking content and unrelated provider metadata are excluded. Historical reports are not backfilled with inferred usage. A token total across two calls is not a per-call budget or a monetary cost.
+
+The first usage-enabled live run succeeded after one JSON repair and reported 6646 thinking tokens out of 10542 output tokens across two calls (~63%). See the detailed review for limits and remaining question-quality findings.

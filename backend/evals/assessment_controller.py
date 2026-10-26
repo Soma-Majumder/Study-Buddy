@@ -17,6 +17,23 @@ from study_buddy.lessons import load_lessons
 from scripts.validate_quiz import check
 
 
+
+USAGE_FIELDS = ('input_tokens', 'output_tokens', 'cache_creation_input_tokens',
+                'cache_read_input_tokens', 'thinking_tokens')
+
+
+def usage_totals(generations):
+    # Missing metadata is unknown, never assumed zero. Counts include invalid
+    # generations and repairs when the provider supplied response metadata.
+    totals = {}
+    for field in USAGE_FIELDS:
+        values = [g.get('token_usage', {}).get(field) for g in generations]
+        totals[field] = sum(values) if values and all(type(v) is int and v >= 0 for v in values) else None
+    output, thinking = totals['output_tokens'], totals['thinking_tokens']
+    totals['thinking_share_of_output'] = thinking / output if output and thinking is not None and thinking <= output else None
+    return totals
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--live', action='store_true', help='Authorize one paid generation plus at most one controller repair')
@@ -63,6 +80,14 @@ def main():
             raise
         finally:
             row['latency_ms'] = round((time.monotonic() - started) * 1000)
+            if args.capture_response_text:
+                try:
+                    records = [json.loads(line) for line in capture.read_text().splitlines()]
+                    index = len(report['generations']) - 1
+                    if index < len(records):
+                        row['token_usage'] = records[index].get('usage', {})
+                except (OSError, ValueError):
+                    row['usage_capture_error'] = True
 
     with sqlite3.connect(':memory:') as conn:
         conn.executescript((ROOT / 'db/schema.sql').read_text())
@@ -88,6 +113,7 @@ def main():
             foreign_keys_valid=not report['foreign_key_errors'],
         )
     conn.close()
+    report['token_usage_totals'] = usage_totals(report['generations'])
     path = ROOT / 'backend/evals/results' / (report['date'].replace(':', '-').replace('.', '-') + '-assessment-controller.json')
     path.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(dict(report=str(path), status=result['status'], generations=len(report['generations']),

@@ -100,3 +100,22 @@ Partial inspection, not a full quiz score: the six complete visible rationales a
 The raw text also closes the root object before `answer_key`, so that captured prefix already contains a JSON structural defect in addition to being truncated. It was not manually repaired or forwarded. The transport correctly treats a max_tokens response as incomplete before JSON validation.
 
 Conclusion: the simplified prompt did not resolve completion, and pedagogical improvement remains unestablished. Before more paid prompt iterations, record numeric provider usage (including thinking-token totals when supplied) and inspect whether the generation budget is being spent on reasoning versus returned quiz text. The captured response text excludes private reasoning and does not establish that allocation. Do not infer a provider configuration fix from this run alone.
+
+
+## Numeric token-usage capture and live diagnostic run
+
+Report: `results/2026-10-26T18-54-14-327963+00-00-assessment-controller.json`. The evaluation-only capture now retains allowlisted nonnegative integer input/output/cache counts and `output_tokens_details.thinking_tokens` when supplied. No private thinking text is stored. Reports attach per-generation usage, totals including repairs, and thinking/output share only when counts are present and consistent. Missing values stay unknown, not zero.
+
+| Generation | Input tokens | Output tokens | Reported thinking tokens | Latency | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Initial | 3309 | 5100 | 3171 | 19627 ms | JSON parser rejected an extra trailing closing brace |
+| One reserved repair | 3398 | 5442 | 3475 | 21402 ms | Validated and saved |
+| Total | 6707 | 10542 | 6646 | 41029 ms across calls | One completed quiz |
+
+Reported thinking/output share is approximately 63.0%. Each call remained below its 8192-token cap; the total spans two calls and must not be compared to a single-call cap. Output tokens not counted as thinking total 3896, but this subtraction is not presented as an independently measured visible-text token count. Provider-reported cache counts were zero. These counts are not a dollar-cost estimate.
+
+This supports investigating reasoning configuration before further prompt-only or budget-only tuning. It does not establish the usage split in historical truncated runs, which lacked captured usage. No provider setting was changed based on an assumed reasoning API.
+
+Controller checks passed: one quiz, ten questions, ten private keys, awaiting_answers status, one technical repair, zero learning retries, no attempts/results, no learner key leak, and no foreign-key error. Assistant content inspection still finds weak distractors (for example Q6 breaking the bilayer apart, Q7 driving lipids into water) and mostly recall. Completion and format success do not establish improved question quality.
+
+Offline verification: three capture/aggregation tests and all 109 Python tests passed; existing unrelated unclosed SQLite connection warnings remain. The new tests cover truncation metadata, missing/invalid values, repair aggregation, and exclusion of provider headers, error bodies, and private reasoning.
