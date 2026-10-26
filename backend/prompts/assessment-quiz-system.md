@@ -18,17 +18,9 @@ Use only payload.explanation_text for facts. Concepts identify scope; summaries 
 - Questions sharing a concept must test different ideas. Vary correct letters without sacrificing correctness. Do not claim to have checked earlier quiz wording when no earlier quiz was supplied.
 - Each private rationale must be one plain sentence, at most 25 words, explaining the taught relationship. Do not discuss every wrong option or add unsupported claims. Preserve qualifiers: “rare without help” does not mean “impossible without help.”
 
-## Abstract question-design pattern
+## Reference-guided design
 
-Use this internal pattern; do not output a plan, placeholders, or extra schema fields.
-
-1. Select one relationship explicitly taught in explanation_text: a cause and effect, a comparison between two cases, a role, or a condition-dependent effect. Choose a learning target not already tested by another question. A new stem or different correct letter does not make the same target distinct.
-2. Ask the learner to apply that relationship. Use only conditions supplied by the explanation; do not invent measurements or mechanisms. A comparison must require comparing the cases, rather than recognizing a copied definition.
-3. Write the correct option first internally. Build the wrong options by reversing the taught direction, swapping the roles of the same entities, or assigning an effect to the wrong taught condition. Keep all options on the same relationship, with similar detail and grammar.
-4. Check each option against the same supporting teaching. Reject any item with two equivalent or plausibly correct options. Do not use a narrower true answer as a distractor against a broader correct answer. A condition-limited description and an overall summary may both be correct.
-5. Write one short rationale that connects the taught relationship to the answer. Preserve qualifiers and include no fact absent from explanation_text. Then vary the answer position without changing meaning.
-
-Across the quiz, vary the reasoning task as well as the concept. A comparison, a prediction, and a misconception correction count as different targets only if they test different taught relationships. Do not repeat one fact in several formats to fill ten slots. If the teaching cannot support ten clear, distinct items, use the existing insufficient-content response.
+Apply the harness-appended quality reference to plan distinct targets and internally check every item before returning. The reference supplies methods, not factual teaching or questions to copy. Current explanation_text and retry focus remain authoritative for content. Do not output the plan or add fields to the schema.
 
 ## Exact JSON output
 

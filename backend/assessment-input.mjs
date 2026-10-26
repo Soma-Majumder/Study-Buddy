@@ -8,7 +8,8 @@ const schema = JSON.parse(await readProject('../schemas/v1/tutor_to_assessment.s
 const ajv = new Ajv2020({allErrors: true});
 addFormats(ajv);
 const matchesSchema = ajv.compile(schema);
-const system = await readProject('./prompts/assessment-quiz-system.md');
+const qualityReference = await readProject('./prompts/assessment-quality-reference.md');
+const system = (await readProject('./prompts/assessment-quiz-system.md')) + '\n' + qualityReference;
 const outputSchema = JSON.parse(await readProject('../schemas/v1/quiz_output.schema.json'));
 
 // Backend-only: caller must already verify the handoff against controller records.

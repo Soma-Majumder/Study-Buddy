@@ -245,3 +245,10 @@ This is a verified format fix on one live sample, not a reliability estimate or 
 ## Completed quality review of the schema-valid quiz
 
 See `assessment-quality-review-2026-10-26.md` and the saved report's quality_review object for per-question evidence and rubric judgments. All ten keys/rationales appear supported; no clear answer overlap was found in this sample. Coverage includes seven concepts, with 9–13-word rationales. Only Q2/Q3 clearly test understanding; other items mostly require recall. Weak distractors and some unfair cues mean needs_revision. This is manual report metadata, not a runtime quality gate or an independent scientific/educator review. No paid call or prompt change was made.
+
+
+## Manual reference distilled into Assessment harness guidance
+
+Added `backend/prompts/assessment-quality-reference.md` and wired it into the system instructions, replacing the previous generic design section with a short reference directive. The runtime guide contains design methods derived from the manual revision rather than the question text, private key, session IDs, or lesson-specific examples. First-round and retry requests retain the original explanation and concept/focus scope.
+
+Offline verification: 65 JavaScript tests plus 12 bridge/capture tests passed. New regression checks ensure no manual question stems or stored handoff ID enter requests and that focus/payload remain unchanged. The evaluation records a separate hash for the reference. No paid model call was made. Whether generation quality improves remains unverified; this does not add another agent, a quality-revision call, or a new technical/learning retry budget.

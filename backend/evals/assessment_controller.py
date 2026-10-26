@@ -44,6 +44,7 @@ def main():
     report = dict(date=datetime.now(timezone.utc).isoformat(),
                   scope='Live Assessment through real controller; Tutor is a hand-written fixture',
                   prompt_sha256=hashlib.sha256((ROOT / 'backend/prompts/assessment-quiz-system.md').read_bytes()).hexdigest(),
+                  quality_reference_sha256=hashlib.sha256((ROOT / 'backend/prompts/assessment-quality-reference.md').read_bytes()).hexdigest(),
                   generations=[], review='pending', assessment_structured_output=True, assessment_effort='low', assessment_max_tokens=8192, assessment_timeout_ms=60000, bridge_timeout_seconds=70)
 
     if args.capture_response_text:

@@ -69,3 +69,10 @@ For the next live review, check that generated items transfer these design princ
 The prompt no longer includes the membrane question/answer examples. It now asks the agent to select a distinct explicitly taught relationship, choose a reasoning task, build parallel distractors by reversing or swapping that relationship, reject overlapping true answers, and write one short grounded rationale. Planning stays internal and does not add output fields. The pattern also flags a narrower true option competing with a broader correct summary, as observed in the cholesterol item.
 
 For the next evaluation, check genuine target diversity rather than counting different stems or shuffled choices. Both the factual reference and retry focus remain the supplied handoff; no new subject-matter examples are introduced. A full accepted quiz must still be reviewed for correctness and distractor plausibility. This revision is not yet live-verified. Earlier example-specific review notes above describe historical prompt versions.
+
+
+## Manual revision used as agent guidance
+
+The harness now loads a separate topic-neutral reference distilled from the manual revision. Traceability: manual Q3 informs same-variable cause/effect choices; Q4 informs applying a definition to two cases; Q6 informs checking both conditions; Q7 informs comparing representations; Q9 informs preserving qualifiers; Q5/Q8 inform distinguishing explicit teaching from unsupported detail. Q1/Q2/Q10 inform balanced role/property choices but are not treated as proof of deeper reasoning.
+
+The complete revised quiz is not sent to the model. During the next live review, compare outputs with these design principles and check target variety, plausible distractors, one defensible answer, and factual scope. Do not count evidence-boundary questions repeatedly as a substitute for understanding the subject. Input/transport tests cannot establish these semantic qualities.

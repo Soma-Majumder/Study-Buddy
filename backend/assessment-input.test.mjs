@@ -68,3 +68,23 @@ test('embedded instructions remain data and input mutation cannot rewrite the re
   assert.notEqual(JSON.parse(request.user).handoff.payload.explanation_text, 'changed');
   // Separation is verified; this does not prove a model will resist the attack.
 });
+
+
+test('reference guidance adds no stored quiz wording, IDs, keys, or retry scope', async () => {
+  const manual = JSON.parse(await readFile(new URL(
+    './evals/revisions/2026-10-26-manual-quiz-revision.json', import.meta.url), 'utf8'));
+  for (const retry of [false, true]) {
+    const h = await fixture(retry);
+    const request = buildAssessmentInput(h);
+    const data = JSON.parse(request.user);
+    assert.deepEqual(data.handoff.payload, h.payload);
+    assert.deepEqual(data.handoff.context, h.context);
+    assert.ok(!request.user.includes(manual.handoff_id));
+    assert.ok(!request.system.includes(manual.handoff_id));
+    for (const question of manual.quiz.questions) {
+      assert.ok(!request.system.includes(question.prompt));
+      assert.ok(!request.user.includes(question.prompt));
+    }
+    assert.equal(data.handoff.payload.answer_key, undefined);
+  }
+});

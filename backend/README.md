@@ -286,3 +286,12 @@ The local insufficient-content object remains an allowed response branch and sti
 Unsupported provider-side numeric, string-length, and exact-array-size bounds are omitted from the derived grammar only. The canonical schema and Python validator retain exactly ten questions/keys, valid positions, IDs, taught/focused concept checks, and distinct options. Grammar success does not prove factual correctness or useful questions. Refusals, truncation, and provider failures still stop under the current policy.
 
 Source checked October 26, 2026: [Anthropic structured-output documentation](https://platform.claude.com/docs/en/build-with-claude/structured-outputs). Offline tests reproduce the forbidden concept_id and placeholder-field defects, preserve the failure branch, check request schema/effort merging, and demonstrate that full local size validation remains necessary. The successful live format test saved ten questions/private keys on its first call with no repair; semantic quality remains separate.
+
+
+## Assessment quality reference from the manual revision
+
+`buildAssessmentInput` appends the harness-owned `backend/prompts/assessment-quality-reference.md` to the system instructions for both rounds. The guide distills methods from `backend/evals/revisions/2026-10-26-manual-quiz-revision.md`; it does not read or send that quiz's wording, keys, IDs, or scientific examples at runtime. The current handoff remains the factual source, with unchanged retry focus.
+
+The reference covers applying definitions, comparing relationships/conditions, correcting overgeneralizations, preserving qualifiers, evidence boundaries, parallel distractors, distinct targets, and concise rationales. Its internal self-check makes no additional model calls and grants no repair budget. Schema-constrained output and full controller validation remain unchanged. It is guidance, not a semantic quality gate or a guarantee of good questions.
+
+The controller evaluation now records a separate quality-reference SHA-256 alongside the base prompt hash. A regression test checks first/retry requests for accidental manual-question/ID inclusion and unchanged handoff scope. This revision has only offline verification so far; no paid call was made.
