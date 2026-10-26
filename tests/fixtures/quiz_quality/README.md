@@ -13,3 +13,5 @@ Labelled defective or policy-edge candidates for a future live Reviewer evaluati
 Cases: weak_distractors_category_cue, overlapping_true_narrow_vs_broad, repeated_target_bilayer, unsupported_mechanism, recall_heavy_all_items_pass, understanding_boundary_five, strict_labels_reference. strict_labels_reference challenges the six-understanding-question target: the manual reference quiz falls to four under strict demand labels (Q4 as recall, Q9 as evidence_boundary).
 
 Gap: there is still no independent good case beyond pass.json, and only one lesson. Add a good reference quiz from a second lesson, reviewed by an educator, before measuring unnecessary rejection.
+
+Policy note: the expected values above use the current default minimum of six. Soma's decision is to treat six as a generation goal and block only below about four. Under four, understanding_boundary_five and strict_labels_reference pass and recall_heavy_all_items_pass still needs revision (see the last test in test_quality_benchmark_fixtures.py). The default in `validate_review` is unchanged here; that is Ivo's file.
