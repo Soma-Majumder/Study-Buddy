@@ -55,3 +55,8 @@ The current Tutor fixture is short and contains several list/definition facts, w
 The controller currently validates structure, references, and scoring evidence; it does not enforce this manual pedagogical review. The evaluation database saved the quiz as awaiting_answers before this review. Marking the report needs_revision does not add an application quality gate.
 
 No paid call was made for this review. Structured-output success remains a useful format result, while pedagogical quality is not approved.
+
+
+## Separate manual revision available
+
+The original verdict and live evidence above are unchanged. See `revisions/2026-10-26-manual-quiz-revision.md` for rewritten questions, rationale for each change, and validation evidence. Its separate backend JSON includes private keys. This assistant-authored draft passed the existing validator and an offline real-controller persistence/privacy check, with no paid calls. It does not demonstrate that the current Assessment prompt generates the revised quality automatically.
