@@ -20,6 +20,8 @@ test('Assessment packages the handoff and makes exactly one provider request', a
     const body = JSON.parse(request.body);
     assert.match(body.system, /Assessment/);
     assert.equal(body.max_tokens, 8192);
+    assert.deepEqual(body.output_config, {effort: 'low'});
+    assert.equal(body.thinking, undefined);
     const data = JSON.parse(body.messages[0].content);
     assert.equal(data.handoff.handoff_id, handoff.handoff_id);
     assert.equal(data.repair_request, undefined);

@@ -11,7 +11,7 @@ class AssessmentFailure(Exception):
     def __init__(self, stage='provider adapter', code='adapter_error', http_status=None, stop_reason=None):
         super().__init__('Assessment could not create a quiz.')
         self.stage = stage
-        allowed = {'missing_api_key', 'invalid_input', 'invalid_timeout', 'invalid_output_budget', 'authentication_failed',
+        allowed = {'missing_api_key', 'invalid_input', 'invalid_timeout', 'invalid_output_budget', 'invalid_effort', 'authentication_failed',
                    'rate_limited', 'provider_unavailable', 'api_rejected', 'output_truncated',
                    'incomplete_response', 'unexpected_response', 'empty_response', 'request_timeout',
                    'transport_error', 'adapter_error', 'process_timeout', 'invalid_envelope', 'process_unavailable'}

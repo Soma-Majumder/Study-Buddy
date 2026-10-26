@@ -268,3 +268,10 @@ The shared Claude transport accepts `maxTokens` (positive integer, default 4096)
 
 
 Assessment now uses a default `timeoutMs: 60000` with its 8192-token output allowance. Its Python bridge permits 70 seconds for process startup and the provider request. The shared transport default stays 30 seconds, so Tutor behavior is unchanged. Timeout errors still stop without automatic provider retries; the one-repair and learning-retry limits are unchanged. Offline tests verify the Assessment deadline, cancellation, and longer bridge deadline.
+
+
+## Assessment reasoning effort
+
+The shared transport accepts optional `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and sends it as `output_config.effort`; invalid values fail before network access with `invalid_effort`. Assessment defaults to `low`. The transport omits the field when unspecified, preserving Tutor behavior. No `thinking` field or legacy thinking budget is sent. Backend callers overriding the model must check that model's supported controls.
+
+Anthropic's [effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort) and [Haiku 5.5 migration guide](https://platform.claude.com/docs/en/models/haiku-5-5/migration-guide), checked October 26, 2026, describe effort and adaptive thinking. The first explicit-low evaluation passed controller validation without repair; semantic question quality still needs improvement. See the evaluation review for exact usage and limits.

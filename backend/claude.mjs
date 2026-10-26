@@ -21,6 +21,7 @@ export async function callClaude(input, {
   fetchImpl = globalThis.fetch,
   timeoutMs = 30_000,
   maxTokens = 4096,
+  effort,
 } = {}) {
   if (typeof apiKey !== 'string' || !apiKey.trim()) {
     throw new ClaudeCallError('missing_api_key', 'ANTHROPIC_API_KEY is required.');
@@ -34,6 +35,10 @@ export async function callClaude(input, {
 
   if (!Number.isInteger(maxTokens) || maxTokens <= 0) {
     throw new ClaudeCallError('invalid_output_budget', 'A positive output token budget is required.');
+  }
+
+  if (effort !== undefined && !['low', 'medium', 'high', 'xhigh', 'max'].includes(effort)) {
+    throw new ClaudeCallError('invalid_effort', 'A supported reasoning effort is required.');
   }
 
   const controller = new AbortController();
@@ -50,6 +55,7 @@ export async function callClaude(input, {
       body: JSON.stringify({
         model,
         max_tokens: maxTokens,
+        ...(effort !== undefined ? {output_config: {effort}} : {}),
         system: input.system,
         messages: [{role: 'user', content: input.user}],
       }),

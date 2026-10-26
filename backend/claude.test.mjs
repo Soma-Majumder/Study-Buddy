@@ -19,6 +19,7 @@ test('sends one request with separate instructions and data, returning unvalidat
     assert.equal(body.system, input.system);
     assert.deepEqual(body.messages, [{role: 'user', content: input.user}]);
     assert.equal(body.max_tokens, 4096);
+    assert.equal(body.output_config, undefined);
     assert.ok(!options.body.includes(key));
     return response();
   }});
@@ -117,5 +118,22 @@ test('rejects invalid output budgets before network access', async () => {
   for (const maxTokens of [0, -1, 1.5, '8192', null, Infinity]) {
     await assert.rejects(callClaude(input, {apiKey: key, maxTokens,
       fetchImpl: () => assert.fail('No request expected')}), error => error.code === 'invalid_output_budget');
+  }
+});
+
+
+test('sends supported effort without disabling adaptive thinking', async () => {
+  await callClaude(input, {apiKey: key, effort: 'low', fetchImpl: async (_url, request) => {
+    const body = JSON.parse(request.body);
+    assert.deepEqual(body.output_config, {effort: 'low'});
+    assert.equal(body.thinking, undefined);
+    return response();
+  }});
+});
+
+test('rejects invalid effort before network access', async () => {
+  for (const effort of ['adaptive', 'minimal', '', null, 1]) {
+    await assert.rejects(callClaude(input, {apiKey: key, effort,
+      fetchImpl: () => assert.fail('No request expected')}), error => error.code === 'invalid_effort');
   }
 });

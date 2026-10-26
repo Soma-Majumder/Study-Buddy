@@ -119,3 +119,41 @@ This supports investigating reasoning configuration before further prompt-only o
 Controller checks passed: one quiz, ten questions, ten private keys, awaiting_answers status, one technical repair, zero learning retries, no attempts/results, no learner key leak, and no foreign-key error. Assistant content inspection still finds weak distractors (for example Q6 breaking the bilayer apart, Q7 driving lipids into water) and mostly recall. Completion and format success do not establish improved question quality.
 
 Offline verification: three capture/aggregation tests and all 109 Python tests passed; existing unrelated unclosed SQLite connection warnings remain. The new tests cover truncation metadata, missing/invalid values, repair aggregation, and exclusion of provider headers, error bodies, and private reasoning.
+
+
+## Explicit low-effort Assessment evaluation
+
+Report: `results/2026-10-26T18-57-27-777787+00-00-assessment-controller.json`. Assessment now sends `output_config: {effort: low}`; thinking remains unset (adaptive default), max_tokens remains 8192, and request/bridge deadlines remain 60/70 seconds. Tutor still omits effort and retains its previous defaults.
+
+Offline checks: 59 JavaScript tests and 12 bridge/capture tests passed. Tests verify explicit effort serialization, omission for default transport/Tutor, and rejection of invalid effort before network access. No retry policy changed.
+
+| Metric | Previous default-effort run | This low-effort run |
+| --- | ---: | ---: |
+| Generations | 2 (one repair) | 1 (no repair) |
+| Total input tokens | 6707 | 3305 |
+| Total output tokens | 10542 | 4710 |
+| Reported thinking tokens | 6646 | 2772 |
+| Thinking share | 63.0% | 58.9% |
+| Summed call latency | 41029 ms | 17838 ms |
+| Controller outcome | awaiting_answers | awaiting_answers |
+
+Totals compare whole evaluation runs, so the larger difference includes the avoided repair. Comparing first calls only: output tokens were 5100 before versus 4710 here, and thinking tokens 3171 versus 2772. This is one sample per setting, not a controlled reliability or causal performance claim. All controller gates passed: one quiz, ten questions/keys, no learner key leak, zero attempts/results, zero technical repairs and learning retries, and no foreign-key errors.
+
+### Per-question assistant review
+
+All ten keyed answers and rationales appear supported by the supplied fixture explanation. Rationales are single sentences, 13–19 words each. No previously observed cold-condition synonym overlap appears. However, the quiz is not quality-approved.
+
+| Position | Primary demand | Quality finding |
+| --- | --- | --- |
+| 1 | Recall arrangement | Wrong options include cholesterol/sugars as parts of each phospholipid: category mismatch makes guessing easy. |
+| 2 | Cause/effect | Correct packing relationship is clear, but sugar/cholesterol attachment alternatives are untaught and weak. |
+| 3 | Comparison | Tests taught saturated/unsaturated difference; glycocalyx and leaflet-switching options are unrelated distractors. |
+| 4 | Recall list | Stem asks broadly what affects fluidity without limiting to the explanation; learner may need to reject plausible unlisted factors. |
+| 5 | Recall conditional role | Correct very-fluid buffering role; chemical conversion and leaflet-switching alternatives are weak. |
+| 6 | Recall conditional role | No overlapping correct alternatives, but “freeze solid” and “hides heads from water” are obvious wrong options. |
+| 7 | Recall model | Correct answer is the only long, detailed description; “sugar wall” is an easy category mismatch. |
+| 8 | Recall movement rule | Preserves rare-without-enzymes qualifier; glycocalyx and identical-leaflet alternatives are unrelated. |
+| 9 | Recall definition/role | Correct answer is much more detailed than alternatives and already gives the recognition role. |
+| 10 | Recall role | Overlaps with Q9's recognition wording; does not establish a different understanding target. |
+
+Only Q2 and Q3 clearly require the rubric's understanding tasks rather than sentence/role recall, below the six-item quality target. Completion improved in this sample, while pedagogical quality remains unresolved. Next: refine the quiz-generation approach using concrete good/bad question examples or a separate quality review step, keeping controller format checks and bounded operations distinct from semantic review. No extra generation was made.
