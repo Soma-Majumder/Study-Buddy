@@ -45,8 +45,8 @@ class QualityExpiryTests(unittest.TestCase):
         report=self.helper.report()
         if kind=='approved':
             store_review_report(self.conn,LEARNER,review['call_id'],report);return review['call_id']
-        report['quiz_review']['target_diversity']='fail'
-        report['quiz_review']['issues']=[dict(code='repeated_target',detail='Repeated.',related_positions=[1,2])]
+        report['quiz_review']['concept_coverage']='fail'
+        report['quiz_review']['issues']=[dict(code='missing_coverage',detail='Repeated.',related_positions=[1,2])]
         store_review_report(self.conn,LEARNER,review['call_id'],report)
         revision=reserve_quality_call(self.conn,LEARNER,self.op,'revision')
         if kind=='revision':return revision['call_id']

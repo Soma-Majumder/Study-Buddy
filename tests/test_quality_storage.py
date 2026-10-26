@@ -158,8 +158,8 @@ class QualityStorageTests(unittest.TestCase):
         with self.assertRaises(QualityStateRejected): load_private_review_report(self.conn, LEARNER, self.op, review['call_id'])
 
     def test_two_candidate_versions_and_reports_survive_revision(self):
-        review = self.prepare_review(); first = self.report(); first['quiz_review']['target_diversity'] = 'fail'
-        first['quiz_review']['issues'] = [dict(code='repeated_target', detail='Synthetic repeated-target judgment.', related_positions=[1, 2])]
+        review = self.prepare_review(); first = self.report(); first['quiz_review']['concept_coverage'] = 'fail'
+        first['quiz_review']['issues'] = [dict(code='missing_coverage', detail='Synthetic repeated-target judgment.', related_positions=[1, 2])]
         store_review_report(self.conn, LEARNER, review['call_id'], first)
         revision = reserve_quality_call(self.conn, LEARNER, self.op, 'revision')
         revised = copy.deepcopy(self.candidate); revised['quiz']['questions'][0]['prompt'] += ' Revised.'
