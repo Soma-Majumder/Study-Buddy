@@ -89,3 +89,14 @@ The longer timeout resolved this run's deadline bottleneck but did not produce a
 ## Prepared next prompt: shorter instructions and rationales
 
 The prompt was rewritten to remove repeated planning/self-check guidance while preserving data/instruction separation, explanation-only grounding, copied IDs, exact output fields, one-answer quality, retry focus, private keys, and controller-owned stopping/repairs. Rationales now target one sentence and at most 25 words. Equivalent answer effects are explicitly prohibited, and qualifiers such as rare versus impossible must be preserved. This may reduce response length, but no reduction in reasoning tokens, latency, or failures is claimed without another live sample. No paid call was made for this edit.
+
+
+## Simplified-prompt live evaluation
+
+Report: `results/2026-10-26T18-51-34-801701+00-00-assessment-controller.json`. The 534-word prompt ran with the same 8,192-token allowance and 60-second request deadline. The one invocation took 33,028 ms and returned `output_truncated` / `max_tokens`. Capture ends during the answer-key rationale for position 7. The controller saved no quiz/questions/keys/attempts/results, recorded failed status, and consumed neither technical repair nor learning retry. No additional generation was attempted.
+
+Partial inspection, not a full quiz score: the six complete visible rationales are single sentences under the 25-word target. This is a narrower improvement in visible brevity, not proof of lower total token usage or better questions. Q2 and Q8 test the saturation/packing/fluidity relationship, but most other items still ask recall. Wrong options such as cholesterol “dissolves the bilayer” or “removes all proteins” remain obvious unsupported distractors. Q9 avoids the previously overlapping cold-condition choices by using much weaker alternatives rather than demonstrating strong distractor quality.
+
+The raw text also closes the root object before `answer_key`, so that captured prefix already contains a JSON structural defect in addition to being truncated. It was not manually repaired or forwarded. The transport correctly treats a max_tokens response as incomplete before JSON validation.
+
+Conclusion: the simplified prompt did not resolve completion, and pedagogical improvement remains unestablished. Before more paid prompt iterations, record numeric provider usage (including thinking-token totals when supplied) and inspect whether the generation budget is being spent on reasoning versus returned quiz text. The captured response text excludes private reasoning and does not establish that allocation. Do not infer a provider configuration fix from this run alone.
