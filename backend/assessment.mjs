@@ -30,7 +30,7 @@ export async function runAssessmentQuiz(handoff, {repairRequest = null, claudeOp
       });
     }
     stage = 'model call';
-    const response = await callClaude(input, claudeOptions);
+    const response = await callClaude(input, {maxTokens: 8192, ...claudeOptions});
     // Return invalid output to controller validation so its existing repair
     // policy applies. Never retry locally or expose raw non-JSON model text.
     let output = null;

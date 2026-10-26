@@ -20,6 +20,7 @@ export async function callClaude(input, {
   model = process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5',
   fetchImpl = globalThis.fetch,
   timeoutMs = 30_000,
+  maxTokens = 4096,
 } = {}) {
   if (typeof apiKey !== 'string' || !apiKey.trim()) {
     throw new ClaudeCallError('missing_api_key', 'ANTHROPIC_API_KEY is required.');
@@ -29,6 +30,10 @@ export async function callClaude(input, {
   }
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
     throw new ClaudeCallError('invalid_timeout', 'A positive request timeout is required.');
+  }
+
+  if (!Number.isInteger(maxTokens) || maxTokens <= 0) {
+    throw new ClaudeCallError('invalid_output_budget', 'A positive output token budget is required.');
   }
 
   const controller = new AbortController();
@@ -44,7 +49,7 @@ export async function callClaude(input, {
       signal: controller.signal,
       body: JSON.stringify({
         model,
-        max_tokens: 4096,
+        max_tokens: maxTokens,
         system: input.system,
         messages: [{role: 'user', content: input.user}],
       }),

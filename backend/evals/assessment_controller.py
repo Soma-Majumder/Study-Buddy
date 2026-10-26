@@ -25,7 +25,7 @@ def main():
     report = dict(date=datetime.now(timezone.utc).isoformat(),
                   scope='Live Assessment through real controller; Tutor is a hand-written fixture',
                   prompt_sha256=hashlib.sha256((ROOT / 'backend/prompts/assessment-quiz-system.md').read_bytes()).hexdigest(),
-                  generations=[], review='pending')
+                  generations=[], review='pending', assessment_max_tokens=8192)
 
     def tutor(context):
         handoff = json.loads((ROOT / 'schemas/v1/examples/tutor_to_assessment.example.json').read_text())

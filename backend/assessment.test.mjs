@@ -19,6 +19,7 @@ test('Assessment packages the handoff and makes exactly one provider request', a
     calls++;
     const body = JSON.parse(request.body);
     assert.match(body.system, /Assessment/);
+    assert.equal(body.max_tokens, 8192);
     const data = JSON.parse(body.messages[0].content);
     assert.equal(data.handoff.handoff_id, handoff.handoff_id);
     assert.equal(data.repair_request, undefined);

@@ -104,3 +104,18 @@ test('network exceptions become fixed diagnostics even when their messages mimic
     throw new Error('Claude request failed (HTTP 999).');
   }}), error => error.code === 'transport_error' && error.httpStatus === undefined);
 });
+
+
+test('supports an explicit output budget while leaving the default at 4096', async () => {
+  await callClaude(input, {apiKey: key, maxTokens: 8192, fetchImpl: async (_url, request) => {
+    assert.equal(JSON.parse(request.body).max_tokens, 8192);
+    return response();
+  }});
+});
+
+test('rejects invalid output budgets before network access', async () => {
+  for (const maxTokens of [0, -1, 1.5, '8192', null, Infinity]) {
+    await assert.rejects(callClaude(input, {apiKey: key, maxTokens,
+      fetchImpl: () => assert.fail('No request expected')}), error => error.code === 'invalid_output_budget');
+  }
+});

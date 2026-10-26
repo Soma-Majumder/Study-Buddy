@@ -39,3 +39,12 @@ The controller returned failed status with no next step and persisted zero quizz
 Report: `results/2026-10-26T18-38-53-246061+00-00-assessment-controller.json`. One live adapter invocation took 18,201 ms and failed with `error_code: output_truncated`, `stop_reason: max_tokens`. This run confirms the provider reached the shared transport's 4,096-token output budget before returning a complete response. The diagnostic does not retrospectively prove the earlier run had the same cause.
 
 The controller recorded failed session status, zero quizzes/questions/keys/attempts/results, learning retry count zero, and technical repair count zero. No repair call was made for this provider failure. Key isolation and foreign-key checks passed. Prompt quality and the live validation/repair path remain unverified because no complete output reached validation. Next implementation step: make the output budget configurable and give Assessment a larger budget without changing Tutor's default; validate the configuration offline before another explicitly authorized live run.
+
+
+## Increased Assessment output budget: 8,192 tokens
+
+Report: `results/2026-10-26T18-40-19-056969+00-00-assessment-controller.json`. The shared transport now accepts a validated positive integer `maxTokens`; Tutor retains the 4,096 default, and Assessment supplies 8,192 by default. Offline tests confirm both settings and reject invalid budgets before network access.
+
+This live controller run made two calls (20,256 ms and 21,060 ms). Neither returned a truncation error. Both completed transport but failed JSON parsing in the adapter, producing `output: null`; the validator reported “None is not of type object.” The controller reserved exactly one technical repair and failed after the second invalid generation. It saved no quiz, questions, keys, attempt, or result. Learning retry stayed zero, learner keys were not exposed, and foreign-key checks passed.
+
+This confirms the live repair limit and rejection of non-JSON output. It does not establish quiz quality or sustained resolution of truncation. Raw non-JSON text was discarded by design, so the exact formatting defect is unknown; do not assume Markdown fences or any other cause. Next diagnostic step: capture model response text only in an explicit backend evaluation artifact (never a learner response or normal error), then inspect why parsing fails. No third live call was made.
