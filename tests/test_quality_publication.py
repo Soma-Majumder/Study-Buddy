@@ -83,8 +83,8 @@ class QualityPublicationTests(unittest.TestCase):
 
     def test_revised_candidate_is_published_instead_of_failed_original(self):
         def bad(context,**kwargs):
-            r=self.helper.report();r['quiz_review']['target_diversity']='fail'
-            r['quiz_review']['issues']=[dict(code='repeated_target',detail='Repeated.',related_positions=[1,2])]
+            r=self.helper.report();r['quiz_review']['concept_coverage']='fail'
+            r['quiz_review']['issues']=[dict(code='missing_coverage',detail='Repeated.',related_positions=[1,2])]
             return r
         dispatch_quality_review(self.conn,LEARNER,self.op,reviewer=bad)
         revised=copy.deepcopy(self.helper.candidate);revised['quiz']['questions'][0]['prompt']+=' Replacement.'

@@ -20,8 +20,8 @@ class QualityRevisionTests(unittest.TestCase):
         self.helper.stage()
         def initial(context, **kwargs):
             r = self.helper.report()
-            r['quiz_review']['target_diversity'] = 'fail'
-            r['quiz_review']['issues'] = [dict(code='repeated_target', detail='Repeated.', related_positions=[1, 2])]
+            r['quiz_review']['concept_coverage'] = 'fail'
+            r['quiz_review']['issues'] = [dict(code='missing_coverage', detail='Repeated.', related_positions=[1, 2])]
             return r
         dispatch_quality_review(self.conn, LEARNER, self.op, reviewer=initial)
         self.calls = []
@@ -33,7 +33,7 @@ class QualityRevisionTests(unittest.TestCase):
         self.assertFalse(self.conn.in_transaction)
         self.calls.append((copy.deepcopy(context), kwargs))
         self.assertEqual(context['original']['candidate'], self.helper.candidate)
-        self.assertEqual(context['review_report']['quiz_review']['target_diversity'], 'fail')
+        self.assertEqual(context['review_report']['quiz_review']['concept_coverage'], 'fail')
         return copy.deepcopy(self.revised)
 
     def reviewer(self, context, **kwargs):
@@ -84,8 +84,8 @@ class QualityRevisionTests(unittest.TestCase):
     def test_second_content_failure_stops_without_another_revision(self):
         def reviewer(context, **kwargs):
             r = self.reviewer(context, **kwargs)
-            r['quiz_review']['target_diversity'] = 'fail'
-            r['quiz_review']['issues'] = [dict(code='repeated_target', detail='Still repeated.', related_positions=[1, 2])]
+            r['quiz_review']['concept_coverage'] = 'fail'
+            r['quiz_review']['issues'] = [dict(code='missing_coverage', detail='Still repeated.', related_positions=[1, 2])]
             return r
         result = self.dispatch(reviewer=reviewer)
         self.assertEqual(result['error'], 'content_revision_exhausted')
@@ -150,7 +150,7 @@ globalThis.fetch = async (_url, request) => {
 };
 ''')
             log = Path(directory) / 'calls.txt'
-            with patch.dict(os.environ, {'NODE_OPTIONS':f'--import={loader}', 'ANTHROPIC_API_KEY':'fake-key',
+            with patch.dict(os.environ, {'STUDY_BUDDY_ALLOW_PAID_CLAUDE': 'true', 'NODE_OPTIONS':f'--import={loader}', 'ANTHROPIC_API_KEY':'fake-key',
                                          'REVISION_TEST_LOG':str(log)}):
                 result = dispatch_quality_revision(self.conn, LEARNER, self.op)
                 self.assertEqual(result['stage'], 'approved')

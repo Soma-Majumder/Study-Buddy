@@ -1,5 +1,5 @@
 import { buildTutorInput } from './tutor-input.mjs';
-import { callClaude } from './claude.mjs';
+import { callClaude, ClaudeCallError } from './claude.mjs';
 import { validateTutorOutput } from './tutor-output.mjs';
 
 export class TutorRunError extends Error {
@@ -63,7 +63,9 @@ export async function runTutor(context, claudeOptions = {}, repairState = {count
         };
       }
     }
-  } catch {
-    throw new TutorRunError(stage, repairState.count, usage);
+  } catch (error) {
+    const failure = new TutorRunError(stage, repairState.count, usage);
+    if (error instanceof ClaudeCallError && error.code === 'live_calls_disabled') failure.code = error.code;
+    throw failure;
   }
 }

@@ -53,7 +53,7 @@ globalThis.fetch = async (_url, request) => {
     model: 'offline-reviewer', usage: {input_tokens: 1, output_tokens: 1}})};
 };
 ''')
-        env = patch.dict(os.environ, {'NODE_OPTIONS': f'--import={loader}', 'ANTHROPIC_API_KEY': 'fake-reviewer-key',
+        env = patch.dict(os.environ, {'STUDY_BUDDY_ALLOW_PAID_CLAUDE': 'true', 'NODE_OPTIONS': f'--import={loader}', 'ANTHROPIC_API_KEY': 'fake-reviewer-key',
             'REVIEW_BRIDGE_LOG': str(self.log), 'REVIEW_BRIDGE_MODE': 'valid'})
         env.start(); self.addCleanup(env.stop)
 
@@ -171,3 +171,9 @@ globalThis.fetch = async (_url, request) => {
         self.assertEqual((result['stage'], result['error']), ('failed', 'review_rate_limited'))
         self.assertEqual(helper.conn.execute('SELECT status FROM study_sessions').fetchone()[0], 'failed')
         self.assertEqual(len(self.calls()), 1)
+
+    def test_disabled_live_calls_preserve_diagnostic_across_python_node(self):
+        os.environ['STUDY_BUDDY_ALLOW_PAID_CLAUDE']='false'
+        with self.assertRaises(ReviewerFailure) as raised: run_reviewer(self.context)
+        self.assertEqual(raised.exception.code,'live_calls_disabled')
+        self.assertEqual(self.calls(),[])

@@ -24,7 +24,7 @@ export async function runReviewer(context, {claudeOptions = {}} = {}) {
     const expected = JSON.parse(input.user);
     stage = 'model call';
     const response = await callClaude(input, {
-      maxTokens: 4096, timeoutMs: 60_000, effort: 'low', ...claudeOptions,
+      maxTokens: 8192, timeoutMs: 60_000, effort: 'low', ...claudeOptions,
       outputSchema: structuredClone(reviewerResponseSchema),
     });
     stage = 'response validation';

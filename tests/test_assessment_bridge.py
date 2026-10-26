@@ -45,7 +45,7 @@ globalThis.fetch = async (_url, request) => {
 };
 ''')
         env = patch.dict(os.environ, {
-            'NODE_OPTIONS': f'--import={loader}', 'ANTHROPIC_API_KEY': 'fake-bridge-key',
+            'STUDY_BUDDY_ALLOW_PAID_CLAUDE': 'true', 'NODE_OPTIONS': f'--import={loader}', 'ANTHROPIC_API_KEY': 'fake-bridge-key',
             'BRIDGE_TEST_LOG': str(self.log), 'BRIDGE_TEST_MODE': 'valid',
         })
         env.start()
@@ -131,3 +131,14 @@ globalThis.fetch = async (_url, request) => {
                 returncode=0, stdout=json.dumps(dict(ok=True, result=dict(output=None))))) as run:
             self.assertIsNone(run_assessment({}))
         self.assertEqual(run.call_args.kwargs['timeout'], 70)
+
+    def test_opt_in_is_required_even_with_a_key_and_fake_preloaded_transport(self):
+        os.environ['STUDY_BUDDY_ALLOW_PAID_CLAUDE']='false'
+        handoff=json.loads((ROOT/'schemas/v1/examples/tutor_to_assessment.example.json').read_text())
+        with self.assertRaises(AssessmentFailure) as raised: run_assessment(handoff)
+        self.assertEqual(raised.exception.code,'live_calls_disabled')
+        self.assertEqual(self.calls(),[])
+        result=self.start()
+        self.assertEqual(result['status'],'failed')
+        self.assertEqual(result['error'],'generation_live_calls_disabled')
+        self.assertEqual(self.calls(),[])
