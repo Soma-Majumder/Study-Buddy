@@ -84,3 +84,8 @@ The one live invocation ran 35,013 ms and returned `output_truncated` / `max_tok
 - Some rationales now contrast a mistaken idea with the correct relationship, but unsupported statements remain: the Q8 rationale turns “rare without enzymes” into “enzymes make switching possible,” and the Q7 rationale asserts sugars occur only on the outside beyond the supplied sentence.
 
 The longer timeout resolved this run's deadline bottleneck but did not produce a complete, learner-ready quiz or establish improved quality. The next change should reduce generation verbosity and simplify the instructions while explicitly preventing overlapping cold-condition choices; do not blindly increase both budgets again. A fresh complete output and per-question review are needed. No further paid call was made.
+
+
+## Prepared next prompt: shorter instructions and rationales
+
+The prompt was rewritten to remove repeated planning/self-check guidance while preserving data/instruction separation, explanation-only grounding, copied IDs, exact output fields, one-answer quality, retry focus, private keys, and controller-owned stopping/repairs. Rationales now target one sentence and at most 25 words. Equivalent answer effects are explicitly prohibited, and qualifiers such as rare versus impossible must be preserved. This may reduce response length, but no reduction in reasoning tokens, latency, or failures is claimed without another live sample. No paid call was made for this edit.

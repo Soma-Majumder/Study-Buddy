@@ -50,3 +50,8 @@ Key: b. Rationale: The explanation describes switching as rare without the named
 ## Next evaluation
 
 Run the updated prompt through the controller, then complete this rubric for every accepted question. Compare with the saved October 26 sample and report unresolved flaws. No live generation has yet verified the new quality instructions.
+
+
+## Concise-prompt revision
+
+After the longer-deadline run hit the token cap, the prompt was condensed and each private rationale was limited by instruction to one sentence of at most 25 words. This is a generation/review target, not a new schema constraint: existing consumers and validators are unchanged. Review rationale length alongside correctness; concise wording must preserve qualifiers. Explicitly reject choices that restate the same effect, such as preventing excessive cold stiffness versus allowing more movement. The change has not yet been live-evaluated.
