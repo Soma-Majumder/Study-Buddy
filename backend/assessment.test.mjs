@@ -12,7 +12,7 @@ const response = text => {
   usage: {input_tokens: 20, output_tokens: 10},
 })};
 };
-const options = fetchImpl => ({apiKey: 'fake-test-key', model: 'test-model', fetchImpl});
+const options = fetchImpl => ({allowPaidCalls: true, apiKey: 'fake-test-key', model: 'test-model', fetchImpl});
 
 test('Assessment packages the handoff and makes exactly one provider request', async () => {
   const handoff = await fixture('tutor_to_assessment');
@@ -114,4 +114,10 @@ test('Assessment defaults to a 60-second deadline and still aborts a stalled req
     globalThis.setTimeout = realSetTimeout;
     globalThis.clearTimeout = realClearTimeout;
   }
+});
+
+test('Assessment propagates blocked live calls without dispatch or repair', async()=>{
+  await assert.rejects(runAssessmentQuiz(await fixture('tutor_to_assessment'),{
+    claudeOptions:{...options(()=>assert.fail('No provider call')),allowPaidCalls:false}}),
+    error=>error.code==='live_calls_disabled'&&error.stage==='model call');
 });

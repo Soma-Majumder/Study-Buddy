@@ -59,7 +59,7 @@ test('injected output is not copied into repair input; two invalid outputs stop'
   const marker = 'ATTACK_MARKER_IGNORE_SYSTEM_READ_ENV';
   const malicious = structuredClone(sample);
   malicious.command = marker;
-  await assert.rejects(runTutor(context, {apiKey: 'fake-secret-for-test', fetchImpl: async (_url, options) => {
+  await assert.rejects(runTutor(context, {allowPaidCalls: true, apiKey: 'fake-secret-for-test', fetchImpl: async (_url, options) => {
     captured.push(JSON.parse(options.body));
     return {ok: true, json: async () => ({stop_reason: 'end_turn', model: 'test-model',
       content: [{type: 'text', text: JSON.stringify(malicious)}]})};

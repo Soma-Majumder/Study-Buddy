@@ -12,6 +12,7 @@ try {
   console.log(JSON.stringify({ok: false, error: {
     stage: error instanceof TutorRunError ? error.stage : 'input preparation',
     repairCount: error instanceof TutorRunError ? error.repairCount : 0,
+    ...(error instanceof TutorRunError && error.code === 'live_calls_disabled' ? {code: error.code} : {}),
   }}));
   process.exitCode = 1;
 }

@@ -13,7 +13,7 @@ function fakeClaude(invalidCalls = 0) {
   let calls = 0;
   return {
     count: () => calls,
-    options: {apiKey: 'fake-test-key', fetchImpl: async (_url, options) => {
+    options: {allowPaidCalls: true, apiKey: 'fake-test-key', fetchImpl: async (_url, options) => {
       calls++;
       const input = JSON.parse(JSON.parse(options.body).messages[0].content);
       const h = structuredClone(fixture);
@@ -51,7 +51,7 @@ test('input failure stops before making a model call', async () => {
 
 test('transport failure stops without returning a handoff', async () => {
   const fake = fakeClaude();
-  await assert.rejects(runTutor(context, {...fake.options, apiKey: ''}),
+  await assert.rejects(runTutor(context, {...fake.options, allowPaidCalls: true, apiKey: ''}),
     error => error instanceof TutorRunError && error.stage === 'model call');
   assert.equal(fake.count(), 0);
 });

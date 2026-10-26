@@ -44,7 +44,7 @@ test('invalid return handoffs stop before any generation', async () => {
   ];
   for (const change of changes) {
     const c = structuredClone(base); change(c);
-    await assert.rejects(runTutor(c, {apiKey: 'fake', fetchImpl: () => assert.fail('No generation expected')}),
+    await assert.rejects(runTutor(c, {allowPaidCalls: true, apiKey: 'fake', fetchImpl: () => assert.fail('No generation expected')}),
       error => error.stage === 'input preparation');
   }
 });

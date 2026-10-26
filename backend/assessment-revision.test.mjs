@@ -18,7 +18,7 @@ function context() {
       concept_ids:fixture.handoff.payload.concepts.map(c=>c.concept_id),focus_concept_ids:[]},
     sources:fixture.handoff.sources},review_report:r};
 }
-const options = fetchImpl => ({apiKey:'fake-key',fetchImpl});
+const options = fetchImpl => ({allowPaidCalls: true, apiKey:'fake-key',fetchImpl});
 const response = text => ({ok:true,json:async()=>({stop_reason:'end_turn',content:[{type:'text',text}],model:'fixture',usage:{output_tokens:1}})});
 test('revision sends bound original/report and requests a complete replacement once', async()=>{
   const c=context(); let calls=0;
@@ -51,4 +51,9 @@ test('provider failures stop once without leaking raw text',async()=>{
   await assert.rejects(runAssessmentRevision(context(),{claudeOptions:options(async()=>{calls++;throw new Error('private provider');})}),
     e=>e.code==='transport_error'&&!JSON.stringify(e).includes('private provider'));
   assert.equal(calls,1);
+});
+
+test('revision stops on disabled live calls without invoking transport',async()=>{
+  await assert.rejects(runAssessmentRevision(context(),{claudeOptions:{...options(()=>assert.fail('No provider call')),allowPaidCalls:false}}),
+    error=>error.code==='live_calls_disabled');
 });

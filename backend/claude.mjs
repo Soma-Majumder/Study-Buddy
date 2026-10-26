@@ -23,6 +23,7 @@ export async function callClaude(input, {
   maxTokens = 4096,
   effort,
   outputSchema,
+  allowPaidCalls = process.env.STUDY_BUDDY_ALLOW_PAID_CLAUDE === 'true',
 } = {}) {
   if (typeof apiKey !== 'string' || !apiKey.trim()) {
     throw new ClaudeCallError('missing_api_key', 'ANTHROPIC_API_KEY is required.');
@@ -44,6 +45,13 @@ export async function callClaude(input, {
 
   if (outputSchema !== undefined && (!outputSchema || typeof outputSchema !== 'object' || Array.isArray(outputSchema))) {
     throw new ClaudeCallError('invalid_output_schema', 'An output schema object is required.');
+  }
+
+  // A credential or custom transport is not consent to spend API credits.
+  // Only trusted backend configuration may grant permission, never model/user data.
+  if (allowPaidCalls !== true) {
+    throw new ClaudeCallError('live_calls_disabled',
+      'Paid Claude calls are disabled. Enable them explicitly in trusted backend configuration.');
   }
 
   const controller = new AbortController();

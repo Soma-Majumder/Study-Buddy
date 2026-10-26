@@ -42,6 +42,7 @@ def main():
     args = parser.parse_args()
     if not args.live or not args.quality_gate:
         parser.error('--live --quality-gate are required; the full flow can make up to five paid requests')
+    os.environ['STUDY_BUDDY_ALLOW_PAID_CLAUDE'] = 'true'
     report = dict(date=datetime.now(timezone.utc).isoformat(),
                   scope='Live Assessment through real controller; Tutor is a hand-written fixture',
                   prompt_sha256=hashlib.sha256((ROOT / 'backend/prompts/assessment-quiz-system.md').read_bytes()).hexdigest(),

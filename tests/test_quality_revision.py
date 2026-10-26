@@ -150,7 +150,7 @@ globalThis.fetch = async (_url, request) => {
 };
 ''')
             log = Path(directory) / 'calls.txt'
-            with patch.dict(os.environ, {'NODE_OPTIONS':f'--import={loader}', 'ANTHROPIC_API_KEY':'fake-key',
+            with patch.dict(os.environ, {'STUDY_BUDDY_ALLOW_PAID_CLAUDE': 'true', 'NODE_OPTIONS':f'--import={loader}', 'ANTHROPIC_API_KEY':'fake-key',
                                          'REVISION_TEST_LOG':str(log)}):
                 result = dispatch_quality_revision(self.conn, LEARNER, self.op)
                 self.assertEqual(result['stage'], 'approved')

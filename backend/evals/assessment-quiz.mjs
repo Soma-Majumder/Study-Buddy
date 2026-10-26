@@ -16,7 +16,7 @@ const report = {date: new Date().toISOString(), scope: 'One first-round Assessme
 let calls = 0;
 const started = performance.now();
 try {
-  const result = await runAssessmentQuiz(handoff, {claudeOptions: {fetchImpl: async (...args) => {
+  const result = await runAssessmentQuiz(handoff, {claudeOptions: {allowPaidCalls: true, fetchImpl: async (...args) => {
     calls++;
     return fetch(...args);
   }}});

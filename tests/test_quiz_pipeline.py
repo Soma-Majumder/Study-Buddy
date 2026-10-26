@@ -125,7 +125,7 @@ globalThis.fetch=async(_url,request)=>{
   }
   return {ok:true,json:async()=>({stop_reason:'end_turn',content:[{type:'text',text:JSON.stringify(output)}],model:'offline',usage:{input_tokens:1,output_tokens:1}})};
 };''')
-            with patch.dict(os.environ,{'NODE_OPTIONS':f'--import={loader}','ANTHROPIC_API_KEY':'fake-key','PIPELINE_LOG':str(log)}):
+            with patch.dict(os.environ,{'STUDY_BUDDY_ALLOW_PAID_CLAUDE': 'true', 'NODE_OPTIONS':f'--import={loader}','ANTHROPIC_API_KEY':'fake-key','PIPELINE_LOG':str(log)}):
                 result=start_quiz_session(self.conn,LEARNER,'lesson_cell_membranes',tutor=self.helper.tutor)
             self.assertEqual(result['status'],'awaiting_answers')
             self.assertEqual(log.read_text().splitlines(),['generation','review'])

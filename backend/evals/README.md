@@ -78,3 +78,7 @@ The first usage-enabled live run succeeded after one JSON repair and reported 66
 ### Connected quality-gate controller evaluation
 
 The learner-facing controller now uses generation, Reviewer, optional single revision and second review, then approved-candidate publication. Run `python -B backend/evals/assessment_controller.py --live --quality-gate` only when intentionally authorizing up to **five paid Assessment/Reviewer calls**, with a fixture Tutor and isolated database. Both flags are required so older two-call commands cannot silently expand their budget. `--capture-response-text` includes successful response text/usage across all phases. Aggregate usage may be incomplete when failed HTTP calls have no metadata; initial generation usage is reported separately. Operation state, bounded call count and the publication binding are recorded. No new live run has yet verified Reviewer quality or total-flow latency.
+
+### Paid-call opt-in boundary
+
+Claude transport is disabled by default even with a configured API key. The single-generation `--live` command passes trusted `allowPaidCalls: true`; the controller evaluator enables `STUDY_BUDDY_ALLOW_PAID_CLAUDE=true` only after validating both `--live --quality-gate`. Application calls require deliberate server configuration. Ordinary tests use fake transports/keys with temporary explicit permission; never enable real evaluation commands in CI. No global or actual `.env` setting is changed by these test instructions.
