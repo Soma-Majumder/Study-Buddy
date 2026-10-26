@@ -22,6 +22,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from study_buddy.answer_keys import get_answer_key
 from study_buddy.lessons import load_lessons
+from study_buddy.quality_review import validate_review
+from study_buddy.quality_storage import _handoff
 from study_buddy.reviewer import run_reviewer
 from study_buddy.session_flow import run_study_session
 
@@ -61,7 +63,15 @@ def main():
 
     def traced_reviewer(context, **kwargs):
         try:
-            return run_reviewer(context, **kwargs)
+            report = run_reviewer(context, **kwargs)
+            try:  # Diagnostic only: the controller repeats this check before saving anything.
+                header = context['controller_context']
+                validate_review(report, dict(operation_id=header['operation_id'], candidate_version=header['candidate_version'],
+                                             handoff=_handoff(header, context['teaching']['explanation_text'], context['teaching']['concept_ids']),
+                                             candidate=context['candidate']))
+            except Exception as rejected:  # Fixed validator messages only, never model text.
+                review_errors.append(dict(round=header['round'], validator=type(rejected).__name__, message=str(rejected)))
+            return report
         except Exception as error:  # Record only fixed, non-sensitive diagnostics.
             review_errors.append(dict(round=context['controller_context']['round'], type=type(error).__name__,
                                       stage=getattr(error, 'stage', None), code=getattr(error, 'code', None),
