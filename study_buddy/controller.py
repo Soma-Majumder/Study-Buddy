@@ -24,6 +24,7 @@ from study_buddy.retry_quiz import dispatch_retry_quiz
 from study_buddy.summary import finish_session
 from study_buddy.assessment import run_assessment
 from study_buddy.quality_dispatch import dispatch_quality_review, dispatch_quality_revision
+from study_buddy.quality_publication import publish_reviewed_quiz
 
 ROOT = Path(__file__).resolve().parent.parent
 HANDOFF_SCHEMA = json.loads((ROOT / 'schemas/v1/tutor_to_assessment.schema.json').read_text())
