@@ -7,7 +7,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
 STAGES = {'input preparation', 'model call', 'response validation', 'provider adapter'}
-CODES = {'missing_api_key', 'invalid_input', 'invalid_timeout', 'invalid_output_budget',
+CODES = {'live_calls_disabled', 'missing_api_key', 'invalid_input', 'invalid_timeout', 'invalid_output_budget',
          'invalid_effort', 'invalid_output_schema', 'authentication_failed', 'rate_limited',
          'provider_unavailable', 'api_rejected', 'output_truncated', 'incomplete_response',
          'unexpected_response', 'empty_response', 'request_timeout', 'transport_error',

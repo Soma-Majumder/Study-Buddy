@@ -36,7 +36,7 @@ const context = {lessonId: 'lesson_cell_membranes',
   sessionId: 'session_q8w1e5r2t6y4', handoffId: 'handoff_a1b2c3d4e5f6',
   explanationId: 'expl_z9y8x7w6v5u4'};
 let calls = 0;
-const result = await runTutor(context, {apiKey: 'fake-integration-key', fetchImpl: async (_url, options) => {
+const result = await runTutor(context, {allowPaidCalls: true, apiKey: 'fake-integration-key', fetchImpl: async (_url, options) => {
   calls++;
   const input = JSON.parse(JSON.parse(options.body).messages[0].content);
   fixture.handoff_id = input.controller_context.handoff_id;

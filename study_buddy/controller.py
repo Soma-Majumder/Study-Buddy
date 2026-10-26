@@ -31,10 +31,11 @@ HANDOFF_SCHEMA = json.loads((ROOT / 'schemas/v1/tutor_to_assessment.schema.json'
 
 
 class TutorFailure(Exception):
-    def __init__(self, stage='model call', repair_count=0):
+    def __init__(self, stage='model call', repair_count=0, code=None):
         super().__init__('Tutor could not produce a valid explanation.')
         self.stage = stage
         self.repair_count = repair_count
+        self.code = 'live_calls_disabled' if code == 'live_calls_disabled' else None
 
 
 def run_tutor(context):
@@ -52,7 +53,7 @@ def run_tutor(context):
     if process.returncode != 0 or not body.get('ok'):
         error = body.get('error', {})
         count = error.get('repairCount', 0)
-        raise TutorFailure(error.get('stage', 'provider adapter'), count if count in (0, 1) else 0)
+        raise TutorFailure(error.get('stage', 'provider adapter'), count if count in (0, 1) else 0, error.get('code'))
     return body['result']
 
 
@@ -131,8 +132,10 @@ def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor):
         _check_handoff(handoff, context, lesson, concepts)
     except Exception as error:
         count = error.repair_count if isinstance(error, TutorFailure) else repair_count
-        return _fail(conn, context, count if type(count) is int and count in (0, 1) else 0,
-                     'Tutor did not return a valid explanation. No quiz was started.')
+        message = ('Paid Claude calls are disabled. Enable them explicitly in trusted backend configuration.'
+                   if isinstance(error, TutorFailure) and error.code == 'live_calls_disabled' else
+                   'Tutor did not return a valid explanation. No quiz was started.')
+        return _fail(conn, context, count if type(count) is int and count in (0, 1) else 0, message)
 
     try:
         with conn:
