@@ -28,7 +28,7 @@ test('sends one isolated review with fixed grammar, bounded defaults, model and 
   const result = await runReviewer(context, {claudeOptions: {...options(async (_url, request) => {
     calls++;
     const body = JSON.parse(request.body);
-    assert.equal(body.max_tokens, 4096); assert.equal(body.output_config.effort, 'low');
+    assert.equal(body.max_tokens, 8192); assert.equal(body.output_config.effort, 'low');
     assert.equal(body.output_config.format.type, 'json_schema');
     assert.deepEqual(body.output_config.format.schema, reviewerResponseSchema);
     assert.equal(body.messages.length, 1);

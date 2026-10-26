@@ -148,8 +148,8 @@ class QualityDispatchTests(unittest.TestCase):
     def test_revision_candidate_uses_second_review_and_rejects_second_content_failure(self):
         def bad(context, **kwargs):
             r = self.helper.report(context['controller_context']['candidate_version'])
-            r['quiz_review']['target_diversity'] = 'fail'
-            r['quiz_review']['issues'] = [dict(code='repeated_target', detail='Repeated.', related_positions=[1, 2])]
+            r['quiz_review']['concept_coverage'] = 'fail'
+            r['quiz_review']['issues'] = [dict(code='missing_coverage', detail='Repeated.', related_positions=[1, 2])]
             return r
         self.dispatch(reviewer=bad)
         revision = reserve_quality_call(self.conn, LEARNER, self.op, 'revision')

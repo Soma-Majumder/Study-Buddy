@@ -11,6 +11,7 @@ import sqlite3
 import jsonschema
 
 from study_buddy.answer_keys import new_id, get_answer_key
+from study_buddy.feedback_runner import run_feedback
 from study_buddy.grading import grade
 from study_buddy.result_check import check
 
@@ -23,7 +24,7 @@ class FeedbackRejected(ValueError):
     pass
 
 
-def explain_results(conn, learner_id, attempt_id, *, assessment):
+def explain_results(conn, learner_id, attempt_id, *, assessment=run_feedback):
     row = conn.execute(
         'SELECT s.session_id, s.status, s.lesson_id, s.lesson_version, q.quiz_id, q.round, '
         'r.result_id, r.score, r.passed, e.text, l.source_url, l.license, l.attribution '

@@ -1,0 +1,212 @@
+{
+  "name": "strict_labels_reference",
+  "source": "policy: the reference quiz itself scores four under strict labels; only a warning",
+  "known_defect": "Soft: manual reference quiz with Q4 as recall and Q9 as evidence_boundary has four understanding items. Warns, does not block.",
+  "report": {
+    "schema_version": "1.0",
+    "operation_id": "quality_a1b2c3d4e5f6",
+    "session_id": "session_dt73wz0ojwbw",
+    "lesson_id": "lesson_cell_membranes",
+    "lesson_version": 2,
+    "handoff_id": "handoff_iaryjgr7pkat",
+    "explanation_id": "expl_5ei9h3o2f317",
+    "round": "first",
+    "candidate_version": 0,
+    "candidate_hash": "8056c5255021bcc3920a2c6e50b85b223ac3ed397023e317dc16f781ab274fcc",
+    "hash_version": "private_quiz_v1",
+    "rubric_version": "1.0",
+    "questions": [
+      {
+        "position": 1,
+        "concept_id": "c_amphipathic_phospholipids",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "recall",
+        "support_quotes": [
+          "They form a bilayer with heads toward water on both sides and tails tucked inside."
+        ],
+        "defensible_options": [
+          "a"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 2,
+        "concept_id": "c_amphipathic_phospholipids",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "misconception_correction",
+        "support_quotes": [
+          "Phospholipids have water-loving heads and water-avoiding tails: this combination is called amphipathic."
+        ],
+        "defensible_options": [
+          "c"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 3,
+        "concept_id": "c_fatty_acid_saturation",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "comparison",
+        "support_quotes": [
+          "Double bonds kink unsaturated tails, making close packing harder and increasing fluidity."
+        ],
+        "defensible_options": [
+          "b"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 4,
+        "concept_id": "c_fluidity_factors",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "recall",
+        "support_quotes": [
+          "Fluidity describes how freely membrane components move."
+        ],
+        "defensible_options": [
+          "d"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 5,
+        "concept_id": "c_fluidity_factors",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "evidence_boundary",
+        "support_quotes": [
+          "Tail saturation, chain length, temperature, and cholesterol affect it."
+        ],
+        "defensible_options": [
+          "c"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 6,
+        "concept_id": "c_cholesterol_buffer",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "misconception_correction",
+        "support_quotes": [
+          "Cholesterol buffers fluidity: it restrains movement when the membrane is very fluid and prevents excessive stiffening in the cold."
+        ],
+        "defensible_options": [
+          "a"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 7,
+        "concept_id": "c_fluid_mosaic_model",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "comparison",
+        "support_quotes": [
+          "The fluid mosaic model describes a mixture of lipids, cholesterol, and proteins whose components can move sideways."
+        ],
+        "defensible_options": [
+          "b"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 8,
+        "concept_id": "c_membrane_asymmetry",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "evidence_boundary",
+        "support_quotes": [
+          "The two membrane layers, or leaflets, differ in composition."
+        ],
+        "defensible_options": [
+          "d"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 9,
+        "concept_id": "c_membrane_asymmetry",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "evidence_boundary",
+        "support_quotes": [
+          "Lipids rarely switch leaflets without enzymes such as flippases, floppases, and scramblases."
+        ],
+        "defensible_options": [
+          "c"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 10,
+        "concept_id": "c_glycocalyx_recognition",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "recall",
+        "support_quotes": [
+          "Sugars on the outer surface form the glycocalyx and help cells recognize one another, including distinguishing self from non-self."
+        ],
+        "defensible_options": [
+          "a"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      }
+    ],
+    "quiz_review": {
+      "concept_coverage": "pass",
+      "target_diversity": "pass",
+      "issues": [],
+      "uncertainty_notes": []
+    }
+  },
+  "expected_decision": "pass",
+  "expected_reasons": [],
+  "expected_warnings": [
+    "insufficient_understanding"
+  ]
+}
