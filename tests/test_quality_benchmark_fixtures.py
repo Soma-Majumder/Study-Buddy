@@ -53,3 +53,11 @@ class QualityBenchmarkFixtureTests(unittest.TestCase):
         pass_report = json.loads((FIXTURES / 'pass.json').read_text())['report']
         self.assertEqual(validate_review(pass_report, self.context)['decision'], 'pass')
         self.assertEqual(validate_review(five['report'], self.context, minimum_understanding=5)['decision'], 'pass')
+
+    def test_proposed_threshold_of_four_blocks_only_clearly_recall_heavy_quizzes(self):
+        outcomes = {}
+        for name in ('understanding_boundary_five', 'strict_labels_reference', 'recall_heavy_all_items_pass'):
+            case = json.loads((FIXTURES / f'benchmark_{name}.json').read_text())
+            outcomes[name] = validate_review(case['report'], self.context, minimum_understanding=4)['decision']
+        self.assertEqual(outcomes, dict(understanding_boundary_five='pass', strict_labels_reference='pass',
+                                        recall_heavy_all_items_pass='needs_revision'))
