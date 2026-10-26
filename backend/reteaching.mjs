@@ -10,9 +10,15 @@ const matchesSchema = ajv.compile(schema);
 
 // currentAttempt must come from controller-verified records, not Assessment.
 // This checks eligibility; the controller must reserve the learning retry.
-export function checkReteaching({handoff, currentAttempt, learningRetryCount, sessionId, lesson, sources}) {
+export function checkReteaching({handoff, currentAttempt, learningRetryCount, sessionId, lesson, sources, retryReservation, handoffId, explanationId}) {
   if (!matchesSchema(handoff)) throw new Error('Invalid Assessment return handoff; weak concepts are required.');
-  if (learningRetryCount !== 0 || currentAttempt?.round !== 'first') {
+  // This is trusted controller context, never model output or client input.
+  // The Python controller verifies and claims the SQLite reservation first.
+  const reserved = learningRetryCount === 1 && retryReservation?.status === 'dispatched' &&
+    retryReservation.sessionId === sessionId && retryReservation.sourceAttemptId === currentAttempt?.attemptId &&
+    retryReservation.handoffId === handoffId && retryReservation.explanationId === explanationId;
+  const unused = learningRetryCount === 0 && retryReservation === undefined;
+  if ((!unused && !reserved) || currentAttempt?.round !== 'first') {
     throw new Error('The learning retry is unavailable.');
   }
   const p = handoff.payload;

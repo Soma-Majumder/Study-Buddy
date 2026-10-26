@@ -19,6 +19,7 @@ from scripts.validate_quiz import check as check_quiz
 from study_buddy.grading import grade
 from study_buddy.feedback import explain_results
 from study_buddy.routing import decide_next_step
+from study_buddy.reteaching import dispatch_reteaching
 
 ROOT = Path(__file__).resolve().parent.parent
 HANDOFF_SCHEMA = json.loads((ROOT / 'schemas/v1/tutor_to_assessment.schema.json').read_text())
@@ -55,7 +56,7 @@ def _check_handoff(handoff, context, lesson, concepts):
     p = handoff['payload']
     if (handoff['handoff_id'] != context['handoffId'] or
             handoff['context']['learner_session_id'] != context['sessionId'] or
-            handoff['context']['round'] != 'first' or
+            handoff['context']['round'] != context['round'] or
             p['explanation_id'] != context['explanationId'] or
             p['lesson_id'] != context['lessonId'] or p['lesson_version'] != lesson[0]):
         raise ValueError('Handoff does not belong to the current session and lesson.')
@@ -69,8 +70,15 @@ def _check_handoff(handoff, context, lesson, concepts):
                 c['name'] != concepts[c['concept_id']] or not c['taught_summary'].strip()):
             raise ValueError('Invalid taught concepts.')
         seen.add(c['concept_id'])
-    if not p['explanation_text'].strip() or 'focus_concept_ids' in p:
+    if not p['explanation_text'].strip():
+        raise ValueError('Empty explanation.')
+    if context['round'] == 'first' and 'focus_concept_ids' in p:
         raise ValueError('Invalid first-round explanation.')
+    if context['round'] == 'retry':
+        focus = {w['concept_id'] for w in context['returnHandoff']['payload']['weak_concepts']}
+        returned_focus = p.get('focus_concept_ids', [])
+        if (len(returned_focus) != len(focus) or set(returned_focus) != focus or seen != focus):
+            raise ValueError('Retry explanation must teach exactly the verified focus concepts.')
 
 
 def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor):
