@@ -429,6 +429,83 @@ Expiry is at `now >= deadline_at`. The original 180-second deadline bounds the c
 
 Tests cover all crash-left call phases, first/retry status consistency, no dispatch on expired re-entry, exact boundary/idempotency, published/other-terminal preservation, completed evidence, stale sessions, late reports, atomic rollback, concurrent sweepers and the maintenance command without any learner request. No paid calls or new schema migrations are needed (the existing migrations 005–008 remain prerequisites).
 
+### Database migration tracking (first step, no runner)
+
+`study_buddy.migrations` provides `initialize_migration_tracking(conn)`, `list_applied_migrations(conn)`, and `record_applied_migration(conn, filename, sql_bytes)`. The bootstrap table definition is in `db/migration_tracking.sql`, separate from numbered application migrations. Records contain the numeric version, exact filename, SHA-256 of the original file bytes, and a UTC timestamp. Filename/version uniqueness and a write lock make duplicate/concurrent recording idempotent; a changed name or fingerprint for an existing version is rejected. Whitespace/newline changes also alter the fingerprint.
+
+Initialization creates only the metadata table and does not infer or mark migrations from existing application tables. Listing requires initialization first. Tracking does not execute any supplied SQL and cannot prove that it ran; only trusted migration code may record successful work. No current application database or `.env` was modified by this development step.
+
+For the later runner, apply SQL and call `record_applied_migration(..., manage_transaction=False)` in the same explicit transaction. The recording helper's default owns its own transaction; use the internal transaction-composition option when migration execution and recording must commit or roll back together. Initialization uses one `execute` statement instead of `executescript`, so it does not implicitly commit pending caller writes.
+
+Tests cover empty/idempotent initialization, exact fingerprints/timestamps, duplicate and altered records, invalid names/content, version ordering, persistence after reopening, concurrent recording, save failures and caller-owned rollback. The application schema already includes the numbered migrations; existing and fresh-schema databases therefore need an explicit baseline policy before any future automatic runner can decide what to execute. Automatic discovery, ordered SQL execution and baselining remain the next steps.
+
+### Discover files and report pending migrations (read-only)
+
+`discover_migrations(directory=...)` loads the current migration files (001–008) in numeric order with exact bytes and SHA-256 fingerprints. It rejects duplicate/gapped versions, invalid SQL filenames, symlinks/non-files, empty content and non-UTF-8 SQL. Non-SQL notes are ignored. The directory is trusted backend configuration. No migration SQL is executed.
+
+`plan_migrations(conn, directory=...)` compares those files with recorded history without initializing tracking or writing/committing anything. It rejects changed/renamed/missing recorded files and histories that are not a continuous prefix. The report contains recorded `applied` metadata, unrecorded `pending` metadata and status `pending`, `up_to_date`, or `baseline_required`. It omits SQL contents. This is a read-only snapshot, not authorization to execute; the runner must recheck files/history inside its write transaction.
+
+For an existing database, `python -B scripts/migration_status.py /absolute/path/to/study-buddy.db` opens it with SQLite `mode=ro` and prints that report. A missing path fails without creating a database. Tables already present with no recorded migrations trigger `baseline_required`, even if an empty tracking table exists. In that case, `pending` means **unrecorded**, not proven unapplied: both fresh-schema databases and older manually migrated databases need an explicit baseline decision before applying anything. Baseline adoption and SQL execution require the explicit maintenance commands documented below.
+
+Discovery tests cover the repository's eight files, clean/partially recorded/up-to-date plans, fingerprint drift, file/history gaps, ordering, invalid inputs, baseline detection, caller-transaction preservation and the real read-only status command. No application database was changed by these tests.
+
+### Explicit baseline policy for existing full-schema databases
+
+A baseline means **adopting a verified existing schema into migration tracking**, not rerunning its migrations or proving their historical execution dates. For the first implementation, the only supported baseline is the complete current schema through **008**. Older partial schemas, local extensions, already recorded history, or unknown/newer versions must be reviewed separately; the tool does not guess a prefix from table names.
+
+The process is:
+1. Stop application writes for maintenance and take a recoverable database backup before the eventual recording command.
+2. Run the read-only preview: `python -B scripts/baseline_status.py /absolute/path/to/study-buddy.db --through-version 8`.
+3. Verify the reported schema fingerprint and exact file manifest. The preview compares all application tables and explicit indexes with `db/schema.sql`, including constraints and foreign keys. It normalizes only comments, whitespace and unquoted case; quoted values remain exact. Structurally equivalent but differently expressed DDL may be rejected conservatively for manual review. Extra objects are also rejected. Existing tracking must be empty and have the reviewed metadata schema.
+4. Require clean `foreign_key_check` and `quick_check` results. The preview does not fix data or return private rows.
+5. The explicit recorder must acquire the write lock, recheck the schema and manifest, record all versions 001–008 and a baseline audit entry in one transaction, or roll everything back. Audit metadata should distinguish baseline adoption time/operator/reason from original migration execution dates. A preview alone never authorizes or records adoption.
+6. Recheck normal migration status afterward. Only migrations added after the adopted prefix can become executable pending work.
+
+`study_buddy.migration_baseline.plan_baseline(conn, through_version=8)` implements steps 2–4 as a read-only eligibility check. Success reports `baseline_ready`, a schema SHA-256, the eight file fingerprints it would record, and `records_written=0`. The command opens SQLite with `mode=ro`, never creates a missing database, never initializes history, and never executes application migration SQL against the target. It builds only an isolated in-memory reference from the repository schema. The preview can become stale; locking/revalidation belongs to the recording step.
+
+Tests verify full-schema eligibility without data/history changes; explicit version selection; empty versus recorded history; tracking metadata integrity; missing/extra tables and indexes; altered CHECK/FK definitions; conservative DDL normalization; existing data violations; caller-transaction preservation; and the real read-only CLI. No actual application database was baselined. Atomic baseline recording and migration execution are documented below.
+
+### Record an explicitly verified baseline atomically
+
+`record_verified_baseline` now implements the adoption step described above. It requires version 8, the exact schema and manifest SHA-256 values from a fresh baseline preview, a nonempty operator identity and a reason. It refuses a connection with pending caller work. Under `BEGIN IMMEDIATE`, it rechecks schema/data integrity and file fingerprints, initializes tracking, records all eight versions, and inserts one `schema_baselines` audit row. Migration history and audit commit together; any exception (including interruption) rolls back every change, including newly created metadata tables. Repeating adoption on already recorded history is rejected without rewriting its original evidence.
+
+The audit definition is `db/migration_baseline_audit.sql`. It stores the adopted version, schema/file-manifest fingerprints, exact file manifest, operator, reason and UTC adoption timestamp. This is baseline adoption evidence, not proof or a claimed date of original migration execution. Application tables and rows are not changed. A later ordinary migration status reports the eight recorded files as up to date.
+
+For deliberate maintenance, pause application writes, obtain fingerprints using `baseline_status.py`, and run:
+
+```sh
+python -B scripts/baseline_database.py /absolute/path/to/study-buddy.db \
+  --record-baseline --through-version 8 \
+  --schema-sha256 <schema_sha256_from_preview> \
+  --manifest-sha256 <manifest_sha256_from_preview> \
+  --recorded-by "operator name" --reason "Adopt verified existing full schema" \
+  --backup /absolute/path/to/new-backup.db
+```
+
+Replace the angle-bracket placeholders with the preview values; they are not shell literals. The command opens an existing database with `mode=rw`, creates a new owner-only SQLite backup before adoption, and refuses to overwrite an existing backup path. Without `--record-baseline`, it exits before opening/writing files. A stale preview, unsupported schema/version or recorded history is rejected. If adoption fails after backup, retain that backup for inspection; no partial baseline is claimed. No actual application database was modified during implementation/testing; CLI tests use temporary databases and no model calls.
+
+Tests cover migration/audit atomicity, rollback mid-history and during audit insertion, stale fingerprints/schema, changed manifest during recheck, existing history, pending caller transactions, concurrent recording, explicit CLI authorization, preserved application data, backup contents/permissions, existing backup refusal and missing database paths. The SQL migration execution runner is documented below.
+
+
+### Execute a reviewed pending migration batch
+
+The read-only `migration_status.py` report now includes `pending_sha256`, binding the ordered pending versions, filenames and exact SQL fingerprints. Pause application writes, inspect the pending SQL and report, then explicitly apply that plan:
+
+```sh
+python -B scripts/migration_status.py /absolute/path/to/study-buddy.db
+python -B scripts/migrate_database.py /absolute/path/to/study-buddy.db \
+  --apply --pending-sha256 <pending_sha256_from_status> \
+  --backup /absolute/path/to/new-backup.db
+```
+
+The command requires an existing database and creates a new owner-only SQLite backup before execution; existing backup paths are never overwritten. If execution fails, retain the backup. Both commands support `--migrations-dir` for a trusted, reviewed directory.
+
+`run_pending_migrations` requires a dedicated connection with foreign keys enabled and no pending caller work or custom authorizer. It acquires `BEGIN IMMEDIATE`, rechecks history and the approved pending manifest, freezes/rechecks file bytes, and checks database integrity. It executes statements individually, records each exact fingerprint, and commits the whole batch together. Any failure rolls back application SQL and history, including newly created tracking tables. Replaying a completed plan returns `up_to_date`; changed recorded files still fail validation. Error reports identify the migration, stage and statement number without returning raw database error text.
+
+Migration SQL cannot control transactions, attach databases, issue PRAGMAs, create temporary objects/triggers, load extensions, or modify tracking/audit tables. Unsupported migrations need a separately reviewed maintenance approach. This guard is for trusted migration code, not an arbitrary-SQL sandbox. Never use `executescript` inside this transaction.
+
+Existing untracked schemas require verified baseline adoption first. Repository migrations 001–008 are incremental additions and do not create the original base tables: initialize the full schema and baseline it before using this runner. No application database was migrated during development; tests use temporary databases and no paid model calls.
+
 ### Explicit opt-in for paid Claude calls
 
 The shared transport in `backend/claude.mjs` now denies every request by default, even when an API key is configured. Enable calls only through trusted server configuration: either pass the boolean `allowPaidCalls: true` in backend adapter options, or set `STUDY_BUDDY_ALLOW_PAID_CLAUDE=true` in the process environment. Only the exact environment value `true` enables it; `1`, `yes`, uppercase/spaced variants and string-valued JS options do not. An explicit `allowPaidCalls: false` overrides an enabled environment. Do not copy this setting from a learner request, lesson, handoff or model response, and do not enable it globally for ordinary tests/CI.
@@ -438,3 +515,31 @@ The guard applies to Tutor, Assessment generation/technical repair/content revis
 Normal application/bridge calls stay disabled until a developer deliberately enables the server process. No real `.env` was edited or opt-in enabled by this change. `backend/evals/assessment-quiz.mjs --live` explicitly passes permission after its existing one-call CLI check. The controller evaluator enables its child process only after both `--live --quality-gate` checks (up to five calls). These are paid entry points; never run them in ordinary CI.
 
 Existing offline tests opt in only around their fake transports and fake keys. Python/Node subprocess tests install a fake fetch preload and enable the flag in that temporary test environment; direct JS tests pass the boolean alongside a stub. Dedicated tests disable opt-in, install fetch tripwires, and prove that a key/custom transport/model-authored permission cannot trigger requests. CI identity or an API key is not an opt-in. No live model request was made to verify this feature.
+
+
+### Maintenance worker: one cycle
+
+`study_buddy.maintenance_worker.run_maintenance_cycle(database, limit=100)` is the worker entry point for one bounded expiry sweep. It opens only an existing SQLite database, enables foreign keys, owns and closes its connection, and waits at most five seconds for a SQLite lock. It returns aggregate counts after the existing sweeper commits; database errors propagate rather than becoming a successful cycle or triggering an automatic retry. Invalid limits fail before opening the database.
+
+The existing `python -B scripts/expire_quality_operations.py /absolute/path/to/study-buddy.db --limit 100` command now uses this entry point and retains its counts-only output. The database must already contain the required application tables. This cycle does not run migrations, call agents, reset budgets, or start a recurring process. A repeating loop, shutdown handling, and deployment scheduling are later steps.
+
+
+### Repeating maintenance worker and shutdown
+
+Run `python -B scripts/run_maintenance_worker.py /absolute/path/to/study-buddy.db --limit 100 --interval 30` to start a foreground worker. It runs one cycle immediately, then waits the configured seconds after each completed batch. Cycles are serial; a backlog is processed over later cycles. Each cycle owns a fresh database connection and returns aggregate counts only. JSON output reports `cycle_completed` and, on clean shutdown, `worker_stopped` with completed-cycle count.
+
+Ctrl+C (SIGINT) or SIGTERM requests shutdown. Waiting wakes immediately; an active bounded batch finishes its transaction and closes its connection before exit, with no new cycle. Signal handlers are restored on exit. Temporary SQLite lock failures use the bounded retry policy below; other database failures stop with a nonzero exit and no false success message. Lock waiting is bounded to five seconds per SQLite lock acquisition; shutdown does not forcibly interrupt an active SQL batch. The interval must be finite, greater than zero and at most one day. This is an operator-started foreground process, not an installed/deployed service. No paid agent calls or migrations run in this worker.
+
+
+### Temporary lock recovery (PR #40 review follow-up)
+
+The repeating worker retries only SQLite `OperationalError` codes BUSY or LOCKED (including extended codes). Each cycle allows the initial attempt plus three retries, waiting 1, 2, then 4 seconds. Every failed cycle closes its connection and rolls back through the sweeper before retrying; successful cycles reset this budget. Retry waits are interruptible by SIGINT/SIGTERM, and stopped/failed attempts never emit `cycle_completed`. `lock_retry` events contain only retry number and delay. The existing one-shot cleanup command continues to fail directly rather than retry.
+
+After lock retry exhaustion the CLI exits with code **75**, allowing an operator/supervisor to distinguish temporary contention. Other runtime/database failures exit **1**, while invalid operator configuration exits **2**. A `ValueError` raised by cleanup is a runtime failure, not a configuration error. SQLite lock waits remain up to five seconds per acquisition; no hard total runtime deadline or forced SQL interruption is claimed. No supervisor or service is installed by this change: production still needs an explicitly configured process supervisor/restart policy before automatic cleanup can be relied on.
+
+
+### Duplicate answer submissions
+
+`submit_answers` serializes ownership, saved-attempt lookup, and submission claims under SQLite's write lock. A repeated submission with the same complete question/answer mapping returns the original attempt/result IDs and saved score, correctness, and weak-concept evidence without grading again or creating another attempt. Answer order in the mapping does not matter. Changed answers are rejected instead of replacing the saved submission; malformed/partial submissions and other learners remain rejected.
+
+Replay reports the current session status, preserving later workflow progress. It offers `assessment_feedback` only while the session is grading and no feedback operation has started; it does not restart feedback, reserve a retry, or rewind status. The learner-facing client must treat a replay as retrieval, not a new workflow trigger. Missing saved evidence fails explicitly. Question/key text remains private controller data; this function retains its existing trusted-controller result shape and is not a public HTTP response. No schema or agent-prompt change is involved.

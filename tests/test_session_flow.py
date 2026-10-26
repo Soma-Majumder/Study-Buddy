@@ -10,6 +10,7 @@ import sqlite3
 import unittest
 
 from study_buddy.answer_keys import get_answer_key
+from study_buddy.controller import SubmissionRejected, submit_answers
 from study_buddy.lessons import load_lessons
 from study_buddy.session_flow import run_study_session
 from tests.quality_fixtures import passing_review
@@ -156,6 +157,34 @@ class SessionFlowTests(unittest.TestCase):
         self.assertEqual(self.count('quizzes'), 1)
         self.assertEqual(self.conn.execute('SELECT learning_retry_count FROM study_sessions').fetchone()[0], 1)
         self.assertEqual(self.count('attempts'), 1)
+        self.assertIsNone(result['summary'])
+
+    def test_incomplete_answers_are_rejected_without_a_score_and_the_quiz_stays_answerable(self):
+        captured = {}
+        def incomplete(quiz):
+            captured['quiz'] = quiz
+            full = self.learner(set())(quiz)
+            full.pop(next(iter(full)))
+            return full
+        with self.assertRaises(SubmissionRejected):
+            self.run_flow(incomplete)
+        self.assertEqual((self.count('attempts'), self.count('results'), self.count('responses')), (0, 0, 0))
+        self.assertEqual(self.feedback_calls, [])
+        self.assertEqual(self.conn.execute('SELECT status, learning_retry_count FROM study_sessions').fetchone(), ('awaiting_answers', 0))
+        # A missing answer is the learner's to fix, never a wrong answer: a complete submission still works.
+        complete = self.learner(set())(captured['quiz'])
+        self.assertEqual(submit_answers(self.conn, LEARNER, captured['quiz']['quiz_id'], complete)['graded']['score'], 10)
+
+    def test_missing_private_key_is_a_technical_failure_not_a_wrong_answer(self):
+        def drop_key(quiz):
+            with self.conn:
+                self.conn.execute('DELETE FROM answer_keys WHERE question_id = ?', (quiz['questions'][0]['question_id'],))
+            return {q['question_id']: 'a' for q in quiz['questions']}
+        result = self.run_flow(drop_key)
+        self.assertEqual(result['status'], 'failed')
+        self.assertIn('No score was recorded', result['error'])
+        self.assertEqual((self.count('attempts'), self.count('results')), (0, 0))
+        self.assertEqual(self.feedback_calls, [])
         self.assertIsNone(result['summary'])
 
 
