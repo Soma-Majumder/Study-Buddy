@@ -15,6 +15,8 @@ UNDERSTANDING = {'comparison', 'cause_effect', 'prediction', 'misconception_corr
 # items remain hard blocks. Six understanding items is the generation goal.
 UNDERSTANDING_GOAL = 6
 SOFT_CODES = {'insufficient_understanding', 'repeated_target'}
+# An answer cue only warns when no individual question criterion failed; otherwise it blocks.
+CONDITIONAL_SOFT_CODES = {'answer_cue'}
 
 
 class ReviewRejected(ValueError):
@@ -33,7 +35,8 @@ def validate_review(report, context, *, minimum_understanding=UNDERSTANDING_GOAL
     context is backend-owned: operation_id, candidate_version, handoff, and
     candidate. The caller must authenticate ownership and load its snapshot.
     Fewer than UNDERSTANDING_GOAL understanding items and repeated targets are soft: they
-    appear in `warnings` and never change the decision. Not a PRD change.
+    appear in `warnings` and never change the decision, as does an answer cue when no
+    question criterion failed. Not a PRD change.
     """
     if type(minimum_understanding) is not int or not 0 <= minimum_understanding <= 10:
         raise ValueError('Understanding target must be an integer from 0 to 10.')
@@ -85,8 +88,10 @@ def validate_review(report, context, *, minimum_understanding=UNDERSTANDING_GOAL
     uncertainty.extend(overall['uncertainty_notes'])
     understanding = sum(q['primary_demand'] in UNDERSTANDING for q in report['questions'])
     codes = {i['code'] for i in issues}
-    reasons = sorted(codes - SOFT_CODES)
-    warnings = sorted((codes & SOFT_CODES) | ({'insufficient_understanding'} if understanding < minimum_understanding else set()))
+    question_failed = any(q[c] == 'fail' for q in report['questions'] for c in CRITERIA)
+    soft = SOFT_CODES | (set() if question_failed else CONDITIONAL_SOFT_CODES)
+    reasons = sorted(codes - soft)
+    warnings = sorted((codes & soft) | ({'insufficient_understanding'} if understanding < minimum_understanding else set()))
     if 'uncertain' in judgments or uncertainty:
         decision = 'blocked'
         reasons.append('review_uncertainty')

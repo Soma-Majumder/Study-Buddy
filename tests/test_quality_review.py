@@ -93,6 +93,16 @@ class QualityReviewTests(unittest.TestCase):
         self.assertEqual((result['decision'], result['reasons']), ('pass', []))
         self.assertEqual(result['warnings'], ['insufficient_understanding'])
 
+    def test_answer_cue_only_warns_when_no_question_criterion_failed(self):
+        cue = dict(code='answer_cue', detail='The keyed option is the longest.', related_positions=[3])
+        self.report['quiz_review']['issues'] = [cue]
+        result = validate_review(self.report, self.context)
+        self.assertEqual((result['decision'], result['reasons'], result['warnings']), ('pass', [], ['answer_cue']))
+        q = self.report['questions'][2]
+        q.update(fair_wording='fail', issues=[cue])
+        result = validate_review(self.report, self.context)
+        self.assertEqual((result['decision'], result['reasons']), ('needs_revision', ['answer_cue']))
+
     def test_uncertain_target_diversity_still_blocks(self):
         self.report['quiz_review'].update(target_diversity='uncertain', uncertainty_notes=['Cannot tell.'])
         self.assertEqual(validate_review(self.report, self.context)['decision'], 'blocked')

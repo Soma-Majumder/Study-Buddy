@@ -9,12 +9,12 @@ import json
 from pathlib import Path
 import unittest
 
-from study_buddy.quality_review import SOFT_CODES, UNDERSTANDING_GOAL, VALIDATOR, validate_review
+from study_buddy.quality_review import CONDITIONAL_SOFT_CODES, SOFT_CODES, UNDERSTANDING_GOAL, VALIDATOR, validate_review
 
 FIXTURES = Path(__file__).resolve().parent / 'fixtures/quiz_quality'
 CASES = sorted(FIXTURES.glob('benchmark_*.json'))
 SOFT_ONLY = {'repeated_target_bilayer', 'recall_heavy_all_items_pass', 'understanding_boundary_five',
-             'strict_labels_reference', 'understanding_three'}
+             'strict_labels_reference', 'understanding_three', 'answer_cue_quiz_level'}
 
 
 class QualityBenchmarkFixtureTests(unittest.TestCase):
@@ -26,7 +26,7 @@ class QualityBenchmarkFixtureTests(unittest.TestCase):
         return validate_review(case['report'], context)
 
     def test_each_case_has_expected_decision_reasons_and_warnings(self):
-        self.assertGreaterEqual(len(CASES), 8)
+        self.assertGreaterEqual(len(CASES), 9)
         for path in CASES:
             case = json.loads(path.read_text())
             with self.subTest(case=case['name']):
@@ -44,7 +44,7 @@ class QualityBenchmarkFixtureTests(unittest.TestCase):
             with self.subTest(case=case['name']):
                 if case['name'] in SOFT_ONLY:
                     self.assertEqual((case['expected_decision'], case['expected_reasons']), ('pass', []))
-                    self.assertTrue(set(case['expected_warnings']) <= SOFT_CODES)
+                    self.assertTrue(set(case['expected_warnings']) <= SOFT_CODES | CONDITIONAL_SOFT_CODES)
                 else:
                     self.assertEqual(case['expected_decision'], 'needs_revision')
                     self.assertTrue(case['expected_reasons'])
