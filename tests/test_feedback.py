@@ -1,4 +1,5 @@
 """Offline feedback routing using actual saved controller grading."""
+from tests.quality_fixtures import passing_review
 import copy
 import json
 from pathlib import Path
@@ -28,11 +29,11 @@ class FeedbackTests(unittest.TestCase):
             h['context']['learner_session_id'] = context['sessionId']
             h['payload']['explanation_id'] = context['explanationId']
             return dict(handoff=h, repairCount=0)
-        def quiz(h, *, repair_request=None):
+        def quiz(h, *, repair_request=None, **timeouts):
             q = json.loads((ROOT / 'schemas/v1/examples/quiz_output.example.json').read_text())
             q.update(handoff_id=h['handoff_id'], explanation_id=h['payload']['explanation_id'])
             return q
-        self.started = start_quiz_session(self.conn, LEARNER, 'lesson_cell_membranes', tutor=tutor, assessment=quiz)
+        self.started = start_quiz_session(self.conn, LEARNER, 'lesson_cell_membranes', tutor=tutor, assessment=quiz, reviewer=passing_review)
         self.quiz_id = self.started['quiz']['quiz_id']
         keys = get_answer_key(self.conn, self.quiz_id)
         answers = {k['question_id']: ('b' if k['correct_option'] == 'a' else 'a') if i in (3, 4, 6, 7) else k['correct_option']
@@ -41,7 +42,7 @@ class FeedbackTests(unittest.TestCase):
         self.attempt_id = self.result['attempt_id']
         self.calls = []
 
-    def feedback(self, context, *, repair_request=None):
+    def feedback(self, context, *, repair_request=None, **timeouts):
         self.calls.append((copy.deepcopy(context), repair_request))
         return dict(schema_version='1.0', quiz_id=context['quiz_id'], attempt_id=context['attempt_id'],
                     feedback=[dict(position=i['position'], explanation=i['rationale']) for i in context['graded']['items']],
@@ -68,7 +69,7 @@ class FeedbackTests(unittest.TestCase):
         self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM feedback_operations').fetchone()[0], 1)
 
     def test_running_operation_is_not_dispatched_again(self):
-        def concurrent(context, *, repair_request=None):
+        def concurrent(context, *, repair_request=None, **timeouts):
             existing = self.explain()
             self.assertEqual(existing['operation_status'], 'running')
             self.assertIsNone(existing['next_step'])
@@ -77,7 +78,7 @@ class FeedbackTests(unittest.TestCase):
         self.assertEqual(len(self.calls), 1)
 
     def test_one_invalid_feedback_is_repaired_with_original_grading(self):
-        def stale(context, *, repair_request=None):
+        def stale(context, *, repair_request=None, **timeouts):
             out = self.feedback(context, repair_request=repair_request)
             if repair_request is None: out['attempt_id'] = 'attempt_stale'
             return out
@@ -88,7 +89,7 @@ class FeedbackTests(unittest.TestCase):
                                           ('assessment_to_tutor',)).fetchone()[0], 1)
 
     def test_duplicate_or_missing_weak_concepts_fail_after_one_repair(self):
-        def invalid(context, *, repair_request=None):
+        def invalid(context, *, repair_request=None, **timeouts):
             out = self.feedback(context, repair_request=repair_request)
             out['weak_concepts'].append(copy.deepcopy(out['weak_concepts'][0]))
             return out
@@ -106,7 +107,7 @@ class FeedbackTests(unittest.TestCase):
             with self.subTest(kind=kind):
                 other = FeedbackTests(); other.setUp()
                 try:
-                    def invalid(context, *, repair_request=None):
+                    def invalid(context, *, repair_request=None, **timeouts):
                         out = other.feedback(context, repair_request=repair_request)
                         if kind == 'missing_weak': out['weak_concepts'] = []
                         if kind == 'extra_score': out['score'] = 10

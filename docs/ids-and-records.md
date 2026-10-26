@@ -15,6 +15,8 @@ Both agents and the controller use these IDs. Only controller code writes the re
 | `question_id` | `q_<12 chars>` | Controller | |
 | `attempt_id` | `attempt_<12 chars>` | Controller | |
 | `result_id` | `result_<12 chars>` | Controller | |
+| `quality operation_id` | `quality_<12 chars>` | Controller | |
+| `quality call_id` | `quality_call_<12 chars>` | Controller | |
 | `handoff_id` | `handoff_<12 chars>` | Controller | |
 
 Rules:
@@ -38,6 +40,11 @@ Rules:
 | `retry_quiz_operations` | One focused retry-quiz generation per session/source attempt; running/ready/failed state and saved quiz ID prevent duplicate dispatch | bounded retry quiz |
 | `session_routes` | One saved decision per attempt; a unique retry route per session records controller-built return context and reserved/pending state | bounded learning retry |
 | `feedback_operations` | One persisted Assessment feedback operation per attempt, its return handoff ID, and running/ready/failed state; duplicates reuse it rather than refreshing the repair budget | feedback routing |
+| `quiz_quality_candidates` | Backend staging per operation/version: question JSON without keys, generating call, hash and teaching snapshot | private quality gate staging |
+| `quiz_quality_candidate_keys` | Private staged keys/rationales per candidate/position, original key order preserved for exact hash reconstruction | private quality gate keys |
+| `quiz_quality_reports` | Immutable validated review per reserved review call/version, candidate hash, report fingerprint and derived decision; backend only | quality gate audit |
+| `quiz_quality_operations` | Proposed gate state per session/round: owner, lesson/policy versions, handoff, candidate hash/version, deadline, bounded counters and failure code; not yet connected to publication | quality gate proposal |
+| `quiz_quality_calls` | One durable reservation per operation/call kind, bound candidate version/hash, status/times and immutable result fingerprint; no raw keys or model text | quality gate call limits |
 | `session_summaries` | One final summary per session, final attempt ID, verified source/score/concept evidence, and save timestamp | save before completion |
 | `results` | Score out of 10, feedback, pass/fail for each attempt | scores, feedback |
 | `weak_concepts` | Learner, concept, source attempt, lesson, when recorded | weak concepts |

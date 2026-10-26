@@ -19,6 +19,7 @@ test('sends one request with separate instructions and data, returning unvalidat
     assert.equal(body.system, input.system);
     assert.deepEqual(body.messages, [{role: 'user', content: input.user}]);
     assert.equal(body.max_tokens, 4096);
+    assert.equal(body.output_config, undefined);
     assert.ok(!options.body.includes(key));
     return response();
   }});
@@ -71,4 +72,84 @@ test('extracts only text when Claude also returns thinking blocks', async () => 
   ]})});
   assert.equal(result.text, '{"payload":{}}');
   assert.ok(!JSON.stringify(result).includes('private reasoning'));
+});
+
+
+test('reports fixed HTTP categories without reading provider error bodies', async () => {
+  for (const [status, code] of [[401, 'authentication_failed'], [403, 'authentication_failed'],
+    [429, 'rate_limited'], [503, 'provider_unavailable'], [400, 'api_rejected']]) {
+    await assert.rejects(callClaude(input, {apiKey: key, fetchImpl: async () => ({ok: false, status,
+      json: () => assert.fail('Never read rejected provider body')})}), error => {
+      assert.equal(error.code, code);
+      assert.equal(error.httpStatus, status);
+      assert.equal(error.cause, undefined);
+      return true;
+    });
+  }
+});
+
+test('distinguishes token truncation from other incomplete responses and sanitizes unknown reasons', async () => {
+  for (const [reason, code, safeReason] of [['max_tokens', 'output_truncated', 'max_tokens'],
+    ['refusal', 'incomplete_response', 'refusal'], ['secret-provider-text', 'incomplete_response', 'unknown']]) {
+    await assert.rejects(callClaude(input, {apiKey: key, fetchImpl: async () => response({stop_reason: reason})}), error => {
+      assert.equal(error.code, code);
+      assert.equal(error.stopReason, safeReason);
+      assert.ok(!JSON.stringify(error).includes('secret-provider-text'));
+      return true;
+    });
+  }
+});
+
+test('network exceptions become fixed diagnostics even when their messages mimic safe errors', async () => {
+  await assert.rejects(callClaude(input, {apiKey: key, fetchImpl: async () => {
+    throw new Error('Claude request failed (HTTP 999).');
+  }}), error => error.code === 'transport_error' && error.httpStatus === undefined);
+});
+
+
+test('supports an explicit output budget while leaving the default at 4096', async () => {
+  await callClaude(input, {apiKey: key, maxTokens: 8192, fetchImpl: async (_url, request) => {
+    assert.equal(JSON.parse(request.body).max_tokens, 8192);
+    return response();
+  }});
+});
+
+test('rejects invalid output budgets before network access', async () => {
+  for (const maxTokens of [0, -1, 1.5, '8192', null, Infinity]) {
+    await assert.rejects(callClaude(input, {apiKey: key, maxTokens,
+      fetchImpl: () => assert.fail('No request expected')}), error => error.code === 'invalid_output_budget');
+  }
+});
+
+
+test('sends supported effort without disabling adaptive thinking', async () => {
+  await callClaude(input, {apiKey: key, effort: 'low', fetchImpl: async (_url, request) => {
+    const body = JSON.parse(request.body);
+    assert.deepEqual(body.output_config, {effort: 'low'});
+    assert.equal(body.thinking, undefined);
+    return response();
+  }});
+});
+
+test('rejects invalid effort before network access', async () => {
+  for (const effort of ['adaptive', 'minimal', '', null, 1]) {
+    await assert.rejects(callClaude(input, {apiKey: key, effort,
+      fetchImpl: () => assert.fail('No request expected')}), error => error.code === 'invalid_effort');
+  }
+});
+
+
+test('combines schema-constrained output with effort in one output_config', async () => {
+  const schema = {type: 'object', properties: {}, additionalProperties: false};
+  await callClaude(input, {apiKey: key, effort: 'low', outputSchema: schema, fetchImpl: async (_url, request) => {
+    assert.deepEqual(JSON.parse(request.body).output_config, {effort: 'low', format: {type: 'json_schema', schema}});
+    return response();
+  }});
+});
+
+test('rejects invalid output schema containers before any request', async () => {
+  for (const outputSchema of [null, [], 'schema']) {
+    await assert.rejects(callClaude(input, {apiKey: key, outputSchema,
+      fetchImpl: () => assert.fail('No request expected')}), error => error.code === 'invalid_output_schema');
+  }
 });

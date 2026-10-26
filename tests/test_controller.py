@@ -1,4 +1,5 @@
 """Offline controller routing tests using SQLite and an injected Tutor runner."""
+from tests.quality_fixtures import passing_review
 import copy
 import json
 from pathlib import Path
@@ -99,7 +100,7 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(raised.exception.stage, 'input preparation')
         self.assertEqual(raised.exception.repair_count, 0)
 
-    def assessment(self, handoff, *, repair_request=None):
+    def assessment(self, handoff, *, repair_request=None, **timeouts):
         self.assessment_calls.append((copy.deepcopy(handoff), repair_request))
         quiz = json.loads((ROOT / 'schemas/v1/examples/quiz_output.example.json').read_text())
         quiz['handoff_id'] = handoff['handoff_id']
@@ -110,7 +111,7 @@ class ControllerTests(unittest.TestCase):
     def start_quiz(self, assessment=None, tutor=None):
         self.assessment_calls = []
         return start_quiz_session(self.conn, LEARNER, 'lesson_cell_membranes',
-                                  tutor=tutor or self.tutor, assessment=assessment or self.assessment)
+                                  tutor=tutor or self.tutor, assessment=assessment or self.assessment, reviewer=passing_review)
 
     def test_validated_tutor_handoff_reaches_assessment_once_and_returns_no_keys(self):
         result = self.start_quiz()
@@ -133,7 +134,7 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(self.assessment_calls, [])
 
     def test_one_invalid_quiz_can_use_remaining_handoff_repair(self):
-        def repairable(handoff, *, repair_request=None):
+        def repairable(handoff, *, repair_request=None, **timeouts):
             quiz = self.assessment(handoff, repair_request=repair_request)
             if repair_request is None: quiz['explanation_id'] = 'expl_stale'
             return quiz
@@ -145,7 +146,7 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(self.conn.execute('SELECT repair_count FROM handoff_repairs').fetchone()[0], 1)
 
     def test_two_invalid_quizzes_fail_without_persisting_partial_quiz(self):
-        def invalid(handoff, *, repair_request=None):
+        def invalid(handoff, *, repair_request=None, **timeouts):
             quiz = self.assessment(handoff, repair_request=repair_request)
             quiz['quiz']['questions'][0]['concept_id'] = 'c_unknown'
             return quiz
@@ -161,7 +162,7 @@ class ControllerTests(unittest.TestCase):
             result = self.tutor(context)
             result['repairCount'] = 1
             return result
-        def invalid(handoff, *, repair_request=None):
+        def invalid(handoff, *, repair_request=None, **timeouts):
             quiz = self.assessment(handoff, repair_request=repair_request)
             quiz['quiz']['questions'].pop()
             return quiz
@@ -172,13 +173,14 @@ class ControllerTests(unittest.TestCase):
     def test_failed_ready_status_save_rolls_back_questions_and_keys(self):
         self.conn.execute("CREATE TRIGGER fail_ready BEFORE UPDATE ON study_sessions WHEN NEW.status = 'awaiting_answers' BEGIN SELECT RAISE(ABORT, 'test failure'); END")
         result = self.start_quiz()
-        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(result['status'], 'teaching')
+        self.assertEqual(result['error'], 'quality_publish_save_failed')
         for table in ['quizzes', 'questions', 'answer_keys']:
             self.assertEqual(self.conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0], 0)
         self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM explanations').fetchone()[0], 1)
 
     def test_assessment_cannot_change_trusted_handoff_by_mutating_its_input(self):
-        def mutating(handoff, *, repair_request=None):
+        def mutating(handoff, *, repair_request=None, **timeouts):
             handoff['handoff_id'] = 'handoff_forged'
             return self.assessment(handoff, repair_request=repair_request)
         self.assertEqual(self.start_quiz(assessment=mutating)['status'], 'failed')

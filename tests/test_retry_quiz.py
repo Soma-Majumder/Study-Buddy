@@ -1,4 +1,5 @@
 """Focused retry quiz routing with fixture agents and actual saved state."""
+from tests.quality_fixtures import passing_review
 import copy
 import json
 from pathlib import Path
@@ -23,7 +24,7 @@ class RetryQuizTests(unittest.TestCase):
         self.fixture.dispatch()
         self.calls = []
 
-    def assessment(self, h, *, repair_request=None):
+    def assessment(self, h, *, repair_request=None, **timeouts):
         self.calls.append((copy.deepcopy(h), repair_request))
         sample = json.loads((ROOT / 'schemas/v1/examples/quiz_output.example.json').read_text())
         focus = {c['concept_id'] for c in h['payload']['concepts']}
@@ -39,7 +40,7 @@ class RetryQuizTests(unittest.TestCase):
                     round='retry', quiz=dict(questions=questions), answer_key=keys)
 
     def dispatch(self, assessment=None):
-        return dispatch_retry_quiz(self.conn, LEARNER, self.attempt_id, assessment=assessment or self.assessment)
+        return dispatch_retry_quiz(self.conn, LEARNER, self.attempt_id, assessment=assessment or self.assessment, reviewer=passing_review)
 
     def test_focused_ten_question_quiz_is_saved_without_client_keys(self):
         result = self.dispatch()
@@ -57,7 +58,7 @@ class RetryQuizTests(unittest.TestCase):
         self.assertEqual(self.conn.execute('SELECT learning_retry_count FROM study_sessions').fetchone()[0], 1)
 
     def test_replay_and_running_operation_do_not_start_another_quiz(self):
-        def running(h, *, repair_request=None):
+        def running(h, *, repair_request=None, **timeouts):
             result = self.dispatch()
             self.assertEqual(result['operation_status'], 'running')
             self.assertIsNone(result['quiz'])
@@ -67,7 +68,7 @@ class RetryQuizTests(unittest.TestCase):
         self.assertEqual(len(self.calls), 1)
 
     def test_out_of_focus_output_fails_after_one_remaining_repair(self):
-        def invalid(h, *, repair_request=None):
+        def invalid(h, *, repair_request=None, **timeouts):
             result = self.assessment(h, repair_request=repair_request)
             result['quiz']['questions'][0]['concept_id'] = 'c_glycocalyx_recognition'
             return result
@@ -82,7 +83,7 @@ class RetryQuizTests(unittest.TestCase):
         self.conn.execute('UPDATE handoff_repairs SET repair_count = 1 WHERE handoff_id = ?',
                           (self.fixture.route['tutor_handoff_id'],))
         self.conn.commit()
-        def invalid(h, *, repair_request=None):
+        def invalid(h, *, repair_request=None, **timeouts):
             result = self.assessment(h, repair_request=repair_request)
             result['round'] = 'first'
             return result
@@ -91,7 +92,7 @@ class RetryQuizTests(unittest.TestCase):
 
     def test_retry_quiz_save_failure_preserves_first_quiz_and_grade(self):
         self.conn.execute("CREATE TRIGGER fail_retry_ready BEFORE UPDATE ON study_sessions WHEN NEW.status = 'awaiting_answers' BEGIN SELECT RAISE(ABORT, 'test failure'); END")
-        self.assertEqual(self.dispatch()['status'], 'failed')
+        self.assertEqual(self.dispatch()['status'], 'reteaching')
         self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM quizzes').fetchone()[0], 1)
         self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM answer_keys').fetchone()[0], 10)
         self.assertEqual(self.conn.execute('SELECT score FROM results').fetchone()[0], 6)
@@ -108,7 +109,7 @@ class RetryQuizTests(unittest.TestCase):
         answers = {k['question_id']: 'b' if k['correct_option'] == 'a' else 'a' for k in keys}
         result = submit_answers(self.conn, LEARNER, qid, answers)
         self.assertEqual(result['graded']['score'], 0)
-        def feedback(c, *, repair_request=None):
+        def feedback(c, *, repair_request=None, **timeouts):
             return dict(schema_version='1.0', quiz_id=c['quiz_id'], attempt_id=c['attempt_id'],
                         feedback=[dict(position=i['position'], explanation=i['rationale']) for i in c['graded']['items']],
                         weak_concepts=copy.deepcopy(c['graded']['weak_concepts']), summary='Here are your practice results.')
