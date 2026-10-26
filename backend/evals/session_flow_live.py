@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from study_buddy.answer_keys import get_answer_key
 from study_buddy.lessons import load_lessons
+from study_buddy.reviewer import run_reviewer
 from study_buddy.session_flow import run_study_session
 
 LEARNER = 'learner_a1b2c3d4e5f6'
@@ -56,8 +57,19 @@ def main():
         return {k['question_id']: (('b' if k['correct_option'] == 'a' else 'a') if i in miss else k['correct_option'])
                 for i, k in enumerate(keys, 1)}
 
+    review_errors = []
+
+    def traced_reviewer(context, **kwargs):
+        try:
+            return run_reviewer(context, **kwargs)
+        except Exception as error:  # Record only fixed, non-sensitive diagnostics.
+            review_errors.append(dict(round=context['controller_context']['round'], type=type(error).__name__,
+                                      stage=getattr(error, 'stage', None), code=getattr(error, 'code', None),
+                                      http_status=getattr(error, 'http_status', None), stop_reason=getattr(error, 'stop_reason', None)))
+            raise
+
     started = time.time()
-    result = run_study_session(conn, LEARNER, 'lesson_cell_membranes', answer)
+    result = run_study_session(conn, LEARNER, 'lesson_cell_membranes', answer, reviewer=traced_reviewer)
     elapsed = round(time.time() - started, 1)
     counts = {t: conn.execute(f'SELECT COUNT(*) FROM {t}').fetchone()[0] for t in
               ('quizzes', 'attempts', 'results', 'quiz_quality_calls', 'quiz_quality_publications')}
@@ -81,10 +93,11 @@ def main():
                   elapsed_seconds=elapsed, status=result['status'], error=result['error'], scores=result['scores'],
                   steps=result['steps'], session=dict(status=session[0], learning_retry_count=session[1], failure_reason=session[2]),
                   row_counts=counts, quality_calls_by_kind=kinds, foreign_key_violations=len(conn.execute('PRAGMA foreign_key_check').fetchall()),
-                  summary_saved=result['summary'] is not None, reviews=reviews)
+                  summary_saved=result['summary'] is not None, reviews=reviews, review_errors=review_errors)
     out.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: report[k] for k in ('status', 'error', 'scores', 'elapsed_seconds', 'row_counts', 'quality_calls_by_kind')}, indent=2))
     print('reviews:', json.dumps(reviews))
+    print('review_errors:', json.dumps(review_errors))
     print('steps:', ' > '.join(f"{s['step']}:{s['round']}:{s['status']}" for s in result['steps']))
 
 
