@@ -448,3 +448,19 @@ Tests cover empty/idempotent initialization, exact fingerprints/timestamps, dupl
 For an existing database, `python -B scripts/migration_status.py /absolute/path/to/study-buddy.db` opens it with SQLite `mode=ro` and prints that report. A missing path fails without creating a database. Tables already present with no recorded migrations trigger `baseline_required`, even if an empty tracking table exists. In that case, `pending` means **unrecorded**, not proven unapplied: both fresh-schema databases and older manually migrated databases need an explicit baseline decision before applying anything. No automatic baseline or SQL runner exists yet.
 
 Discovery tests cover the repository's eight files, clean/partially recorded/up-to-date plans, fingerprint drift, file/history gaps, ordering, invalid inputs, baseline detection, caller-transaction preservation and the real read-only status command. No application database was changed by these tests.
+
+### Explicit baseline policy for existing full-schema databases
+
+A baseline means **adopting a verified existing schema into migration tracking**, not rerunning its migrations or proving their historical execution dates. For the first implementation, the only supported baseline is the complete current schema through **008**. Older partial schemas, local extensions, already recorded history, or unknown/newer versions must be reviewed separately; the tool does not guess a prefix from table names.
+
+The process is:
+1. Stop application writes for maintenance and take a recoverable database backup before the eventual recording command.
+2. Run the read-only preview: `python -B scripts/baseline_status.py /absolute/path/to/study-buddy.db --through-version 8`.
+3. Verify the reported schema fingerprint and exact file manifest. The preview compares all application tables and explicit indexes with `db/schema.sql`, including constraints and foreign keys. It normalizes only comments, whitespace and unquoted case; quoted values remain exact. Structurally equivalent but differently expressed DDL may be rejected conservatively for manual review. Extra objects are also rejected. Existing tracking must be empty and have the reviewed metadata schema.
+4. Require clean `foreign_key_check` and `quick_check` results. The preview does not fix data or return private rows.
+5. A future explicit recorder must acquire the write lock, recheck the schema and manifest, record all versions 001–008 and a baseline audit entry in one transaction, or roll everything back. Audit metadata should distinguish baseline adoption time/operator/reason from original migration execution dates. A preview alone never authorizes or records adoption.
+6. Recheck normal migration status afterward. Only migrations added after the adopted prefix can become executable pending work.
+
+`study_buddy.migration_baseline.plan_baseline(conn, through_version=8)` implements steps 2–4 as a read-only eligibility check. Success reports `baseline_ready`, a schema SHA-256, the eight file fingerprints it would record, and `records_written=0`. The command opens SQLite with `mode=ro`, never creates a missing database, never initializes history, and never executes application migration SQL against the target. It builds only an isolated in-memory reference from the repository schema. The preview can become stale; locking/revalidation belongs to the recording step.
+
+Tests verify full-schema eligibility without data/history changes; explicit version selection; empty versus recorded history; tracking metadata integrity; missing/extra tables and indexes; altered CHECK/FK definitions; conservative DDL normalization; existing data violations; caller-transaction preservation; and the real read-only CLI. No actual application database was baselined. Atomic baseline recording and the migration runner remain next steps.
