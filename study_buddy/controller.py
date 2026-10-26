@@ -18,6 +18,7 @@ from study_buddy.answer_keys import new_id, save_quiz, get_client_quiz, get_answ
 from scripts.validate_quiz import check as check_quiz
 from study_buddy.grading import grade
 from study_buddy.feedback import explain_results
+from study_buddy.routing import decide_next_step
 
 ROOT = Path(__file__).resolve().parent.parent
 HANDOFF_SCHEMA = json.loads((ROOT / 'schemas/v1/tutor_to_assessment.schema.json').read_text())
