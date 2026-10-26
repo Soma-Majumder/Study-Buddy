@@ -1,9 +1,10 @@
 """First routing step: approved lesson -> Tutor -> stored explanation or failure.
 
 learner_id must come from trusted application context, not an agent. This does
-not authenticate users or dispatch Assessment. Use a connection with schema.sql
+not authenticate users. start_quiz_session dispatches an injected Assessment runner. Use a connection with schema.sql
 and approved lessons already loaded by study_buddy.lessons.load_lessons.
 """
+import copy
 import json
 import os
 from pathlib import Path
@@ -12,7 +13,8 @@ import subprocess
 
 import jsonschema
 
-from study_buddy.answer_keys import new_id
+from study_buddy.answer_keys import new_id, save_quiz, get_client_quiz
+from scripts.validate_quiz import check as check_quiz
 
 ROOT = Path(__file__).resolve().parent.parent
 HANDOFF_SCHEMA = json.loads((ROOT / 'schemas/v1/tutor_to_assessment.schema.json').read_text())
@@ -137,3 +139,60 @@ def _fail(conn, context, repair_count, message):
         conn.execute('UPDATE handoff_repairs SET repair_count = ? WHERE handoff_id = ?',
                      (repair_count, context['handoffId']))
     return dict(session_id=context['sessionId'], status='failed', next_step=None, handoff=None, error=message)
+
+def start_quiz_session(conn, learner_id, lesson_id, *, assessment, tutor=run_tutor):
+    """Route a validated Tutor handoff to an injected Assessment runner.
+
+    assessment(handoff, repair_request=None) returns a private quiz-output
+    object. There is no production AI Assessment runner yet. The controller
+    owns validation and the remaining repair budget for this handoff.
+    """
+    started = start_session(conn, learner_id, lesson_id, tutor=tutor)
+    if started['status'] == 'failed':
+        return started
+    handoff = started['handoff']
+    context = dict(sessionId=started['session_id'], handoffId=handoff['handoff_id'])
+    repair_request = None
+    while True:
+        count = conn.execute('SELECT repair_count FROM handoff_repairs WHERE handoff_id = ?',
+                             (context['handoffId'],)).fetchone()[0]
+        try:
+            # A model adapter must not mutate the controller's trusted copy.
+            output = assessment(copy.deepcopy(handoff), repair_request=repair_request)
+        except Exception:
+            return _fail(conn, context, count, 'Assessment could not create a quiz. No quiz was started.')
+        try:
+            valid = not check_quiz(output, handoff)
+        except Exception:
+            valid = False
+        if valid:
+            break
+        # Reserve before correction. Tutor and Assessment do not get fresh
+        # budgets for the same outgoing handoff. No unbounded repair loop.
+        with conn:
+            reserved = conn.execute(
+                'UPDATE handoff_repairs SET repair_count = 1 WHERE handoff_id = ? AND repair_count = 0',
+                (context['handoffId'],),
+            ).rowcount
+        if not reserved:
+            return _fail(conn, context, 1, 'Assessment returned an invalid quiz after the repair budget was used. No quiz was started.')
+        repair_request = ('Return a complete quiz matching the original handoff and explanation IDs and round. '
+                          'Use exactly 10 questions on taught concepts, four distinct options per question, '
+                          'and one private answer-key entry per question. This is the only remaining repair; '
+                          'do not include extra fields.')
+
+    quiz_id = new_id('quiz')
+    try:
+        with conn:
+            # One transaction includes questions, keys, and the ready status.
+            save_quiz(conn, quiz_id, context['sessionId'], handoff['payload']['explanation_id'],
+                      output, manage_transaction=False)
+            client_quiz = get_client_quiz(conn, quiz_id)
+            conn.execute("UPDATE study_sessions SET status = 'awaiting_answers' WHERE session_id = ?",
+                         (context['sessionId'],))
+    except Exception:
+        return _fail(conn, context, conn.execute(
+            'SELECT repair_count FROM handoff_repairs WHERE handoff_id = ?',
+            (context['handoffId'],)).fetchone()[0], 'Could not save the quiz. No quiz was started.')
+    return dict(session_id=context['sessionId'], status='awaiting_answers', next_step='submit_answers',
+                quiz=client_quiz, error=None)

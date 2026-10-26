@@ -5,6 +5,7 @@ option or rationale is read only through `get_answer_key`, which the grader
 uses after submission. Everything that goes to the learner or the Tutor comes
 from `get_client_quiz`, which never touches the answer_keys table.
 """
+from contextlib import nullcontext
 import secrets
 import sqlite3
 import string
@@ -16,16 +17,17 @@ def new_id(prefix):
     return f"{prefix}_" + "".join(secrets.choice(_ALPHABET) for _ in range(12))
 
 
-def save_quiz(conn, quiz_id, session_id, explanation_id, quiz_output):
+def save_quiz(conn, quiz_id, session_id, explanation_id, quiz_output, *, manage_transaction=True):
     """Store a validated Assessment quiz output. Questions and keys go to separate tables.
 
     Returns {position: question_id}. Writes in one transaction, so a failed
     save leaves no quiz behind and the caller can record a failed or
-    pending-save status.
+    pending-save status. Pass manage_transaction=False only inside a caller-owned
+    transaction that also saves the session status.
     """
     keys = {k["position"]: k for k in quiz_output["answer_key"]}
     question_ids = {}
-    with conn:
+    with conn if manage_transaction else nullcontext():
         conn.execute(
             "INSERT INTO quizzes (quiz_id, session_id, explanation_id, round) VALUES (?, ?, ?, ?)",
             (quiz_id, session_id, explanation_id, quiz_output["round"]),
