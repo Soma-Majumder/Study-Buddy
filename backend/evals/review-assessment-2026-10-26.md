@@ -195,3 +195,35 @@ Next design adjustment: replace lesson-specific question text with an abstract p
 ## Prepared abstract design pattern
 
 Removed the two lesson-specific question examples after the model copied one verbatim. Their replacement is a five-step abstract design pattern: choose a distinct taught relationship, ask for an application, construct parallel plausible confusions, reject equivalent/narrower-true alternatives, and write a short explanation-grounded rationale. No additional factual material or question templates are provided. Existing privacy, exact JSON, scope, and controller stopping rules are unchanged. No paid generation was made, and effectiveness remains to be tested live.
+
+
+## Abstract-pattern live evaluation: failed
+
+Report: `results/2026-10-26T19-04-02-330163+00-00-assessment-controller.json`. Same low effort, 8192-token per-call budget, 60/70-second deadlines, fixture Tutor, and one-repair limit. Both captured responses were complete valid JSON, but each failed the existing schema due to an extra concept_id in an answer-key entry (first Q4; repair Q2). No field was removed automatically and neither output was accepted. The controller stopped after the reserved repair, saved zero quizzes/questions/keys/attempts/results, recorded failed status, and left learning retry zero. No key leak or foreign-key issue was found.
+
+| Generation | Latency | Output tokens | Reported thinking tokens | Outcome |
+| --- | ---: | ---: | ---: | --- |
+| Initial | 34442 ms | 8179 | 6375 | Invalid extra answer-key field |
+| Repair | 27066 ms | 6662 | 4793 | Same field defect, different entry |
+| Total | 61508 ms | 14841 | 11168 | Failed, no quiz saved |
+
+Total input tokens: 7767. Thinking share approximately 75.3%. The first call finished only 13 tokens below the configured cap but did not report truncation. Low effort did not consistently produce lower thinking usage across these samples; do not claim it guarantees speed or completion.
+
+### Content inspection of rejected outputs only
+
+The removed verbatim cholesterol comparison stem did not recur, but this alone does not show useful transfer: the repair largely returned to simple recall. The first response again offered overlapping cold-condition choices (“make the membrane more fluid” versus “prevent excessive stiffening”).
+
+| Repair item | Finding |
+| --- | --- |
+| Q1 | Supported arrangement answer, but some choices are unrelated or not parallel locations. |
+| Q2 | Recall definition, plus the forbidden concept_id inside its key. |
+| Q3 | Useful saturated/unsaturated comparison; correct choice is longest. |
+| Q4 | Recall fluidity definition with category-mismatch wrong choices. |
+| Q5 | Recall list; asks for a pair while some choices are single factors with giveaway “only.” |
+| Q6 | Correct cholesterol role, but “breaks the bilayer apart” is still a weak distractor. |
+| Q7 | “Causing excessive stiffening” and “excessive stiffening” overlap as things cholesterol helps prevent. Reject ambiguity. |
+| Q8 | Supported fluid mosaic answer, mostly recall. |
+| Q9 | “Why” only restates the taught movement rule; rationale incorrectly says leaflets rarely switch, instead of lipids switching leaflets. |
+| Q10 | Recall glycocalyx role; correct choice is much more detailed than alternatives. |
+
+The abstract design instructions did not meet the six-understanding-item target, remove ambiguity, or establish quality improvement. No accepted quiz exists to recommend to learners. Next prioritize the recurring output-contract defect before more prompt-only iteration; separately design a reliable content review/revision approach for ambiguous and unsupported items. No third paid call was made.
