@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "study-buddy/quiz-quality-review/v1",
+  "title": "Reviewer content report v1",
+  "description": "Backend-only reviewer judgments. Controller validates bindings and derives a decision; this report cannot authorize publication by itself.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation_id",
+    "session_id",
+    "lesson_id",
+    "lesson_version",
+    "handoff_id",
+    "explanation_id",
+    "round",
+    "candidate_version",
+    "candidate_hash",
+    "hash_version",
+    "rubric_version",
+    "questions",
+    "quiz_review"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "operation_id": {
+      "type": "string",
+      "pattern": "^quality_[a-z0-9]{12}$"
+    },
+    "session_id": {
+      "$ref": "#/$defs/id"
+    },
+    "lesson_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lesson_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "handoff_id": {
+      "$ref": "#/$defs/id"
+    },
+    "explanation_id": {
+      "$ref": "#/$defs/id"
+    },
+    "round": {
+      "enum": [
+        "first",
+        "retry"
+      ]
+    },
+    "candidate_version": {
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "candidate_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "hash_version": {
+      "const": "private_quiz_v1"
+    },
+    "rubric_version": {
+      "const": "1.0"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "position",
+          "concept_id",
+          "grounding",
+          "exactly_one_answer",
+          "plausible_distractors",
+          "fair_wording",
+          "rationale_quality",
+          "primary_demand",
+          "support_quotes",
+          "defensible_options",
+          "issues",
+          "uncertainty_notes"
+        ],
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "concept_id": {
+            "$ref": "#/$defs/id"
+          },
+          "grounding": {
+            "enum": [
+              "pass",
+              "fail",
+              "uncertain"
+            ]
+          },
+          "exactly_one_answer": {
+            "enum": [
+              "pass",
+              "fail",
+              "uncertain"
+            ]
+          },
+          "plausible_distractors": {
+            "enum": [
+              "pass",
+              "fail",
+              "uncertain"
+            ]
+          },
+          "fair_wording": {
+            "enum": [
+              "pass",
+              "fail",
+              "uncertain"
+            ]
+          },
+          "rationale_quality": {
+            "enum": [
+              "pass",
+              "fail",
+              "uncertain"
+            ]
+          },
+          "primary_demand": {
+            "enum": [
+              "recall",
+              "comparison",
+              "cause_effect",
+              "prediction",
+              "misconception_correction",
+              "evidence_boundary"
+            ]
+          },
+          "support_quotes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "defensible_options": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "a",
+                "b",
+                "c",
+                "d"
+              ]
+            },
+            "maxItems": 4,
+            "uniqueItems": true
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/issue"
+            },
+            "maxItems": 10
+          },
+          "uncertainty_notes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "maxItems": 5
+          }
+        }
+      },
+      "minItems": 10,
+      "maxItems": 10
+    },
+    "quiz_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "concept_coverage",
+        "target_diversity",
+        "issues",
+        "uncertainty_notes"
+      ],
+      "properties": {
+        "concept_coverage": {
+          "enum": [
+            "pass",
+            "fail",
+            "uncertain"
+          ]
+        },
+        "target_diversity": {
+          "enum": [
+            "pass",
+            "fail",
+            "uncertain"
+          ]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/issue"
+          },
+          "maxItems": 10
+        },
+        "uncertainty_notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 5
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "minLength": 3
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "detail",
+        "related_positions"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "unsupported_claim",
+            "ambiguous_answer",
+            "weak_distractor",
+            "answer_cue",
+            "repeated_target",
+            "inaccurate_rationale",
+            "missing_coverage",
+            "insufficient_understanding",
+            "insufficient_teaching"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
+        },
+        "related_positions": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "uniqueItems": true,
+          "maxItems": 10
+        }
+      }
+    }
+  }
+}

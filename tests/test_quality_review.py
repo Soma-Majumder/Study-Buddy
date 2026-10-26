@@ -1,0 +1,104 @@
+"""Offline reviewer-contract tests; no semantic quality claim or provider call."""
+import copy
+import json
+from pathlib import Path
+import unittest
+
+from study_buddy.quality_review import VALIDATOR, ReviewRejected, candidate_hash, validate_review
+
+FIXTURES = Path(__file__).resolve().parent / 'fixtures/quiz_quality'
+
+
+class QualityReviewTests(unittest.TestCase):
+    def setUp(self):
+        self.context = json.loads((FIXTURES / 'context.json').read_text())
+        self.report = json.loads((FIXTURES / 'pass.json').read_text())['report']
+
+    def test_all_authored_fixture_shapes_and_expected_decisions(self):
+        for name in ('pass', 'ambiguous_answers', 'inaccurate_rationale', 'uncertain', 'stale_hash'):
+            with self.subTest(case=name):
+                case = json.loads((FIXTURES / f'{name}.json').read_text())
+                self.assertEqual(list(VALIDATOR.iter_errors(case['report'])), [])
+                context = copy.deepcopy(self.context)
+                context['candidate'] = case.get('candidate_override', context['candidate'])
+                if case['expected_decision'] == 'rejected':
+                    with self.assertRaises(ReviewRejected): validate_review(case['report'], context)
+                else:
+                    self.assertEqual(validate_review(case['report'], context)['decision'], case['expected_decision'])
+
+    def test_duplicate_or_missing_question_position_is_rejected(self):
+        self.report['questions'][1]['position'] = 1
+        with self.assertRaises(ReviewRejected): validate_review(self.report, self.context)
+        self.report['questions'].pop()
+        with self.assertRaises(ReviewRejected): validate_review(self.report, self.context)
+
+    def test_all_echoed_binding_fields_are_checked(self):
+        for field, value in dict(operation_id='quality_z1b2c3d4e5f6', session_id='session_stale', lesson_id='lesson_other',
+                                 lesson_version=99, handoff_id='handoff_stale', explanation_id='expl_stale',
+                                 round='retry', candidate_version=1).items():
+            r = copy.deepcopy(self.report); r[field] = value
+            with self.subTest(field=field), self.assertRaises(ReviewRejected): validate_review(r, self.context)
+
+    def test_candidate_options_keys_and_rationales_invalidate_approval(self):
+        for change in ('option', 'key', 'rationale'):
+            context = copy.deepcopy(self.context)
+            if change == 'option': context['candidate']['quiz']['questions'][0]['options']['a'] += ' Changed.'
+            if change == 'key': context['candidate']['answer_key'][0]['correct_option'] = 'b'
+            if change == 'rationale': context['candidate']['answer_key'][0]['rationale'] += ' Changed.'
+            with self.subTest(change=change), self.assertRaises(ReviewRejected): validate_review(self.report, context)
+
+    def test_quote_checks_reject_blank_absent_and_missing_support(self):
+        for quotes in (['   '], ['A claim not present in the source.'], []):
+            r = copy.deepcopy(self.report); r['questions'][0]['support_quotes'] = quotes
+            with self.subTest(quotes=quotes), self.assertRaises(ReviewRejected): validate_review(r, self.context)
+
+    def test_pass_requires_the_saved_key_and_same_concept(self):
+        for options in ([], ['a', 'b'], ['b']):
+            r = copy.deepcopy(self.report); r['questions'][0]['defensible_options'] = options
+            with self.subTest(options=options), self.assertRaises(ReviewRejected): validate_review(r, self.context)
+        self.report['questions'][0]['concept_id'] = 'c_other'
+        with self.assertRaises(ReviewRejected): validate_review(self.report, self.context)
+
+    def test_unknown_fields_overall_approval_and_invalid_option_are_rejected(self):
+        for mutate in (lambda r: r.update(overall_pass=True),
+                       lambda r: r['questions'][0].update(score=10),
+                       lambda r: r['questions'][0].update(defensible_options=['e'])):
+            r = copy.deepcopy(self.report); mutate(r)
+            with self.assertRaises(ReviewRejected): validate_review(r, self.context)
+
+    def test_failed_or_uncertain_judgments_require_evidence_notes(self):
+        self.report['questions'][0]['grounding'] = 'fail'
+        with self.assertRaises(ReviewRejected): validate_review(self.report, self.context)
+        self.report['questions'][0]['grounding'] = 'uncertain'
+        with self.assertRaises(ReviewRejected): validate_review(self.report, self.context)
+
+    def test_quiz_issues_block_pass_and_related_positions_are_bounded(self):
+        self.report['quiz_review']['target_diversity'] = 'fail'
+        self.report['quiz_review']['issues'] = [dict(code='repeated_target', detail='Items repeat a target.', related_positions=[1, 2])]
+        self.assertEqual(validate_review(self.report, self.context)['decision'], 'needs_revision')
+        self.report['quiz_review']['issues'][0]['related_positions'] = [11]
+        with self.assertRaises(ReviewRejected): validate_review(self.report, self.context)
+
+    def test_controller_counts_understanding_and_excludes_recall_evidence_boundary(self):
+        self.assertEqual(validate_review(self.report, self.context)['understanding_count'], 6)
+        for q in self.report['questions']: q['primary_demand'] = 'evidence_boundary'
+        result = validate_review(self.report, self.context)
+        self.assertEqual(result['understanding_count'], 0)
+        self.assertEqual(result['decision'], 'needs_revision')
+        self.assertIn('insufficient_understanding', result['reasons'])
+
+    def test_unsupported_rubric_and_hash_versions_are_rejected(self):
+        for field in ('rubric_version', 'hash_version', 'schema_version'):
+            r = copy.deepcopy(self.report); r[field] = 'unknown'
+            with self.subTest(field=field), self.assertRaises(ReviewRejected): validate_review(r, self.context)
+
+    def test_hash_is_stable_for_object_order_and_sensitive_to_content(self):
+        candidate = self.context['candidate']
+        reordered = dict(reversed(list(candidate.items())))
+        self.assertEqual(candidate_hash(candidate), candidate_hash(reordered))
+        reordered['round'] = 'retry'
+        self.assertNotEqual(candidate_hash(candidate), candidate_hash(reordered))
+
+    def test_structurally_invalid_candidate_is_not_reviewable(self):
+        self.context['candidate']['quiz']['questions'].pop()
+        with self.assertRaises(ReviewRejected): validate_review(self.report, self.context)

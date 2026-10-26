@@ -1,0 +1,384 @@
+{
+  "name": "inaccurate_rationale",
+  "report": {
+    "schema_version": "1.0",
+    "operation_id": "quality_a1b2c3d4e5f6",
+    "session_id": "session_dt73wz0ojwbw",
+    "lesson_id": "lesson_cell_membranes",
+    "lesson_version": 2,
+    "handoff_id": "handoff_iaryjgr7pkat",
+    "explanation_id": "expl_5ei9h3o2f317",
+    "round": "first",
+    "candidate_version": 0,
+    "candidate_hash": "d7208b69a3579cb9357233aba12282cd5f8173a14db4069470cb179686caf046",
+    "hash_version": "private_quiz_v1",
+    "rubric_version": "1.0",
+    "questions": [
+      {
+        "position": 1,
+        "concept_id": "c_amphipathic_phospholipids",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "recall",
+        "support_quotes": [
+          "They form a bilayer with heads toward water on both sides and tails tucked inside."
+        ],
+        "defensible_options": [
+          "a"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 2,
+        "concept_id": "c_amphipathic_phospholipids",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "misconception_correction",
+        "support_quotes": [
+          "Phospholipids have water-loving heads and water-avoiding tails: this combination is called amphipathic."
+        ],
+        "defensible_options": [
+          "c"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 3,
+        "concept_id": "c_fatty_acid_saturation",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "comparison",
+        "support_quotes": [
+          "Double bonds kink unsaturated tails, making close packing harder and increasing fluidity."
+        ],
+        "defensible_options": [
+          "b"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 4,
+        "concept_id": "c_fluidity_factors",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "comparison",
+        "support_quotes": [
+          "Fluidity describes how freely membrane components move."
+        ],
+        "defensible_options": [
+          "d"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 5,
+        "concept_id": "c_fluidity_factors",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "evidence_boundary",
+        "support_quotes": [
+          "Tail saturation, chain length, temperature, and cholesterol affect it."
+        ],
+        "defensible_options": [
+          "c"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 6,
+        "concept_id": "c_cholesterol_buffer",
+        "grounding": "fail",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "fail",
+        "primary_demand": "misconception_correction",
+        "support_quotes": [
+          "Cholesterol buffers fluidity: it restrains movement when the membrane is very fluid and prevents excessive stiffening in the cold."
+        ],
+        "defensible_options": [
+          "a"
+        ],
+        "issues": [
+          {
+            "code": "inaccurate_rationale",
+            "detail": "Always increasing movement contradicts the stated restraint in very fluid membranes.",
+            "related_positions": []
+          }
+        ],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 7,
+        "concept_id": "c_fluid_mosaic_model",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "comparison",
+        "support_quotes": [
+          "The fluid mosaic model describes a mixture of lipids, cholesterol, and proteins whose components can move sideways."
+        ],
+        "defensible_options": [
+          "b"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 8,
+        "concept_id": "c_membrane_asymmetry",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "evidence_boundary",
+        "support_quotes": [
+          "The two membrane layers, or leaflets, differ in composition."
+        ],
+        "defensible_options": [
+          "d"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 9,
+        "concept_id": "c_membrane_asymmetry",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "misconception_correction",
+        "support_quotes": [
+          "Lipids rarely switch leaflets without enzymes such as flippases, floppases, and scramblases."
+        ],
+        "defensible_options": [
+          "c"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      },
+      {
+        "position": 10,
+        "concept_id": "c_glycocalyx_recognition",
+        "grounding": "pass",
+        "exactly_one_answer": "pass",
+        "plausible_distractors": "pass",
+        "fair_wording": "pass",
+        "rationale_quality": "pass",
+        "primary_demand": "recall",
+        "support_quotes": [
+          "Sugars on the outer surface form the glycocalyx and help cells recognize one another, including distinguishing self from non-self."
+        ],
+        "defensible_options": [
+          "a"
+        ],
+        "issues": [],
+        "uncertainty_notes": []
+      }
+    ],
+    "quiz_review": {
+      "concept_coverage": "pass",
+      "target_diversity": "pass",
+      "issues": [],
+      "uncertainty_notes": []
+    }
+  },
+  "expected_decision": "needs_revision",
+  "candidate_override": {
+    "schema_version": "1.0",
+    "handoff_id": "handoff_iaryjgr7pkat",
+    "explanation_id": "expl_5ei9h3o2f317",
+    "round": "first",
+    "quiz": {
+      "questions": [
+        {
+          "position": 1,
+          "concept_id": "c_amphipathic_phospholipids",
+          "prompt": "Which arrangement fits both the water-loving heads and water-avoiding tails of phospholipids?",
+          "options": {
+            "a": "Heads face water; tails face inward.",
+            "b": "Heads face inward; tails face water.",
+            "c": "Heads and tails both face water.",
+            "d": "Heads and tails both face inward."
+          }
+        },
+        {
+          "position": 2,
+          "concept_id": "c_amphipathic_phospholipids",
+          "prompt": "A student calls a phospholipid entirely water-loving because its head likes water. Which description matches the whole molecule?",
+          "options": {
+            "a": "Its head and tails both avoid water.",
+            "b": "Its head and tails both like water.",
+            "c": "Its head likes water; its tails avoid water.",
+            "d": "Its head avoids water; its tails like water."
+          }
+        },
+        {
+          "position": 3,
+          "concept_id": "c_fatty_acid_saturation",
+          "prompt": "Comparing only the tail-packing effect described, how do unsaturated tails differ from saturated tails?",
+          "options": {
+            "a": "They pack more closely, allowing more movement.",
+            "b": "They pack less closely, allowing more movement.",
+            "c": "They pack more closely, allowing less movement.",
+            "d": "They pack less closely, allowing less movement."
+          }
+        },
+        {
+          "position": 4,
+          "concept_id": "c_fluidity_factors",
+          "prompt": "Two membranes contain the same kinds of components, but those components move more freely in membrane A. Which is more fluid?",
+          "options": {
+            "a": "Membrane B, because less movement means greater fluidity.",
+            "b": "Both equally, because movement does not define fluidity.",
+            "c": "Neither, because fluidity describes composition instead of movement.",
+            "d": "Membrane A, because greater movement means greater fluidity."
+          }
+        },
+        {
+          "position": 5,
+          "concept_id": "c_fluidity_factors",
+          "prompt": "The explanation lists chain length as a fluidity factor but gives no direction. Can it alone support a prediction about shorter chains?",
+          "options": {
+            "a": "Yes; shorter chains must increase fluidity.",
+            "b": "Yes; shorter chains must decrease fluidity.",
+            "c": "No; it names the factor without giving that direction.",
+            "d": "No; it says chain length does not affect fluidity."
+          }
+        },
+        {
+          "position": 6,
+          "concept_id": "c_cholesterol_buffer",
+          "prompt": "A student expects cholesterol to increase movement in every condition. Which pair of roles corrects that claim?",
+          "options": {
+            "a": "Very fluid: restrains movement; cold: prevents excessive stiffening.",
+            "b": "Very fluid: increases movement; cold: prevents excessive stiffening.",
+            "c": "Very fluid: restrains movement; cold: increases stiffening.",
+            "d": "Very fluid: increases movement; cold: increases stiffening."
+          }
+        },
+        {
+          "position": 7,
+          "concept_id": "c_fluid_mosaic_model",
+          "prompt": "Drawings A and B show the same lipid, cholesterol, and protein mixture. A fixes components in place; B permits sideways movement. Which fits the model?",
+          "options": {
+            "a": "A, because a mixture means its components stay fixed.",
+            "b": "B, because the model includes sideways movement of components.",
+            "c": "Both, because the model describes composition but not movement.",
+            "d": "Neither, because the model excludes mixtures of those components."
+          }
+        },
+        {
+          "position": 8,
+          "concept_id": "c_membrane_asymmetry",
+          "prompt": "A student says the explanation gives the exact mixture in each leaflet. Which statement correctly describes what it tells us?",
+          "options": {
+            "a": "The compositions are identical, and exact mixtures are given.",
+            "b": "The compositions are identical, but exact mixtures are not given.",
+            "c": "The compositions differ, and exact mixtures are given.",
+            "d": "The compositions differ, but exact mixtures are not given."
+          }
+        },
+        {
+          "position": 9,
+          "concept_id": "c_membrane_asymmetry",
+          "prompt": "The explanation says lipids rarely switch leaflets without enzymes. Which conclusion preserves that claim?",
+          "options": {
+            "a": "Switching without enzymes is impossible.",
+            "b": "Switching without enzymes is common.",
+            "c": "Switching without enzymes is uncommon, rather than ruled out.",
+            "d": "Switching is equally common with or without enzymes."
+          }
+        },
+        {
+          "position": 10,
+          "concept_id": "c_glycocalyx_recognition",
+          "prompt": "Which connection between a membrane feature and its role matches the explanation?",
+          "options": {
+            "a": "Outer-surface sugars form the glycocalyx and support cell recognition.",
+            "b": "Outer-surface sugars form the glycocalyx and restrain membrane fluidity.",
+            "c": "Cholesterol forms the glycocalyx and supports cell recognition.",
+            "d": "Cholesterol forms the glycocalyx and restrains membrane fluidity."
+          }
+        }
+      ]
+    },
+    "answer_key": [
+      {
+        "position": 1,
+        "correct_option": "a",
+        "rationale": "Water-loving heads face water on both sides, while water-avoiding tails tuck inside the bilayer."
+      },
+      {
+        "position": 2,
+        "correct_option": "c",
+        "rationale": "A phospholipid combines a water-loving head with water-avoiding tails; that combination is amphipathic."
+      },
+      {
+        "position": 3,
+        "correct_option": "b",
+        "rationale": "Double bonds kink unsaturated tails, making close packing harder and increasing fluidity."
+      },
+      {
+        "position": 4,
+        "correct_option": "d",
+        "rationale": "Fluidity describes how freely membrane components move, so greater freedom of movement means greater fluidity."
+      },
+      {
+        "position": 5,
+        "correct_option": "c",
+        "rationale": "Chain length is listed as a factor, but the explanation does not state how shortening a chain changes fluidity."
+      },
+      {
+        "position": 6,
+        "correct_option": "a",
+        "rationale": "Cholesterol increases movement in every condition."
+      },
+      {
+        "position": 7,
+        "correct_option": "b",
+        "rationale": "The fluid mosaic model includes a mixture of lipids, cholesterol, and proteins whose components can move sideways."
+      },
+      {
+        "position": 8,
+        "correct_option": "d",
+        "rationale": "The explanation says leaflets differ in composition but does not give their exact mixtures."
+      },
+      {
+        "position": 9,
+        "correct_option": "c",
+        "rationale": "Rare switching without enzymes means uncommon switching, not an absolute claim that switching cannot occur."
+      },
+      {
+        "position": 10,
+        "correct_option": "a",
+        "rationale": "Outer-surface sugars form the glycocalyx and help cells recognize one another, including self from non-self."
+      }
+    ]
+  }
+}

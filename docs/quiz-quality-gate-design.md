@@ -98,3 +98,10 @@ Learner-facing failure text: “We could not prepare a reliable quiz for this le
 First define the reviewer report schema and offline fixtures for a clear pass, ambiguous options, inaccurate rationale, stale hash, and uncertainty. Then add persisted operation/call reservations and tests; then implement the reviewer harness; then wire the shared gate into first/retry creation; finally run a bounded live evaluation. Keep semantic evaluation separate from transport and database tests.
 
 This design needs role/budget agreement with Soma before being treated as the new locked architecture. No paid calls, migrations, model adapters, or runtime gate were added by this design step.
+
+
+## Contract milestone completed
+
+The response schema now lives at `schemas/v1/quiz_quality_review.schema.json`. `study_buddy/quality_review.py` provides pure hash/binding validation and a derived decision; `tests/fixtures/quiz_quality` contains synthetic contract cases. Operation IDs use proposed `quality_<12 lowercase letters/digits>` values. Candidate versions are 0/1, rubric version is 1.0, and hash version is private_quiz_v1.
+
+A well-formed report can lead to pass, needs_revision, or blocked for uncertainty. Invalid/stale/inconsistent reports raise ReviewRejected and must fail the future operation without repair. The helper currently performs no database or model work and is not wired into first/retry publication. Synthetic pass judgments are not independent approval of the manually authored quiz. Next milestone: persist operation and call reservations before adding the Reviewer harness.

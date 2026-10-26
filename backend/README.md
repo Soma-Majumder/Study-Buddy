@@ -295,3 +295,16 @@ Source checked October 26, 2026: [Anthropic structured-output documentation](htt
 The reference covers applying definitions, comparing relationships/conditions, correcting overgeneralizations, preserving qualifiers, evidence boundaries, parallel distractors, distinct targets, and concise rationales. Its internal self-check makes no additional model calls and grants no repair budget. Schema-constrained output and full controller validation remain unchanged. It is guidance, not a semantic quality gate or a guarantee of good questions.
 
 The controller evaluation now records a separate quality-reference SHA-256 alongside the base prompt hash. A regression test checks first/retry requests for accidental manual-question/ID inclusion and unchanged handoff scope. This revision has only offline verification so far; no paid call was made.
+
+
+## Reviewer contract and offline fixtures
+
+`schemas/v1/quiz_quality_review.schema.json` defines the proposed backend-only Reviewer report. It binds session/lesson/handoff/explanation/round, quality operation, candidate version/hash, and rubric/hash versions. Ten question reports contain five quality judgments, demand type, quoted support, defensible option letters, issues, and uncertainty. Quiz-level coverage/diversity findings are separate. There is no model-supplied overall approval field.
+
+`study_buddy.quality_review.validate_review(report, context)` is a pure helper that validates structure and trusted-snapshot references, position/concept/key agreement, and literal quote provenance. It returns pass, needs_revision, or blocked. Invalid/stale/inconsistent reports raise ReviewRejected. A pass does not authorize database publication; no controller call path invokes this helper yet. Literal quotes and model demand labels do not independently prove semantic correctness.
+
+Candidate hashes use SHA-256 over the UTF-8 bytes of `study-buddy-private-quiz/v1` plus a newline and JSON with sorted object keys, compact separators, unescaped Unicode, and no NaN/Infinity. All private candidate fields, including keys and rationales, participate. The caller must load authenticated backend context; the helper does not authenticate users.
+
+The default understanding target of six belongs to the proposed quality policy, not the existing finalized PRD or deployed runtime. Recall/evidence-boundary items do not count. Any uncertainty blocks; fail judgments or issues require revision; each single-answer pass must match the saved key. The schema does not itself enforce dynamic hashes, literal quote matching, or unique positions; the helper does.
+
+Run `python -B -m unittest tests.test_quality_review -v`. The five cases in `tests/fixtures/quiz_quality` exercise pass, ambiguity, inaccurate rationale, uncertainty, and stale approval. They are synthetic reviewer judgments for contract tests, not gold labels or evidence that a live Reviewer works. No model adapter, migration, extra call budget, or publication gate is installed by this step.
