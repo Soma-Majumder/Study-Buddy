@@ -162,3 +162,31 @@ Only Q2 and Q3 clearly require the rubric's understanding tasks rather than sent
 ## Prepared concrete question-design examples
 
 Added two brief examples to the Assessment prompt: a double-bond/packing/movement cause-and-effect question and a two-condition cholesterol comparison. Wrong choices reverse the same taught relationships rather than introduce absurd facts or unrelated molecule categories. Keys and rationales are explicitly developer/model instruction examples, not learner-visible fields. The examples cannot supply new facts or override current concept/retry scope. No paid generation was made; future evaluation must check both genuine transfer and avoidance of duplicate questions.
+
+
+## Concrete-example transfer evaluation
+
+Report: `results/2026-10-26T19-00-59-686290+00-00-assessment-controller.json`. Same low effort, 8192-token budget, 60/70-second deadlines, fixture Tutor, and one-repair controller limit. Initial output failed schema due to an extra concept_id in an answer-key entry. The single reserved repair passed validation. One quiz, ten questions/keys, awaiting_answers, repair count one, learning retry zero, zero attempts/results, no key leak, and no foreign-key error.
+
+Usage across two calls: 7967 input tokens, 9661 output tokens, 5533 reported thinking tokens (57.3%). Call latencies: 16476 ms and 20824 ms. Counts span two calls, not one per-call cap.
+
+### Result: follows some patterns, but fails the no-copying and quality goals
+
+Q5 repeats the example stem exactly: “Which pair matches cholesterol's roles in a very fluid membrane and in the cold, respectively?” Its choices reproduce the same two-condition combinations with different order and minor stiffening wording. This is example copying, not demonstrated transfer. Q3 likewise closely follows the example's four packing/movement combinations, with a different stem.
+
+| Question | Demand and evidence | Finding |
+| --- | --- | --- |
+| 1 | Recall heads/tails arrangement | Parallel arrangement choices; useful format, still recall. |
+| 2 | Compare saturated/unsaturated packing | Comparison is useful, but overlaps Q3; rationale adds “saturated tails lack double bonds,” which the supplied explanation does not explicitly state. |
+| 3 | Double-bond packing/fluidity effect | Parallel relationship choices improve over unrelated molecules, but closely copy the example pattern and overlap Q2. “Most direct” effect is actually the kink before packing/fluidity. |
+| 4 | Recall fluidity-factor list | Adds distracting untaught terms such as pore size and pH; asks broadly what affects fluidity instead of what the explanation lists. |
+| 5 | Compare cholesterol conditions | Exact copied example stem; same choice combinations shuffled. |
+| 6 | Correct cholesterol misconception | Option a (“increases fluidity only in the cold”) and the chosen buffering description can both seem defensible from the cold/very-fluid contrast. Correct answer is also much longer. Reject ambiguity. |
+| 7 | Recall fluid mosaic model | Supported key; some useful contrasts, but correct answer remains a detailed definition. |
+| 8 | Recall leaflet-switching rule | “Why” does not make this a mechanism question: correct choice restates the rule, while other choices are unsupported and extreme. |
+| 9 | Recall leaflet composition | Several options concern different relationships; not a demanding comparison. |
+| 10 | Recall glycocalyx role | Wrong roles are unrelated; correct choice is conspicuously longer and more detailed. |
+
+Rationales are one sentence, 11–19 words each. Most keys match the explanation, but the ambiguity and added rationale detail above block quality approval. About four items target comparison/cause/correction (Q2, Q3, Q5, Q6), below the six-item target; two closely reuse examples and two pairs overlap in learning target. No student outcome or robust improvement is established.
+
+Next design adjustment: replace lesson-specific question text with an abstract planning pattern, or use examples from another topic clearly excluded from factual input, then review grounding and transfer carefully. Do not weaken the rubric or silently accept copied/ambiguous questions just because schema validation succeeds. No third generation was made.
