@@ -21,6 +21,7 @@ from study_buddy.feedback import explain_results
 from study_buddy.routing import decide_next_step
 from study_buddy.reteaching import dispatch_reteaching
 from study_buddy.retry_quiz import dispatch_retry_quiz
+from study_buddy.summary import finish_session
 
 ROOT = Path(__file__).resolve().parent.parent
 HANDOFF_SCHEMA = json.loads((ROOT / 'schemas/v1/tutor_to_assessment.schema.json').read_text())
