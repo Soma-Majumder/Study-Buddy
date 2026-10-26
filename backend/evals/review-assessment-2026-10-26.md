@@ -59,3 +59,12 @@ Both captured responses were valid JSON; the earlier JSON parsing failure was no
 The isolated database contained exactly one quiz, ten questions, and ten private keys, with no attempts or results. Session status was awaiting_answers, technical repair count one, learning retry count zero, no foreign-key errors, and no keys in the learner response. This live sample demonstrates successful validation/repair/persistence, not robust generation across lessons or runs.
 
 Assistant content inspection: all ten keyed answers and rationales appear supported by the fixture explanation; all seven taught concepts are covered. Several distractors remain easy category mismatches (for example sugars as flipping enzymes), and question 7 emphasizes specialist enzyme names rather than understanding. Do not equate schema validity with pedagogical quality. No third generation was made.
+
+
+## Question-quality prompt evaluation: inconclusive due to timeout
+
+Report: `results/2026-10-26T18-46-52-537794+00-00-assessment-controller.json`. This run used the new question-quality instructions (prompt hash saved in the report). One live adapter invocation failed with `request_timeout` after 30,152 ms. The opt-in response capture file is empty. No response text reached the adapter or validator, so none of the rubric's content criteria can be scored and no improvement claim is supported.
+
+The controller saved zero quizzes, questions, keys, attempts, or results; session status is failed, technical repair count zero, learning retry count zero, and no learner key leak or foreign-key issue was found. No repair or further live call was made.
+
+The next configuration change should give Assessment a longer request deadline to match its larger 8,192-token response budget, with a Python subprocess deadline longer than the request deadline. Keep Tutor's existing deadlines and all repair/learning retry limits unchanged. Test timeout behavior offline before another live quality evaluation. A longer timeout is not itself evidence of better questions.
