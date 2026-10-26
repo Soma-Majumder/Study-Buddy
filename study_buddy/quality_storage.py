@@ -4,7 +4,7 @@ import json
 import time
 
 from study_buddy.quality_review import candidate_hash, validate_review
-from study_buddy.quality_state import QualityStateRejected, _operation, _snapshot, complete_quality_call
+from study_buddy.quality_state import QualityStateRejected, _active, _operation, _snapshot, complete_quality_call
 from scripts.validate_quiz import check as check_quiz
 
 
@@ -154,3 +154,36 @@ def load_private_review_report(conn, learner_id, operation_id, review_call_id):
     with conn:
         op = _operation(conn, learner_id, operation_id)
         return _load_report(conn, op, review_call_id)
+
+
+def build_private_reviewer_context(conn, learner_id, call_id):
+    """Prepare private input for an already reserved review, without dispatching it.
+
+    This read does not grant another dispatch: the caller must still hold the
+    original reserved=True result. Never expose this payload to learner APIs.
+    """
+    with conn:
+        op, call = _call(conn, learner_id, call_id)
+        _, kind, status, version, digest = call
+        expected = ('review', 'reviewing') if version == 0 else ('review_revision', 'reviewing_revision')
+        if (kind, op['stage']) != expected or status != 'reserved':
+            raise QualityStateRejected('An active reserved Reviewer call is required.')
+        _active(conn, op)
+        if time.time() >= op['deadline_at']:
+            raise QualityStateRejected('Quality operation deadline has expired.')
+        candidate, text, ids = _load_candidate(conn, op, version)
+        if version != op['candidate_version'] or digest != op['candidate_hash'] or digest != candidate_hash(candidate):
+            raise QualityStateRejected('Reviewer reservation does not match the saved candidate.')
+        source = conn.execute('SELECT source_url, license, attribution FROM lessons '
+                              'WHERE lesson_id = ? AND version = ? AND approved = 1',
+                              (op['lesson_id'], op['lesson_version'])).fetchone()
+        if not source:
+            raise QualityStateRejected('Approved lesson source is unavailable.')
+        header = {key: op[key] for key in ('operation_id', 'session_id', 'lesson_id', 'lesson_version',
+                  'handoff_id', 'explanation_id', 'round', 'candidate_version', 'candidate_hash', 'hash_version', 'rubric_version')}
+        return dict(controller_context=dict(schema_version='1.0', **header),
+                    teaching=dict(explanation_text=text, concept_ids=ids,
+                                  focus_concept_ids=ids if op['round'] == 'retry' else []),
+                    sources=[dict(lesson_id=op['lesson_id'], lesson_version=op['lesson_version'],
+                                  url=source[0], license=source[1], attribution=source[2])],
+                    candidate=candidate, candidate_canonical_json=_json(candidate))
