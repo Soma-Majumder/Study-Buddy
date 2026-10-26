@@ -21,13 +21,19 @@ class AssessmentFailure(Exception):
         self.stop_reason = stop_reason if stop_reason in ('max_tokens', 'stop_sequence', 'tool_use', 'pause_turn', 'refusal', 'unknown') else None
 
 
-def run_assessment(handoff, *, repair_request=None):
+def run_assessment(handoff, *, repair_request=None, provider_timeout_ms=60_000, process_timeout_seconds=70):
     """Return unvalidated private quiz output, never a learner-facing response.
 
     Keys remain in the environment. No local retries or writes occur here.
     The caller must supply controller-verified context and reserve repairs.
     """
-    return _run_command(dict(handoff=handoff, repair_request=repair_request))
+    if (type(provider_timeout_ms) is not int or not 0 < provider_timeout_ms <= 60_000 or
+            type(process_timeout_seconds) not in (int, float) or not math.isfinite(process_timeout_seconds) or
+            not provider_timeout_ms / 1000 < process_timeout_seconds <= 70):
+        raise AssessmentFailure('input preparation', 'invalid_timeout')
+    payload = dict(handoff=handoff, repair_request=repair_request)
+    if provider_timeout_ms != 60_000: payload['provider_timeout_ms'] = provider_timeout_ms
+    return _run_command(payload, process_timeout_seconds)
 
 
 def run_assessment_revision(context, *, technical_repair=False, provider_timeout_ms=60_000, process_timeout_seconds=70):

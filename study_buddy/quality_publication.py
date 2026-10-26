@@ -91,6 +91,10 @@ def publish_reviewed_quiz(conn, learner_id, operation_id):
             conn.execute('INSERT INTO quiz_quality_publications VALUES (?, ?, ?, ?, ?, ?)',
                          (operation_id, op['candidate_version'], op['candidate_hash'], review_call_id, quiz_id, time.time()))
             conn.execute("UPDATE study_sessions SET status='awaiting_answers', failure_reason=NULL WHERE session_id=?", (op['session_id'],))
+            if op['round']=='retry':
+                conn.execute("UPDATE retry_quiz_operations SET status='ready', quiz_id=?, error=NULL "
+                             "WHERE session_id=? AND handoff_id=? AND status='running'",
+                             (quiz_id,op['session_id'],op['handoff_id']))
             return _response(conn, op, quiz_id, published=True)
     except sqlite3.Error:
         # The publication transaction has rolled back; only now record the error.

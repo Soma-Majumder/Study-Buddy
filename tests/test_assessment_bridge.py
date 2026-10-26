@@ -1,4 +1,5 @@
 """Real Python -> Node -> fake fetch -> controller validation/save tests."""
+from tests.quality_fixtures import passing_review
 import json
 import os
 from pathlib import Path
@@ -51,7 +52,7 @@ globalThis.fetch = async (_url, request) => {
         self.addCleanup(env.stop)
 
     def start(self):
-        return start_quiz_session(self.helper.conn, LEARNER, 'lesson_cell_membranes', tutor=self.helper.tutor)
+        return start_quiz_session(self.helper.conn, LEARNER, 'lesson_cell_membranes', tutor=self.helper.tutor, reviewer=passing_review)
 
     def calls(self):
         return [json.loads(line) for line in self.log.read_text().splitlines()] if self.log.exists() else []

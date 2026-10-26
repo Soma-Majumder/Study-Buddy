@@ -36,11 +36,12 @@ def usage_totals(generations):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--live', action='store_true', help='Authorize one paid generation plus at most one controller repair')
+    parser.add_argument('--live', action='store_true', help='Authorize paid model calls')
+    parser.add_argument('--quality-gate', action='store_true', help='Authorize the full gated flow, at most five Assessment/Reviewer calls')
     parser.add_argument('--capture-response-text', action='store_true', help='Save private model text in a local evaluation artifact')
     args = parser.parse_args()
-    if not args.live:
-        parser.error('--live is required; this evaluation can make two paid requests')
+    if not args.live or not args.quality_gate:
+        parser.error('--live --quality-gate are required; the full flow can make up to five paid requests')
     report = dict(date=datetime.now(timezone.utc).isoformat(),
                   scope='Live Assessment through real controller; Tutor is a hand-written fixture',
                   prompt_sha256=hashlib.sha256((ROOT / 'backend/prompts/assessment-quiz-system.md').read_bytes()).hexdigest(),
@@ -64,12 +65,12 @@ def main():
         report['handoff'] = handoff
         return dict(handoff=handoff, repairCount=0)
 
-    def assessment(handoff, *, repair_request=None):
+    def assessment(handoff, *, repair_request=None, **timeouts):
         row = dict(repair_requested=repair_request is not None)
         report['generations'].append(row)
         started = time.monotonic()
         try:
-            output = run_assessment(handoff, repair_request=repair_request)
+            output = run_assessment(handoff, repair_request=repair_request, **timeouts)
             row['output'] = output
             row['validation_errors'] = check(output, handoff)
             return output
@@ -101,6 +102,9 @@ def main():
         report['saved_counts'] = {table: conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
                                   for table in ('quizzes', 'questions', 'answer_keys', 'attempts', 'results')}
         report['session_state'] = conn.execute('SELECT status, learning_retry_count FROM study_sessions').fetchone()
+        report['quality_call_count'] = conn.execute('SELECT COUNT(*) FROM quiz_quality_calls').fetchone()[0]
+        report['quality_publication_count'] = conn.execute('SELECT COUNT(*) FROM quiz_quality_publications').fetchone()[0]
+        report['quality_operations'] = conn.execute('SELECT stage,candidate_version,revision_count,review_count,failure_code FROM quiz_quality_operations').fetchall()
         report['repair_count'] = conn.execute('SELECT repair_count FROM handoff_repairs').fetchone()[0]
         report['foreign_key_errors'] = conn.execute('PRAGMA foreign_key_check').fetchall()
         private = ('answer_key', 'correct_option', 'rationale')
@@ -110,11 +114,19 @@ def main():
             valid_quiz_saved=success and report['saved_counts'] == dict(quizzes=1, questions=10, answer_keys=10, attempts=0, results=0),
             learner_keys_private=not report['learner_key_leak'],
             bounded_generations=len(report['generations']) <= 2,
+            bounded_quality_calls=report['quality_call_count'] <= 5,
+            reviewed_publication=not success or report['quality_publication_count'] == 1,
             learning_retry_untouched=report['session_state'][1] == 0,
             foreign_keys_valid=not report['foreign_key_errors'],
         )
     conn.close()
-    report['token_usage_totals'] = usage_totals(report['generations'])
+    report['generation_token_usage_totals'] = usage_totals(report['generations'])
+    report['token_usage_totals'] = None
+    if args.capture_response_text:
+        records = [json.loads(line) for line in capture.read_text().splitlines()]
+        report['captured_response_count'] = len(records)
+        report['token_usage_totals'] = usage_totals([dict(token_usage=r.get('usage', {})) for r in records])
+        report['usage_scope'] = 'Captured successful HTTP responses across all phases; failed HTTP calls may have no usage metadata.'
     path = ROOT / 'backend/evals/results' / (report['date'].replace(':', '-').replace('.', '-') + '-assessment-controller.json')
     path.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(dict(report=str(path), status=result['status'], generations=len(report['generations']),

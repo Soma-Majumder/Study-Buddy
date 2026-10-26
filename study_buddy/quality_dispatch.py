@@ -29,14 +29,14 @@ def _fail_quality_call(conn, learner_id, operation_id, call_id, code):
         op = _operation(conn, learner_id, operation_id)
         call = conn.execute('SELECT status, kind FROM quiz_quality_calls WHERE call_id = ? AND operation_id = ?',
                             (call_id, operation_id)).fetchone()
-        if not call or call[1] not in ('review', 'review_revision', 'revision', 'technical_repair'):
+        if not call or call[1] not in ('review', 'review_revision', 'generation', 'revision', 'technical_repair'):
             raise QualityStateRejected('A reserved quality call is required.')
         if call[0] != 'reserved':
             raise QualityStateRejected('Completed quality calls cannot be overwritten.')
         now = time.time()
         if now >= op['deadline_at']:
             code = 'quality_deadline'
-        expected = ('reviewing', 'reviewing_revision') if call[1] in ('review', 'review_revision') else ('revising',)
+        expected = ('reviewing', 'reviewing_revision') if call[1] in ('review', 'review_revision') else ('generating', 'revising')
         if op['stage'] not in expected:
             raise QualityStateRejected('Quality operation no longer accepts this call.')
         fingerprint = hashlib.sha256(json.dumps(dict(outcome='error', candidate_hash=None), sort_keys=True).encode()).hexdigest()
