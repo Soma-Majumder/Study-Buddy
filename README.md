@@ -40,6 +40,34 @@ Tutor owns teaching/reteaching. Assessment owns quiz generation, content revisio
 
 Core rules: 10 questions per round; pass at **8/10**; one student learning retry; technical failures never count as wrong answers. The **60%** retry-improvement target in the PRD is a proposed pilot metric, not the pass threshold or an observed result.
 
+## Partner work division — proposed for Soma’s review
+
+Use this division to choose work without overlapping. Component ownership identifies who leads implementation; both partners review shared behavior. This proposal is awaiting Soma’s review in [PR #46](https://github.com/Soma-Majumder/Study-Buddy/pull/46).
+
+| Area | Ivaylo leads | Soma leads |
+| --- | --- | --- |
+| Tutor (Agent 1) | Explanation and targeted reteaching implementation | Teaching-quality review |
+| Assessment (Agent 2) | Controller integration of the agreed interface | Quiz generation, content revision and result-feedback behavior |
+| Reviewer | Dispatch, timeouts, saved reports and exact-candidate publication | Reviewer prompt, quality rubric and evaluation benchmarks |
+| Controller | Routing, deterministic grading, duplicate submissions, retry limits and summary recovery | Integration review and reporting behavior gaps |
+| Database and operations | Persistence, migrations, crash cleanup and maintenance worker | Communicate storage requirements before shared schema changes |
+| Tests | Controller, persistence, concurrency and recovery checks | Agent behavior and content-quality evaluations |
+| Documentation | Current implementation status, README maintenance and PRD exports | Product-behavior and Assessment-description review |
+
+### Shared changes: agree before editing
+
+Handoff schemas, database schema/migration contracts, shared Claude transport, approved lesson content, PRD requirements and public function signatures need coordination before either partner edits them. Agree on inputs, outputs and affected files first, and name one implementation owner for the shared change. A component owner may request an interface change; that does not transfer ownership of the partner’s agent behavior.
+
+### Working rules
+
+1. One issue, one implementation owner and one branch from current `dev`. List the expected files in the issue or PR before starting.
+2. Edit your component. Agree on cross-component interfaces before changing the other partner’s code; communicate when the file list or scope expands.
+3. Use fixtures while waiting for integration. Connecting Assessment is not a reason to rewrite its prompt, quiz quality policy or feedback behavior.
+4. Keep PRs focused and have the partner review before merging. Record integration needs and follow-ups rather than silently expanding scope.
+5. Assign new areas before starting them. Frontend ownership is currently unassigned; agree on an owner and interface before either partner begins.
+
+Current direction: Ivaylo continues controller recovery/integration; Soma reviews open PRs and leads Assessment/Reviewer content-quality work. Pause expansion of the local terminal demo until its purpose and owner are agreed. The assistant helping either partner should check this division before proposing implementation and flag shared-file changes before editing them.
+
 ## Run offline checks
 
 Use Python 3.12+ and Node.js 22+ with pnpm. From the repository root:
