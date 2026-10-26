@@ -187,3 +187,38 @@ def build_private_reviewer_context(conn, learner_id, call_id):
                     sources=[dict(lesson_id=op['lesson_id'], lesson_version=op['lesson_version'],
                                   url=source[0], license=source[1], attribution=source[2])],
                     candidate=candidate, candidate_canonical_json=_json(candidate))
+
+
+def build_private_revision_context(conn, learner_id, call_id):
+    """Bind one reserved revision/technical correction to the saved v0 report."""
+    with conn:
+        op, call = _call(conn, learner_id, call_id)
+        _, kind, status, version, _ = call
+        if kind not in ('revision', 'technical_repair') or status != 'reserved' or version != 1 or op['stage'] != 'revising':
+            raise QualityStateRejected('An active reserved content-revision call is required.')
+        _active(conn, op)
+        if time.time() >= op['deadline_at']:
+            raise QualityStateRejected('Quality operation deadline has expired.')
+        candidate, text, ids = _load_candidate(conn, op, 0)
+        saved = conn.execute('SELECT review_call_id FROM quiz_quality_reports WHERE operation_id=? AND candidate_version=0',
+                             (op['operation_id'],)).fetchone()
+        if not saved:
+            raise QualityStateRejected('A saved content-failure report is required.')
+        report = _load_report(conn, op, saved[0])
+        decision = validate_review(report, dict(operation_id=op['operation_id'], candidate_version=0,
+                                               handoff=_handoff(op, text, ids), candidate=candidate))
+        if decision['decision'] != 'needs_revision':
+            raise QualityStateRejected('Only validated content failures authorize revision.')
+        source = conn.execute('SELECT source_url, license, attribution FROM lessons WHERE lesson_id=? AND version=? AND approved=1',
+                              (op['lesson_id'], op['lesson_version'])).fetchone()
+        if not source:
+            raise QualityStateRejected('Approved lesson source is unavailable.')
+        header = {key: op[key] for key in ('operation_id', 'session_id', 'lesson_id', 'lesson_version',
+                  'handoff_id', 'explanation_id', 'round', 'hash_version', 'rubric_version')}
+        original = dict(controller_context=dict(schema_version='1.0', candidate_version=0,
+                                                candidate_hash=candidate_hash(candidate), **header),
+                        teaching=dict(explanation_text=text, concept_ids=ids, focus_concept_ids=ids if op['round']=='retry' else []),
+                        sources=[dict(lesson_id=op['lesson_id'], lesson_version=op['lesson_version'],
+                                      url=source[0], license=source[1], attribution=source[2])],
+                        candidate=candidate, candidate_canonical_json=_json(candidate))
+        return dict(original=original, review_report=report)

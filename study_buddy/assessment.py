@@ -1,5 +1,6 @@
 """Backend-only single-call Assessment bridge; controller owns validation/repair."""
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -26,11 +27,25 @@ def run_assessment(handoff, *, repair_request=None):
     Keys remain in the environment. No local retries or writes occur here.
     The caller must supply controller-verified context and reserve repairs.
     """
+    return _run_command(dict(handoff=handoff, repair_request=repair_request))
+
+
+def run_assessment_revision(context, *, technical_repair=False, provider_timeout_ms=60_000, process_timeout_seconds=70):
+    """One reserved content revision/correction; controller validates and stores."""
+    if (type(technical_repair) is not bool or type(provider_timeout_ms) is not int or not 0 < provider_timeout_ms <= 60_000 or
+            type(process_timeout_seconds) not in (int, float) or not math.isfinite(process_timeout_seconds) or
+            not provider_timeout_ms / 1000 < process_timeout_seconds <= 70):
+        raise AssessmentFailure('input preparation', 'invalid_input')
+    return _run_command(dict(revision_context=context, technical_repair=technical_repair, provider_timeout_ms=provider_timeout_ms),
+                        process_timeout_seconds)
+
+
+def _run_command(payload, process_timeout_seconds=70):
     try:
         process = subprocess.run(
             [os.environ.get('STUDY_BUDDY_NODE', 'node'), str(ROOT / 'backend/assessment-command.mjs')],
-            input=json.dumps(dict(handoff=handoff, repair_request=repair_request)),
-            text=True, capture_output=True, cwd=ROOT, timeout=70,
+            input=json.dumps(payload, allow_nan=False),
+            text=True, capture_output=True, cwd=ROOT, timeout=process_timeout_seconds,
         )
         body = json.loads(process.stdout)
         if not isinstance(body, dict) or process.returncode != 0 or body.get('ok') is not True:
