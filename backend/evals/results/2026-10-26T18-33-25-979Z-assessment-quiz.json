@@ -1,0 +1,278 @@
+{
+  "date": "2026-10-26T18:33:25.979Z",
+  "scope": "One first-round Assessment quiz from the hand-written Tutor fixture",
+  "prompt_sha256": "57de452db6259ef478182a4f605c3f3aa95c3b7e3739efa91893f31d18f4d5f2",
+  "input_sha256": "5021d26efbe2b3c327325dc9a85632eb593d4587efdb14e1714b051c6a2b2a7b",
+  "handoff": {
+    "schema_version": "1.0",
+    "handoff_id": "handoff_0001",
+    "direction": "tutor_to_assessment",
+    "task": "create_quiz",
+    "context": {
+      "learner_session_id": "session_0001",
+      "round": "first"
+    },
+    "sources": [
+      {
+        "lesson_id": "lesson_cell_membranes",
+        "lesson_version": 2,
+        "url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
+        "license": "CC BY-NC-SA 4.0",
+        "attribution": "Cell & Molecular Biology, Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University"
+      }
+    ],
+    "expected_output": "Exactly 10 multiple-choice questions, each with four options (a-d) and one concept_id from payload.concepts. Test only the explanation_text. Return a private answer key to the controller, never the learner or Tutor.",
+    "uncertainty": {
+      "level": "low",
+      "reasons": [
+        "This is a hand-written development fixture, not a live Tutor response.",
+        "The explanation intentionally omits membrane protein types, lipid rafts, detailed enzyme mechanisms, and numerical fluidity predictions. Do not quiz those details."
+      ]
+    },
+    "payload": {
+      "lesson_id": "lesson_cell_membranes",
+      "lesson_version": 2,
+      "explanation_id": "expl_0001",
+      "explanation_text": "A cell membrane is a flexible boundary. Phospholipids have water-loving heads and water-avoiding tails: this combination is called amphipathic. They form a bilayer with heads toward water on both sides and tails tucked inside. Saturated fatty acid tails pack closely. Double bonds kink unsaturated tails, making close packing harder and increasing fluidity. Fluidity describes how freely membrane components move. Tail saturation, chain length, temperature, and cholesterol affect it. Cholesterol buffers fluidity: it restrains movement when the membrane is very fluid and prevents excessive stiffening in the cold. The fluid mosaic model describes a mixture of lipids, cholesterol, and proteins whose components can move sideways. The two membrane layers, or leaflets, differ in composition. Lipids rarely switch leaflets without enzymes such as flippases, floppases, and scramblases. Sugars on the outer surface form the glycocalyx and help cells recognize one another, including distinguishing self from non-self.",
+      "concepts": [
+        {
+          "concept_id": "c_amphipathic_phospholipids",
+          "name": "Amphipathic phospholipids form the bilayer",
+          "taught_summary": "Amphipathic phospholipids form a bilayer: water-loving heads face water on both sides; water-avoiding tails face inward."
+        },
+        {
+          "concept_id": "c_fatty_acid_saturation",
+          "name": "Saturated vs. unsaturated fatty acids",
+          "taught_summary": "Saturated tails pack closely; double bonds kink unsaturated tails, hindering close packing and increasing fluidity."
+        },
+        {
+          "concept_id": "c_fluidity_factors",
+          "name": "What affects membrane fluidity",
+          "taught_summary": "Membrane fluidity is affected by tail saturation, chain length, temperature, and cholesterol."
+        },
+        {
+          "concept_id": "c_cholesterol_buffer",
+          "name": "Cholesterol as a fluidity buffer",
+          "taught_summary": "Cholesterol restrains movement in a very fluid membrane and prevents excessive stiffening in the cold."
+        },
+        {
+          "concept_id": "c_fluid_mosaic_model",
+          "name": "Fluid mosaic model",
+          "taught_summary": "The fluid mosaic model describes lipids, cholesterol, and proteins with components able to move sideways."
+        },
+        {
+          "concept_id": "c_membrane_asymmetry",
+          "name": "Membrane asymmetry and lipid flipping",
+          "taught_summary": "Leaflets differ in composition; switching leaflets is rare without flippases, floppases, or scramblases."
+        },
+        {
+          "concept_id": "c_glycocalyx_recognition",
+          "name": "Glycocalyx and cell recognition",
+          "taught_summary": "Outer-surface sugars form the glycocalyx and support cell recognition and self/non-self distinction."
+        }
+      ]
+    }
+  },
+  "human_review": "Reviewed by coding assistant; see ../review-assessment-2026-10-26.md. Overall failed schema; not learner-ready.",
+  "repairs": 0,
+  "output": {
+    "schema_version": "1.0",
+    "handoff_id": "handoff_0001",
+    "explanation_id": "expl_0001",
+    "round": "first",
+    "quiz": {
+      "questions": [
+        {
+          "position": 1,
+          "concept_id": "c_amphipathic_phospholipids",
+          "prompt": "In a membrane bilayer, which part of each phospholipid faces the water on both sides?",
+          "options": {
+            "a": "The water-loving heads",
+            "b": "The water-avoiding tails",
+            "c": "The cholesterol molecules",
+            "d": "The sugars on the outer surface"
+          }
+        },
+        {
+          "position": 2,
+          "concept_id": "c_amphipathic_phospholipids",
+          "prompt": "Why do phospholipids arrange themselves into a bilayer in water?",
+          "options": {
+            "a": "Their tails dissolve in water",
+            "b": "Their heads are attracted to the tails of other molecules",
+            "c": "Their water-loving heads face water while their water-avoiding tails tuck inside",
+            "d": "Enzymes hold the two layers together"
+          }
+        },
+        {
+          "position": 3,
+          "concept_id": "c_fatty_acid_saturation",
+          "prompt": "Which kind of fatty acid tail packs closely together?",
+          "options": {
+            "a": "Unsaturated tails with double bonds",
+            "b": "Saturated tails",
+            "c": "Tails that have been flipped to the other leaflet",
+            "d": "Tails attached to cholesterol"
+          }
+        },
+        {
+          "position": 4,
+          "concept_id": "c_fatty_acid_saturation",
+          "prompt": "What does a double bond do to a fatty acid tail?",
+          "options": {
+            "a": "It makes the tail pack more tightly",
+            "b": "It removes the water-avoiding property of the tail",
+            "c": "It prevents the tail from moving",
+            "d": "It kinks the tail, making close packing harder and increasing fluidity"
+          }
+        },
+        {
+          "position": 5,
+          "concept_id": "c_fluidity_factors",
+          "prompt": "Which of these is listed in the explanation as a factor that affects membrane fluidity?",
+          "options": {
+            "a": "The outer-surface sugars",
+            "b": "Chain length",
+            "c": "The number of leaflets",
+            "d": "Flippase enzymes"
+          }
+        },
+        {
+          "position": 6,
+          "concept_id": "c_cholesterol_buffer",
+          "prompt": "What does cholesterol do when a membrane is very fluid?",
+          "options": {
+            "a": "It makes the membrane fluid even faster",
+            "b": "It moves the lipids to the other leaflet",
+            "c": "It restrains movement",
+            "d": "It breaks the bilayer apart"
+          }
+        },
+        {
+          "position": 7,
+          "concept_id": "c_cholesterol_buffer",
+          "prompt": "What does cholesterol help prevent when the membrane is cold?",
+          "options": {
+            "a": "Excessive stiffening",
+            "b": "Excessive fluidity",
+            "c": "Formation of the glycocalyx",
+            "d": "Lipid movement between leaflets"
+          }
+        },
+        {
+          "position": 8,
+          "concept_id": "c_fluid_mosaic_model",
+          "prompt": "Which description best matches the fluid mosaic model?",
+          "options": {
+            "a": "A rigid wall made only of protein",
+            "b": "A single layer of sugars on the outer surface",
+            "c": "A bilayer where lipids never move",
+            "d": "A mixture of lipids, cholesterol, and proteins whose components can move sideways"
+          }
+        },
+        {
+          "position": 9,
+          "concept_id": "c_membrane_asymmetry",
+          "prompt": "Why do lipids rarely switch from one leaflet to the other?",
+          "options": {
+            "a": "Their tails are too short to cross",
+            "b": "Switching usually requires enzymes such as flippases, floppases, or scramblases",
+            "c": "Cholesterol locks them in place",
+            "d": "Water blocks movement between leaflets"
+          }
+        },
+        {
+          "position": 10,
+          "concept_id": "c_glycocalyx_recognition",
+          "prompt": "What is one role of the sugars on the outer cell surface?",
+          "options": {
+            "a": "They form the bilayer tails",
+            "b": "They make the membrane rigid",
+            "c": "They help cells recognize one another and distinguish self from non-self",
+            "d": "They pump lipids between leaflets"
+          }
+        }
+      ],
+      "answer_key_placeholder": null
+    },
+    "answer_key": [
+      {
+        "position": 1,
+        "correct_option": "a",
+        "rationale": "The explanation says phospholipids have water-loving heads and form a bilayer with heads toward water on both sides."
+      },
+      {
+        "position": 2,
+        "concept_id": "c_amphipathic_phospholipids",
+        "correct_option": "c",
+        "rationale": "The explanation says the bilayer has heads toward water on both sides and water-avoiding tails tucked inside, because the molecules are amphipathic."
+      },
+      {
+        "position": 3,
+        "correct_option": "b",
+        "rationale": "The explanation states that saturated fatty acid tails pack closely."
+      },
+      {
+        "position": 4,
+        "correct_option": "d",
+        "rationale": "The explanation says double bonds kink unsaturated tails, making close packing harder and increasing fluidity."
+      },
+      {
+        "position": 5,
+        "correct_option": "b",
+        "rationale": "The explanation lists tail saturation, chain length, temperature, and cholesterol as factors affecting fluidity."
+      },
+      {
+        "position": 6,
+        "correct_option": "c",
+        "rationale": "The explanation says cholesterol restrains movement when the membrane is very fluid."
+      },
+      {
+        "position": 7,
+        "correct_option": "a",
+        "rationale": "The explanation says cholesterol prevents excessive stiffening in the cold."
+      },
+      {
+        "position": 8,
+        "correct_option": "d",
+        "rationale": "The explanation describes the fluid mosaic model as a mixture of lipids, cholesterol, and proteins whose components can move sideways."
+      },
+      {
+        "position": 9,
+        "correct_option": "b",
+        "rationale": "The explanation says lipids rarely switch leaflets without enzymes such as flippases, floppases, and scramblases."
+      },
+      {
+        "position": 10,
+        "correct_option": "c",
+        "rationale": "The explanation says outer-surface sugars form the glycocalyx and help cells recognize one another, including distinguishing self from non-self."
+      }
+    ]
+  },
+  "model": "claude-haiku-5-5",
+  "usage": {
+    "input_tokens": 3461,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 3257,
+    "output_tokens_details": {
+      "thinking_tokens": 1371
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+  },
+  "calls": 1,
+  "latency_ms": 12946,
+  "automatic_validation": {
+    "passed": false,
+    "errors": [
+      "Additional properties are not allowed ('answer_key_placeholder' was unexpected)",
+      "Additional properties are not allowed ('concept_id' was unexpected)"
+    ]
+  }
+}

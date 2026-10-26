@@ -208,3 +208,223 @@ python -B -m unittest tests.test_summary -v
 ```
 
 They cover save-before-completion, repeated and simultaneous requests, failed writes and recovery, learner isolation, altered scores, the additive migration, and the full fixture-based controller path through a focused retry to completion. Live Assessment generation, a learner-facing API, authentication, and crash reconciliation remain separate work.
+
+
+## Assessment: quiz prompt (not wired yet)
+
+`backend/prompts/assessment-quiz-system.md` defines quiz-generation behavior against the existing `schemas/v1/quiz_output.schema.json` contract and Soma's `scripts/validate_quiz.py` validator. It limits questions to Tutor's explanation, copies controller IDs, creates ten four-option questions, and keeps keys in the private output section. Retry quizzes stay within the supplied focus concepts.
+
+This is only the instruction file. No Assessment input builder or provider adapter loads it yet, and no model calls or quality evaluations were run for this prompt. A future adapter must intercept the local failure object; the existing controller treats nonconforming output as invalid and owns the remaining repair budget. Next step: build the input harness with separate instructions and handoff data.
+
+
+## Assessment: input harness
+
+`buildAssessmentInput(handoff)` in `backend/assessment-input.mjs` returns separate `{system, user}` strings without calling a model. It checks the v1 handoff, fixed quiz policy, nonempty content, unique concepts, source/lesson consistency, and exact taught focus on retries. It packages IDs, explanation, sources, concepts, and the existing quiz-output schema as JSON data. Agent-authored uncertainty and output-instruction text are not forwarded as instructions.
+
+The caller must first validate ownership, controller IDs, approved sources, and retry eligibility against trusted controller records. This helper cannot authenticate a caller or prove the explanation is factually correct. Instruction separation does not guarantee model resistance to injection. The prompt is now loaded by this harness; provider dispatch remains the next step. Five offline tests cover first/retry input, malformed handoffs, scope/policy changes, injected fields, instruction separation, and mutation isolation.
+
+
+## Assessment: single-call provider adapter
+
+`runAssessmentQuiz(handoff, {repairRequest, claudeOptions})` in `backend/assessment.mjs` uses the input harness and shared Claude transport for exactly one generation. Keys stay in the environment; tests inject fake transport. It returns `{output, model, usage}` to backend code. Output is parsed but remains unvalidated and may contain private answer keys: never return it directly to a learner. Malformed JSON becomes `output: null`; local failure objects and other invalid objects go unchanged to controller validation. No output is saved here.
+
+A nonempty, trusted controller `repairRequest` selects a fixed correction instruction, preserving the original handoff and excluding raw invalid model text. It does not reserve a repair or authorize another call itself. Transport/input failure throws a safe `AssessmentRunError`; it makes no automatic retry. The controller must reserve its persisted budget before invoking a repair. The Python callback bridge is not wired yet; that bridge must unwrap `output` for the existing quiz validator and use the existing controller flow. Six offline adapter tests use fake responses; live generation, content quality, and resistance to prompt injection are not established by them.
+
+
+## Assessment: Python controller bridge
+
+`study_buddy.assessment.run_assessment(handoff, repair_request=None)` invokes `backend/assessment-command.mjs` with JSON on stdin and unwraps its private `output` for the existing Python quiz validator. The Node subprocess has a 70-second timeout around Assessment's 60-second provider timeout. Tutor retains its existing deadlines. Only safe error stages cross back to Python; credentials stay in the process environment. Node must be available through PATH or `STUDY_BUDDY_NODE`, with backend packages installed.
+
+`start_quiz_session` and `dispatch_retry_quiz` now default to this real provider bridge, while still accepting injected callbacks. Calling them without an Assessment callback can spend API credits when valid input and credentials are present. The controller alone validates output, reserves the remaining technical repair, and saves quizzes/private keys atomically. This supersedes earlier notes that quiz generation has no default adapter. Assessment result-explanation generation still requires an injected callback and is not implemented by this quiz adapter.
+
+Six bridge tests exercise real Python/Node input packaging, fake provider transport, safe quiz persistence, one reserved repair, explicit failure after exhausted repairs, provider errors, bad input, and broken/timeout process responses. Run `python -B -m unittest tests.test_assessment_bridge -v`. These tests inject a fake fetch through a temporary Node preload; production code has no fixture-response switch. They do not establish live quiz quality. Model/usage metadata is returned by JavaScript but not persisted by this Python bridge yet.
+
+
+## Safe Assessment failure diagnostics
+
+Claude transport errors now use `ClaudeCallError` with a fixed code. The Assessment adapter and stdin/stdout bridge preserve that code, an integer HTTP status where available, and an allowlisted stop reason. Python exposes `AssessmentFailure.code`, `.http_status`, and `.stop_reason`. The evaluation runners save these fields. Learner-facing controller messages remain generic; these diagnostics are not yet stored in session records. No provider error bodies, raw exception messages, credentials, headers, or private reasoning are added to diagnostics.
+
+| Code | Meaning |
+| --- | --- |
+| `missing_api_key` | No configured Claude key; no request made |
+| `authentication_failed` | HTTP 401 or 403 |
+| `rate_limited` | HTTP 429 |
+| `provider_unavailable` | Provider HTTP 5xx |
+| `api_rejected` | Other non-success HTTP response; status is preserved |
+| `output_truncated` | Provider stopped at `max_tokens` |
+| `incomplete_response` | Another non-end-turn stop; unknown reasons become `unknown` |
+| `request_timeout` | Shared Claude request timeout fired |
+| `transport_error` | Network/read failure; precise underlying cause is intentionally omitted |
+| `unexpected_response`, `empty_response` | Unusable provider content |
+| `process_timeout` | Python's Node subprocess deadline fired |
+| `process_unavailable`, `invalid_envelope` | Node launch failed or command output could not be read |
+
+Input/configuration errors use `invalid_input` or `invalid_timeout`; otherwise unexpected adapter failures use `adapter_error`. Codes do not grant retries or change budgets. The earlier live controller failure cannot be retrospectively classified; another explicitly authorized live run is needed to observe its current outcome.
+
+
+## Assessment output budget
+
+The shared Claude transport accepts `maxTokens` (positive integer, default 4096). Assessment passes a default of 8192; backend-only `claudeOptions.maxTokens` can override it. Tutor retains the transport default. Invalid values fail before network access with `invalid_output_budget`. This allowance is a cap, not a guarantee of complete or schema-valid output, and can increase per-call output usage. Request deadlines and controller repair limits are unchanged. The first live controller run at 8192 completed two responses that failed JSON parsing, then correctly stopped after one repair; see the evaluation notes.
+
+
+Assessment now uses a default `timeoutMs: 60000` with its 8192-token output allowance. Its Python bridge permits 70 seconds for process startup and the provider request. The shared transport default stays 30 seconds, so Tutor behavior is unchanged. Timeout errors still stop without automatic provider retries; the one-repair and learning-retry limits are unchanged. Offline tests verify the Assessment deadline, cancellation, and longer bridge deadline.
+
+
+## Assessment reasoning effort
+
+The shared transport accepts optional `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and sends it as `output_config.effort`; invalid values fail before network access with `invalid_effort`. Assessment defaults to `low`. The transport omits the field when unspecified, preserving Tutor behavior. No `thinking` field or legacy thinking budget is sent. Backend callers overriding the model must check that model's supported controls.
+
+Anthropic's [effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort) and [Haiku 5.5 migration guide](https://platform.claude.com/docs/en/models/haiku-5-5/migration-guide), checked October 26, 2026, describe effort and adaptive thinking. The first explicit-low evaluation passed controller validation without repair; semantic question quality still needs improvement. See the evaluation review for exact usage and limits.
+
+
+## Assessment: schema-constrained output
+
+Assessment now passes a trusted, repo-derived schema as `output_config.format: {type: "json_schema", schema: ...}` alongside low effort. `backend/assessment-schema.mjs` projects the existing quiz schema into Claude's supported subset and forbids extra fields in every object. The provider response is `{result: <quiz-or-local-error>}`; the adapter unwraps result before returning the original quiz contract to Python. Callers cannot override Assessment's format schema through claudeOptions. Tutor omits outputSchema and remains unchanged.
+
+The local insufficient-content object remains an allowed response branch and still fails quiz validation, following the existing controller repair/failure policy. A top-level anyOf was rejected by the API; nesting the quiz/error choice under required result resolved that compatibility issue. No invalid response is sanitized or silently accepted.
+
+Unsupported provider-side numeric, string-length, and exact-array-size bounds are omitted from the derived grammar only. The canonical schema and Python validator retain exactly ten questions/keys, valid positions, IDs, taught/focused concept checks, and distinct options. Grammar success does not prove factual correctness or useful questions. Refusals, truncation, and provider failures still stop under the current policy.
+
+Source checked October 26, 2026: [Anthropic structured-output documentation](https://platform.claude.com/docs/en/build-with-claude/structured-outputs). Offline tests reproduce the forbidden concept_id and placeholder-field defects, preserve the failure branch, check request schema/effort merging, and demonstrate that full local size validation remains necessary. The successful live format test saved ten questions/private keys on its first call with no repair; semantic quality remains separate.
+
+
+## Assessment quality reference from the manual revision
+
+`buildAssessmentInput` appends the harness-owned `backend/prompts/assessment-quality-reference.md` to the system instructions for both rounds. The guide distills methods from `backend/evals/revisions/2026-10-26-manual-quiz-revision.md`; it does not read or send that quiz's wording, keys, IDs, or scientific examples at runtime. The current handoff remains the factual source, with unchanged retry focus.
+
+The reference covers applying definitions, comparing relationships/conditions, correcting overgeneralizations, preserving qualifiers, evidence boundaries, parallel distractors, distinct targets, and concise rationales. Its internal self-check makes no additional model calls and grants no repair budget. Schema-constrained output and full controller validation remain unchanged. It is guidance, not a semantic quality gate or a guarantee of good questions.
+
+The controller evaluation now records a separate quality-reference SHA-256 alongside the base prompt hash. A regression test checks first/retry requests for accidental manual-question/ID inclusion and unchanged handoff scope. This revision has only offline verification so far; no paid call was made.
+
+
+## Reviewer contract and offline fixtures
+
+`schemas/v1/quiz_quality_review.schema.json` defines the proposed backend-only Reviewer report. It binds session/lesson/handoff/explanation/round, quality operation, candidate version/hash, and rubric/hash versions. Ten question reports contain five quality judgments, demand type, quoted support, defensible option letters, issues, and uncertainty. Quiz-level coverage/diversity findings are separate. There is no model-supplied overall approval field.
+
+`study_buddy.quality_review.validate_review(report, context)` is a pure helper that validates structure and trusted-snapshot references, position/concept/key agreement, and literal quote provenance. It returns pass, needs_revision, or blocked. Invalid/stale/inconsistent reports raise ReviewRejected. A pass does not authorize database publication; no controller call path invokes this helper yet. Literal quotes and model demand labels do not independently prove semantic correctness.
+
+Candidate hashes use SHA-256 over the UTF-8 bytes of `study-buddy-private-quiz/v1` plus a newline and JSON with sorted object keys, compact separators, unescaped Unicode, and no NaN/Infinity. All private candidate fields, including keys and rationales, participate. The caller must load authenticated backend context; the helper does not authenticate users.
+
+The default understanding target of six belongs to the proposed quality policy, not the existing finalized PRD or deployed runtime. Recall/evidence-boundary items do not count. Any uncertainty blocks; fail judgments or issues require revision; each single-answer pass must match the saved key. The schema does not itself enforce dynamic hashes, literal quote matching, or unique positions; the helper does.
+
+Run `python -B -m unittest tests.test_quality_review -v`. The five cases in `tests/fixtures/quiz_quality` exercise pass, ambiguity, inaccurate rationale, uncertainty, and stale approval. They are synthetic reviewer judgments for contract tests, not gold labels or evidence that a live Reviewer works. No model adapter, migration, extra call budget, or publication gate is installed by this step.
+
+
+## Durable quality state and call reservations
+
+`study_buddy.quality_state` now provides offline-ready controller primitives: `start_quality_operation`, `reserve_quality_call`, and `complete_quality_call`. New databases include `quiz_quality_operations` and `quiz_quality_calls`; existing databases apply additive migration `005_quiz_quality_operations.sql` once after migrations 001–004. No migration runner is provided.
+
+An operation is unique per session/round and records learner, lesson/version, handoff/explanation, rubric/hash versions, stage, candidate hash/version, review/revision counts, a fixed 180-second deadline, and safe failure code. Each of five allowed call kinds is unique within the operation: generation, technical_repair, review, revision, review_revision. SQLite write claims and transactions serialize reservations. Only a return with `reserved: true` authorizes a provider dispatch; duplicate requests return the existing call ID with false and must not call a model. No automatic restart occurs for an already reserved call.
+
+Technical correction reserves the EXISTING handoff_repairs count in the same transaction as its call row. Tutor-spent repairs cannot be refreshed. Content revision is at most one; review is at most two; terminal failure/approval cannot start a new kind of call. Total reserved calls are therefore at most five. Deadline expiry blocks reservation or late completion. Returned provider/process timeout values fit inside the remaining operation deadline. A failed write rolls back call/counter/state changes together.
+
+These trusted backend helpers make no model calls, publish no quizzes, and do not change session statuses, grades, or learning retries. The caller must validate a Reviewer report with validate_review before recording its derived outcome; complete_quality_call is not a public/model verdict endpoint. Candidate completion rechecks quiz shape/scope against saved explanation concepts and computes its private hash. Review completion must match the reserved/current candidate hash and version. Successful state approval is not permission to publish by itself.
+
+Only state, hashes, and call-result fingerprints are persisted here. Candidate question/private-key staging and raw validated Reviewer report storage remain separate work; a hash cannot reconstruct a lost candidate. A crashed reserved call stays reserved until explicit reconciliation, without refreshing budgets. A DB exception propagates without claiming a saved result. This module is not yet connected to start_quiz_session or focused retry dispatch, so existing application paths do not gain a quality gate automatically.
+
+Run `python -B -m unittest tests.test_quality_state -v`. Twenty-two offline tests cover first/retry rounds, simultaneous callers, process restart, shared repair limits, one revision, bounded reviews, stale hashes, immutable outcomes, deadlines, migration, transaction rollback, and no publication/learning-retry mutation.
+
+
+## Private quality candidate and report staging
+
+`study_buddy.quality_storage` adds `store_candidate`, `load_private_candidate`, `store_review_report`, and `load_private_review_report`. These are backend-only, owner-scoped helpers; their learner ID must come from trusted authentication context. Private reads INCLUDE answer keys or answer-revealing judgments and must never be returned directly to learners or Tutor. This is separation/access checking within backend code, not encryption or a replacement for authentication.
+
+Migration 006 adds quiz_quality_candidates (question metadata and immutable teaching/concept snapshot), quiz_quality_candidate_keys (separate correct options/rationales, preserving original key order), and quiz_quality_reports (validated report, fingerprint, derived decision). Fresh databases include them; existing databases apply `006_quiz_quality_storage.sql` once after 001–005. No existing database is migrated automatically.
+
+Payload insertion and reserved-call completion share one transaction. State can advance only if the staged payload commits too. Review storage reconstructs the private candidate, checks its hash and saved teaching scope, runs validate_review, derives the outcome, and atomically stores the report with its stage transition. Candidates/reports cannot be overwritten; identical replay returns the existing result. Initial and revised versions remain separately auditable. Changed/missing keys, altered teaching, stale report hashes, malformed reports, and changed report fingerprints are rejected. A late result cannot create staging data or approval after the deadline.
+
+Reports indicating needs_revision or blocked are saved for audit; schema-invalid/stale reports are rejected before storage and do not create approval. The future dispatcher must record their terminal call failure; a rejected store does not grant a new call or reset its reservation. DB exceptions roll back the stage and payload together and leave the reserved call for reconciliation. Earlier hash-only completions without payload are not silently backfilled.
+
+The low-level complete_quality_call now has internal manage_transaction=False composition support; normal callers retain its existing transaction behavior. New application orchestration should prefer these storage helpers instead of recording unchecked review decisions. No publication, learner score, session status update, automatic crash recovery, or model dispatch is added here. Staged data remains separate from quizzes/questions/answer_keys, so the current learner quiz read cannot expose it.
+
+Run `python -B -m unittest tests.test_quality_storage -v`. Twenty-three offline tests cover separate key storage, exact hash round trips, private ownership, immutable replay, report-derived decisions, deadlines, rollback at each save boundary, duplicate concurrent writes, retained revision history, migration, and focused-retry isolation. Synthetic reports test mechanics, not semantic judgment quality.
+
+### Reviewer input harness (offline)
+
+`study_buddy.quality_storage.build_private_reviewer_context(conn, learner_id, call_id)` loads a saved private candidate for an active, owner-scoped, unexpired reserved Reviewer call. It verifies call kind/stage/version/hash, the current session, teaching snapshot, and approved lesson source. It does not reserve or dispatch a call, spend a budget, store a report, or publish a quiz. Re-reading a reserved call is not another dispatch grant: the future dispatcher must retain the original `reserved=True` authorization and enforce the remaining deadline immediately before sending.
+
+`backend/reviewer-input.mjs` exports `buildReviewerInput(context)`, which returns separate system instructions and serialized JSON data. The request includes controller bindings, saved explanation/concept scope, source attribution, the full private quiz including keys, and the canonical report schema. This is backend-only input, never a learner/Tutor response. The original Python canonical JSON is checked against the candidate and its SHA-256 fingerprint, then omitted from the model payload. Caller-supplied previous reports, generator history, and unrelated fields are not forwarded. Embedded instructions remain untrusted data; these boundaries do not prove semantic injection resistance.
+
+`backend/prompts/reviewer-system.md` asks for all ten item judgments, literal evidence quotes, defensible options, and honest uncertainty. It checks the key rather than trusting it and treats the six-understanding-question target as proposed policy. The controller still derives the verdict through the existing report validator.
+
+Offline tests cover private loading, owner/stage/deadline/hash failures, revised candidates, retry focus, canonical cross-language transfer, and request isolation. No Claude request occurs. The Reviewer provider adapter, dispatch loop, and publication gate are still future steps; the existing quiz routes do not yet invoke this harness.
+
+### Reviewer Claude adapter (offline-tested)
+
+`backend/reviewer.mjs` exports `runReviewer(context, {claudeOptions})`. It uses the private input harness and shared Claude transport for at most one request. Defaults are 4096 output tokens, a 60-second request timeout, and low effort. Trusted dispatcher options can shorten the timeout to the operation's remaining allowance. The adapter does not load credentials into payloads, reserve calls, retry, repair, store results, or publish quizzes.
+
+The adapter forces a provider grammar projected from the canonical Reviewer report schema; a caller cannot replace it through `claudeOptions.outputSchema`. Assessment and Reviewer share the existing projection logic in `backend/provider-schema.mjs`. Provider grammar omits some numeric/length/array bounds, so the response is parsed and checked against the full canonical schema locally. All copied controller bindings and ten unique question positions/concept IDs must match the serialized request snapshot, even if a caller mutates its original object during the request.
+
+Success returns `{output, model, usage}` privately. It is a structurally checked report, not an approval: Python `validate_review`/`store_review_report` must still verify quotes, saved answers, uncertainty and policy before deriving/storing a decision. Failed or uncertain judgments are returned unchanged for that decision. Malformed JSON, invalid report shape, and mismatched bindings raise fixed `ReviewerRunError` diagnostics (`invalid_json`, `invalid_report`, `mismatched_report`). Transport errors preserve safe codes/status/stop reason without raw provider text or credentials.
+
+Tests use simulated responses only, covering one-call behavior, fixed grammar, valid failure/uncertainty reports, stale IDs/hashes/versions, duplicate positions, changed concepts, truncation, rate limits, transport failure, timeout cancellation and mutation isolation. Live provider compatibility and semantic review quality remain unverified. The Python subprocess bridge and durable controller dispatch are the next integration steps; existing learner routes still bypass the new quality gate.
+
+### Python-to-Reviewer bridge
+
+`study_buddy.reviewer.run_reviewer(context, provider_timeout_ms=60000, process_timeout_seconds=70)` connects trusted Python controller code to `backend/reviewer-command.mjs` over private JSON stdin/stdout. The command invokes the single-call Reviewer adapter. Credentials stay in the child environment, never in stdin. The bridge returns only the report object, which must still go through `store_review_report` for saved-state evidence checks and an atomic derived decision.
+
+The request allowance must be a positive integer of at most 60000 ms; the process allowance must be finite, at most 70 seconds, and longer than the request allowance. The future dispatcher must recompute these allowances from the remaining operation deadline immediately before calling. A subprocess timeout terminates the child through `subprocess.run`. There is no local retry, new reservation, publication, or failure-state write. `ReviewerFailure` exposes only allowlisted stage/code/HTTP status/stop reason, including malformed-envelope and process-unavailable errors; stdout/stderr/provider bodies are not surfaced.
+
+Offline integration tests use an actual Node subprocess with a fake fetch implementation, and walk saved context → JS harness/adapter → Python → saved-state report validation/storage. They verify a passing report can be stored, uncertainty blocks, and invented literal evidence is rejected despite valid shape. Other cases cover malformed/stale reports, HTTP/transport/truncation errors, shortened deadlines, missing process, malformed envelopes, safe diagnostics and credential separation.
+
+This completes the callable Python connection for issue #30. Automatic durable dispatch, terminal-failure recording, content revision, and approved-candidate publication remain separate steps. Existing learner routes still do not invoke this gate. No live Reviewer API call has been made.
+
+### Controller Reviewer dispatch and failure recording (issue #30)
+
+`study_buddy.controller.dispatch_quality_review(conn, learner_id, operation_id, reviewer=run_reviewer)` now performs the staged-candidate review step automatically: reserve the appropriate first/revision review call, load the private saved context, recompute remaining timeout allowances, call the Reviewer once, and validate/store its report. Database transactions finish before the external call. The returned metadata contains no report, quiz keys or teaching text; next steps are `revise_quiz` or `publish_reviewed_quiz`, not automatic revision/publication yet.
+
+Repeated or concurrent entry cannot resend a reserved/completed call. A reservation left by a crashed process remains pending for explicit reconciliation; this function does not restart it or grant another review. Terminal operations return their saved status. The same entry point handles first and focused retry rounds without changing learning-retry or technical-repair counts.
+
+Provider/adapter errors, invalid reports, unavailable or altered context, elapsed deadlines and report-save failures fail closed. Fixed codes such as `review_rate_limited`, `review_invalid_report`, `review_context_invalid` and `review_save_failed` are saved instead of provider text. The reserved call and quality operation are marked failed atomically; an eligible session still preparing that round is also failed. A stale session in another state is not overwritten. If the failure-recording transaction itself fails, the database error propagates and the call remains reserved, preventing silent redispatch. A validated uncertain report (or exhausted second review) remains privately saved with its derived failure; session status is synchronized afterward and on terminal replay if interrupted.
+
+Offline tests include actual Python/Node/fake-provider dispatch, duplicate/concurrent callers, late responses, invalid evidence, shortened allowances, report-save rollback, failure-recording rollback, stale-session protection, and retry-count preservation. No live provider calls were made. This entry point does not yet replace the legacy immediate-publication flow in `start_quiz_session`/`dispatch_retry_quiz`; bounded content revision and approved-candidate publication must be wired before those routes can switch to the gate.
+
+### Single content revision and full second review (issue #30)
+
+`study_buddy.controller.dispatch_quality_revision(conn, learner_id, operation_id, assessment=..., reviewer=...)` consumes the one persisted content-revision grant after a validated first review returns `needs_revision`. `build_private_revision_context` reloads candidate v0, its teaching/source snapshot, and its validated content-failure report. A pass, uncertainty, tampered report, expired operation, or unauthorized reservation cannot authorize revision.
+
+`backend/assessment-revision.mjs` requests a full replacement quiz from Assessment, including private keys, using only the saved teaching and scope. It sends original questions/keys and the validated review report as untrusted data. The ordinary quiz-generation and quality-reference instructions are mapped to the revision request fields. The existing structured-output grammar and single-call Claude transport are reused. `run_assessment_revision` connects the Python dispatcher over the existing private Assessment command protocol with deadline-bounded request/process allowances; the legacy generation API remains unchanged.
+
+The controller validates the replacement against the original handoff IDs, explanation, round, and taught/focus concepts, then atomically stages it as immutable candidate v1. Invalid structure can consume only the outgoing handoff's remaining shared technical repair, never another content revision. Correction receives the original saved context and fixed correction instructions, not the malformed response. Provider failures stop without technical correction. With generation, one optional technical correction, two reviews and one revision, the maximum remains five calls per round.
+
+A valid replacement automatically enters the existing once-only second-review dispatcher. All ten items, including unchanged items, are reviewed against candidate v1's hash; no prior verdict is reused. A second content failure or uncertainty ends the operation. Concurrent/duplicate revision entries do not resend an existing reservation. After a saved replacement, replay may resume the second review, which has its own unique reservation. Deadlines never reset, and learning-retry counters never change. Failed saves roll back staging before terminal failure recording; errors saving the failure itself propagate.
+
+Tests cover one revision/full review, optional shared correction and exhausted correction, two invalid replacements, second content failure, provider failure, tampered evidence, wrong ownership, candidate-save rollback, deadline expiry, duplicate/crashed reservations, resuming a saved replacement, concurrent callers, and the real Python/Node adapters with simulated responses. No live calls were made. Approved-candidate publication and switching existing learner-facing routes to this gate remain future steps.
+
+### Exact approved-candidate publication (issue #30)
+
+`study_buddy.controller.publish_reviewed_quiz(conn, learner_id, operation_id)` accepts an operation ID only, never caller-provided quiz content. Under a database write lock, it reloads the privately staged candidate and teaching snapshot, verifies the current approval hash/version, revalidates the saved passing report, checks its completed matching review call and the generator's completion fingerprint, and confirms the lesson source is still approved. Low-level `approved` state without a saved valid report cannot publish. New publication also requires an active preparing session and an unexpired operation deadline.
+
+Migration `007_quiz_quality_publications.sql` (also in the fresh schema) records the exact operation, candidate version/hash, passing review call and public quiz ID. Apply it once to existing databases after migrations 005/006. Quiz/questions/private keys, this publication binding, and the `awaiting_answers` status are saved in one transaction. The inserted rows are compared field-for-field with the approved candidate before commit. A revised pass publishes v1, never its failed v0 predecessor. The learner response comes only from `get_client_quiz`, without answer keys, rationales or review reports.
+
+Publication is idempotent and serialized: concurrent callers create one quiz and reuse the same IDs. Replay rechecks the candidate, review and published question/key rows. It does not reset a session already grading/completed or return an old first-round quiz as the active retry. An already committed publication may be reread after the operation deadline; no new publication is then created.
+
+A save failure rolls back all publication rows and the ready status. The preparing status remains accurate and `quality_publish_save_failed` is recorded as the session failure reason. The approved candidate can retry the save within its original deadline without another model call or budget reset. If even the diagnostic save fails, the database error propagates instead of claiming success. Focused retry publication preserves the one consumed learning retry.
+
+Offline tests cover original/revised/retry candidates, source/approval/evidence/key tampering, wrong ownership, deadlines, concurrent/repeated calls, grading replay, schema migration, atomic binding/status rollback and diagnostic-save failure. This completes the publication primitive. Existing `start_quiz_session` and `dispatch_retry_quiz` still need to be switched from their legacy path to generation → review/revision → approved publication. No live model calls occurred.
+
+### Learner routes now require the full quality gate
+
+`start_quiz_session` and `dispatch_retry_quiz` now route through durable generation → review → optional single content revision/full second review → exact approved-candidate publication. There is no format-only save path in either route. Failures and uncertainty return no quiz. A successful learner response is constructed only after the approved candidate, private keys, publication binding and ready status commit together. Retry readiness is committed in that same transaction.
+
+`study_buddy/quiz_pipeline.py` coordinates the bounded steps, using the existing persisted call reservations, repair/revision/review limits and original deadline. Generation, Reviewer and revision callbacks accept controller timeout allowances. The real adapters use those allowances. Technical repair credit remains shared with Tutor; learning retry remains at most one. Pure Python routing tests explicitly inject `tests.quality_fixtures.passing_review`; those synthetic mechanics judgments are not educational-quality evidence.
+
+Migration 008 (`quiz_quality_inputs`) persists the validated original Tutor handoff so continuation does not recreate or broaden teaching. Apply migrations 005–008 once, in order, to an existing database; a new database can use the updated `db/schema.sql`. `continue_quality_quiz(conn, learner_id, operation_id, ...)` resumes a first-round pending operation by its owner-scoped server ID. Use continuation rather than calling `start_quiz_session` again, which starts a new study session. An already reserved in-flight/crashed provider call is never resent automatically; explicit reconciliation is still required. Focused retry requests reuse their saved quality operation. A legacy retry quiz without a quality operation is not returned by the route and reports `quality_review_required`.
+
+If publication saving fails, the response has `quiz=None`, the actual preparing status, `operation_status='pending_save'`, and a fixed error. First-round continuation or the same retry route can retry the save against the existing approval before its deadline, without fresh generation/review. Grading/completed replay does not reactivate an old quiz. A crash between claiming a retry route and creating its quality operation remains pending for reconciliation rather than granting another call.
+
+The validator's existing six-understanding-item target is now exercised by the connected experimental gate. It remains proposed product policy awaiting Soma's review, and no live Reviewer quality claim is made. The additional review calls can also cause the unchanged 180-second overall operation deadline to expire; tests verify stopping, not a live latency guarantee.
+
+The live controller evaluator now requires both `--live --quality-gate`, explicitly authorizing up to five Assessment/Reviewer calls. Historical two-call instructions above do not describe the new route. Reports record total quality-call/publication counts and operation outcomes; response capture covers all phases. No live evaluation was run while wiring the routes.
+
+### Crash-expiry reconciliation (Soma's PR #31 review)
+
+`study_buddy.quality_expiry.sweep_expired_quality_operations(conn, limit=100)` is a trusted, bounded maintenance sweep across learners. It selects expired, unpublished operations under a write lock and atomically records `quality_deadline` on the operation, fails every still-reserved call with outcome `deadline` and a finish time, fails the matching session if it is still preparing that lesson/round, and marks an associated running retry-quiz operation failed. It covers generation, technical correction, review, content revision, second review, and approved-but-unpublished save-pending work. Completed calls, staged candidates/reports, repair/review/revision budgets, the original deadline and learning-retry count are preserved. Published quizzes and sessions that have moved to another state are not overwritten. Older partial deadline failures are reconciled as well.
+
+Owner-scoped `expire_quality_operation` runs when continuation, review dispatch or revision dispatch is entered, including duplicate/crash-left reservations. Low-level reservation checks expiry before returning a previous grant, and late result expiry uses the same atomic terminal save. A late response after a sweep cannot overwrite the terminal failure or publish. Sweeping never creates a fresh call grant or resends work. A database error rolls back the whole batch and propagates.
+
+For operations nobody revisits, execute `python -B scripts/expire_quality_operations.py /absolute/path/to/study-buddy.db --limit 100` from a backend maintenance job. It opens an existing database in read/write mode (never creates a new empty one), runs a single bounded batch and prints counts only. Repeat batches for backlogs and run the job periodically (for example, every 30 seconds); statuses are reconciled at the first sweep after the deadline, not by a timer in a dead process. This repository currently has no deployed scheduler, and this change does not install an OS cron job or keep a process running. The maintenance callable/command is ready for deployment scheduling; request-time checks work immediately.
+
+Expiry is at `now >= deadline_at`. The original 180-second deadline bounds the complete quality operation; each request is capped at 60 seconds and shortened to leave a one-second process allowance. Those are existing conservative development budgets, not a measured latency SLA. This change does not increase them or alter the separate learning-retry policy. Existing one-second pre-dispatch exhaustion records the same terminal failure when no useful call allowance remains.
+
+Tests cover all crash-left call phases, first/retry status consistency, no dispatch on expired re-entry, exact boundary/idempotency, published/other-terminal preservation, completed evidence, stale sessions, late reports, atomic rollback, concurrent sweepers and the maintenance command without any learner request. No paid calls or new schema migrations are needed (the existing migrations 005–008 remain prerequisites).

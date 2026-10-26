@@ -1,4 +1,5 @@
 """Offline retry routing with stored Tutor/quiz/feedback fixtures and real grading."""
+from tests.quality_fixtures import passing_review
 import copy
 import json
 from pathlib import Path
@@ -30,18 +31,18 @@ class RoutingTests(unittest.TestCase):
             h['context']['learner_session_id'] = context['sessionId']
             h['payload']['explanation_id'] = context['explanationId']
             return dict(handoff=h, repairCount=0)
-        def assessment(h, *, repair_request=None):
+        def assessment(h, *, repair_request=None, **timeouts):
             q = json.loads((ROOT / 'schemas/v1/examples/quiz_output.example.json').read_text())
             q.update(handoff_id=h['handoff_id'], explanation_id=h['payload']['explanation_id'])
             return q
-        started = start_quiz_session(self.conn, LEARNER, 'lesson_cell_membranes', tutor=tutor, assessment=assessment)
+        started = start_quiz_session(self.conn, LEARNER, 'lesson_cell_membranes', tutor=tutor, assessment=assessment, reviewer=passing_review)
         qid = started['quiz']['quiz_id']
         keys = get_answer_key(self.conn, qid)
         answers = {k['question_id']: ('b' if k['correct_option'] == 'a' else 'a') if i in missed else k['correct_option']
                    for i, k in enumerate(keys, 1)}
         result = submit_answers(self.conn, LEARNER, qid, answers)
         if feedback:
-            def explain(c, *, repair_request=None):
+            def explain(c, *, repair_request=None, **timeouts):
                 return dict(schema_version='1.0', quiz_id=c['quiz_id'], attempt_id=c['attempt_id'],
                             feedback=[dict(position=i['position'], explanation=i['rationale']) for i in c['graded']['items']],
                             weak_concepts=copy.deepcopy(c['graded']['weak_concepts']), summary='Review your results.')
