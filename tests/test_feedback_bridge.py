@@ -40,7 +40,8 @@ globalThis.fetch = async (_url, request) => {
 };
 ''')
         env = patch.dict(os.environ, {'NODE_OPTIONS': f'--import={loader}', 'ANTHROPIC_API_KEY': 'fake-bridge-key',
-                                      'BRIDGE_TEST_LOG': str(self.log), 'BRIDGE_TEST_MODE': 'valid'})
+                                      'BRIDGE_TEST_LOG': str(self.log), 'BRIDGE_TEST_MODE': 'valid',
+                                      'STUDY_BUDDY_ALLOW_PAID_CLAUDE': 'true'})
         env.start()
         self.addCleanup(env.stop)
 

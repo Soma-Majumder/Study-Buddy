@@ -19,7 +19,7 @@ const output = () => ({schema_version: '1.0', quiz_id: 'quiz_aaaaaaaaaaaa', atte
   weak_concepts: [{concept_id: 'c_one', missed_count: 1}], summary: 'Nice work.'});
 const response = (text, extra = {}) => ({ok: true, json: async () => ({stop_reason: 'end_turn',
   content: [{type: 'text', text}], model: 'test-feedback', usage: {input_tokens: 10, output_tokens: 20}, ...extra})});
-const options = fetchImpl => ({apiKey: 'fake-key', model: 'test-feedback', fetchImpl});
+const options = fetchImpl => ({apiKey: 'fake-key', model: 'test-feedback', fetchImpl, allowPaidCalls: true});
 
 test('sends one isolated request with the fixed schema and no learner score field in the output grammar', async () => {
   let calls = 0;

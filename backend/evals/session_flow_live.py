@@ -39,6 +39,8 @@ def main():
         parser.error('Refusing to make paid calls without --live.')
     if not os.environ.get('ANTHROPIC_API_KEY', '').strip():
         parser.error('ANTHROPIC_API_KEY must be set in the environment.')
+    # Explicit --live authorization also grants the transport's paid-call opt-in for this process only.
+    os.environ['STUDY_BUDDY_ALLOW_PAID_CLAUDE'] = 'true'
     out = Path(args.output)
     if not out.is_absolute():
         parser.error('--output must be an absolute path.')
