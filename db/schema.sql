@@ -134,3 +134,40 @@ CREATE TABLE weak_concepts (
   recorded_at       TEXT NOT NULL,
   PRIMARY KEY (learner_id, concept_id, source_attempt_id)
 );
+
+-- One Assessment feedback operation per already graded attempt.
+-- A running operation is not automatically restarted after a crash: recovery
+-- must reconcile it before any further model calls or routing.
+CREATE TABLE feedback_operations (
+  attempt_id TEXT PRIMARY KEY REFERENCES attempts (attempt_id),
+  handoff_id TEXT NOT NULL UNIQUE REFERENCES handoff_repairs (handoff_id),
+  status TEXT NOT NULL CHECK (status IN ('running', 'ready', 'failed'))
+);
+
+-- Persist the controller's decision for an already graded/feedback-ready attempt.
+CREATE TABLE session_routes (
+  attempt_id TEXT PRIMARY KEY REFERENCES attempts (attempt_id),
+  session_id TEXT NOT NULL REFERENCES study_sessions (session_id),
+  route TEXT NOT NULL CHECK (route IN ('reteach', 'summary')),
+  context TEXT NOT NULL, -- JSON; controller-built context, never private answer keys
+  status TEXT NOT NULL CHECK (status IN ('reserved', 'summary_pending', 'dispatched', 'failed'))
+);
+CREATE UNIQUE INDEX one_learning_retry_route ON session_routes (session_id) WHERE route = 'reteach';
+
+-- At most one focused retry-quiz generation operation per session/source attempt.
+CREATE TABLE retry_quiz_operations (
+  source_attempt_id TEXT PRIMARY KEY REFERENCES attempts (attempt_id),
+  session_id TEXT NOT NULL UNIQUE REFERENCES study_sessions (session_id),
+  handoff_id TEXT NOT NULL UNIQUE REFERENCES handoff_repairs (handoff_id),
+  quiz_id TEXT UNIQUE REFERENCES quizzes (quiz_id),
+  status TEXT NOT NULL CHECK (status IN ('running', 'ready', 'failed')),
+  error TEXT
+);
+
+-- Final learner-scoped summary, saved before the session becomes completed.
+CREATE TABLE session_summaries (
+  session_id TEXT PRIMARY KEY REFERENCES study_sessions (session_id),
+  final_attempt_id TEXT NOT NULL UNIQUE REFERENCES attempts (attempt_id),
+  summary TEXT NOT NULL, -- JSON built from saved controller-verified evidence
+  saved_at TEXT NOT NULL
+);

@@ -77,3 +77,25 @@ test('retry output must teach exactly the focus concepts, with a new supplied ex
     assert.throws(() => validateTutorOutput(JSON.stringify(invalid), input), /concept/);
   }
 });
+
+test('accepts a matching trusted controller reservation after the count is consumed', async () => {
+  const c = structuredClone(base);
+  c.learningRetryCount = 1;
+  c.retryReservation = {status: 'dispatched', sessionId: c.sessionId,
+    sourceAttemptId: c.currentAttempt.attemptId, handoffId: c.handoffId, explanationId: c.explanationId};
+  const input = JSON.parse((await buildTutorInput(c)).user);
+  assert.deepEqual(input.focus_concept_ids, ['c_fatty_acid_saturation', 'c_cholesterol_buffer']);
+  assert.equal(input.retryReservation, undefined);
+  for (const change of [
+    x => {x.retryReservation.status = 'reserved';},
+    x => {x.retryReservation.sessionId = 'session_other';},
+    x => {x.retryReservation.sourceAttemptId = 'attempt_old';},
+    x => {x.retryReservation.handoffId = 'handoff_other';},
+    x => {x.retryReservation.explanationId = 'expl_other';},
+    x => {x.learningRetryCount = 0;},
+    x => {x.currentAttempt.score = x.returnHandoff.payload.score = 8;},
+  ]) {
+    const bad = structuredClone(c); change(bad);
+    await assert.rejects(buildTutorInput(bad), /retry is unavailable|below 8/);
+  }
+});

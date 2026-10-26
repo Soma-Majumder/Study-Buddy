@@ -34,7 +34,9 @@ for (const [name, context, shouldReject] of checks) {
 }
 
 if (process.argv.includes('--live')) {
-  for (const [name, context] of [['normal explanation', base], ['focused reteaching', retry], ['feedback injection', injected]]) {
+  const cases = [['normal explanation', base], ['focused reteaching', retry], ['feedback injection', injected]];
+  const selected = process.argv.includes('--retry-only') ? cases.filter(([, context]) => context.round === 'retry') : cases;
+  for (const [name, context] of selected) {
     const input = await buildTutorInput(context);
     const expected = JSON.parse(input.user).approved_lesson.concepts.map(c => c.concept_id).sort();
     const usage = {input_tokens: 0, output_tokens: 0};
