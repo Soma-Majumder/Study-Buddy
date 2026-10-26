@@ -515,3 +515,24 @@ The guard applies to Tutor, Assessment generation/technical repair/content revis
 Normal application/bridge calls stay disabled until a developer deliberately enables the server process. No real `.env` was edited or opt-in enabled by this change. `backend/evals/assessment-quiz.mjs --live` explicitly passes permission after its existing one-call CLI check. The controller evaluator enables its child process only after both `--live --quality-gate` checks (up to five calls). These are paid entry points; never run them in ordinary CI.
 
 Existing offline tests opt in only around their fake transports and fake keys. Python/Node subprocess tests install a fake fetch preload and enable the flag in that temporary test environment; direct JS tests pass the boolean alongside a stub. Dedicated tests disable opt-in, install fetch tripwires, and prove that a key/custom transport/model-authored permission cannot trigger requests. CI identity or an API key is not an opt-in. No live model request was made to verify this feature.
+
+
+### Maintenance worker: one cycle
+
+`study_buddy.maintenance_worker.run_maintenance_cycle(database, limit=100)` is the worker entry point for one bounded expiry sweep. It opens only an existing SQLite database, enables foreign keys, owns and closes its connection, and waits at most five seconds for a SQLite lock. It returns aggregate counts after the existing sweeper commits; database errors propagate rather than becoming a successful cycle or triggering an automatic retry. Invalid limits fail before opening the database.
+
+The existing `python -B scripts/expire_quality_operations.py /absolute/path/to/study-buddy.db --limit 100` command now uses this entry point and retains its counts-only output. The database must already contain the required application tables. This cycle does not run migrations, call agents, reset budgets, or start a recurring process. A repeating loop, shutdown handling, and deployment scheduling are later steps.
+
+
+### Repeating maintenance worker and shutdown
+
+Run `python -B scripts/run_maintenance_worker.py /absolute/path/to/study-buddy.db --limit 100 --interval 30` to start a foreground worker. It runs one cycle immediately, then waits the configured seconds after each completed batch. Cycles are serial; a backlog is processed over later cycles. Each cycle owns a fresh database connection and returns aggregate counts only. JSON output reports `cycle_completed` and, on clean shutdown, `worker_stopped` with completed-cycle count.
+
+Ctrl+C (SIGINT) or SIGTERM requests shutdown. Waiting wakes immediately; an active bounded batch finishes its transaction and closes its connection before exit, with no new cycle. Signal handlers are restored on exit. Temporary SQLite lock failures use the bounded retry policy below; other database failures stop with a nonzero exit and no false success message. Lock waiting is bounded to five seconds per SQLite lock acquisition; shutdown does not forcibly interrupt an active SQL batch. The interval must be finite, greater than zero and at most one day. This is an operator-started foreground process, not an installed/deployed service. No paid agent calls or migrations run in this worker.
+
+
+### Temporary lock recovery (PR #40 review follow-up)
+
+The repeating worker retries only SQLite `OperationalError` codes BUSY or LOCKED (including extended codes). Each cycle allows the initial attempt plus three retries, waiting 1, 2, then 4 seconds. Every failed cycle closes its connection and rolls back through the sweeper before retrying; successful cycles reset this budget. Retry waits are interruptible by SIGINT/SIGTERM, and stopped/failed attempts never emit `cycle_completed`. `lock_retry` events contain only retry number and delay. The existing one-shot cleanup command continues to fail directly rather than retry.
+
+After lock retry exhaustion the CLI exits with code **75**, allowing an operator/supervisor to distinguish temporary contention. Other runtime/database failures exit **1**, while invalid operator configuration exits **2**. A `ValueError` raised by cleanup is a runtime failure, not a configuration error. SQLite lock waits remain up to five seconds per acquisition; no hard total runtime deadline or forced SQL interruption is claimed. No supervisor or service is installed by this change: production still needs an explicitly configured process supervisor/restart policy before automatic cleanup can be relied on.
