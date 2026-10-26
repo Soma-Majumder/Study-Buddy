@@ -105,3 +105,10 @@ This design needs role/budget agreement with Soma before being treated as the ne
 The response schema now lives at `schemas/v1/quiz_quality_review.schema.json`. `study_buddy/quality_review.py` provides pure hash/binding validation and a derived decision; `tests/fixtures/quiz_quality` contains synthetic contract cases. Operation IDs use proposed `quality_<12 lowercase letters/digits>` values. Candidate versions are 0/1, rubric version is 1.0, and hash version is private_quiz_v1.
 
 A well-formed report can lead to pass, needs_revision, or blocked for uncertainty. Invalid/stale/inconsistent reports raise ReviewRejected and must fail the future operation without repair. The helper currently performs no database or model work and is not wired into first/retry publication. Synthetic pass judgments are not independent approval of the manually authored quiz. Next milestone: persist operation and call reservations before adding the Reviewer harness.
+
+
+## State reservation milestone completed
+
+Migration 005 and the fresh schema now include quality operation and call reservation tables. `study_buddy/quality_state.py` enforces unique operation/call identities, a fixed elapsed deadline, one content revision, two reviews, and the existing single shared technical correction. State approval is bound to a candidate version/hash and is not publication. The trusted caller must validate reviewer reports before recording their derived decision.
+
+Candidate/private-key payload staging, validated report persistence, model dispatch, and atomic publication are not wired yet. The helpers leave existing session statuses and learning retries unchanged; the future controller integration must propagate failed operations to accurate session status and enforce the gate. No automatic resume is offered after a reserved call crashes. This milestone passed offline tests without paid calls.
