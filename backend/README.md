@@ -233,7 +233,7 @@ A nonempty, trusted controller `repairRequest` selects a fixed correction instru
 
 ## Assessment: Python controller bridge
 
-`study_buddy.assessment.run_assessment(handoff, repair_request=None)` invokes `backend/assessment-command.mjs` with JSON on stdin and unwraps its private `output` for the existing Python quiz validator. The Node subprocess has a 40-second timeout around the shared 30-second provider timeout. Only safe error stages cross back to Python; credentials stay in the process environment. Node must be available through PATH or `STUDY_BUDDY_NODE`, with backend packages installed.
+`study_buddy.assessment.run_assessment(handoff, repair_request=None)` invokes `backend/assessment-command.mjs` with JSON on stdin and unwraps its private `output` for the existing Python quiz validator. The Node subprocess has a 70-second timeout around Assessment's 60-second provider timeout. Tutor retains its existing deadlines. Only safe error stages cross back to Python; credentials stay in the process environment. Node must be available through PATH or `STUDY_BUDDY_NODE`, with backend packages installed.
 
 `start_quiz_session` and `dispatch_retry_quiz` now default to this real provider bridge, while still accepting injected callbacks. Calling them without an Assessment callback can spend API credits when valid input and credentials are present. The controller alone validates output, reserves the remaining technical repair, and saves quizzes/private keys atomically. This supersedes earlier notes that quiz generation has no default adapter. Assessment result-explanation generation still requires an injected callback and is not implemented by this quiz adapter.
 
@@ -265,3 +265,6 @@ Input/configuration errors use `invalid_input` or `invalid_timeout`; otherwise u
 ## Assessment output budget
 
 The shared Claude transport accepts `maxTokens` (positive integer, default 4096). Assessment passes a default of 8192; backend-only `claudeOptions.maxTokens` can override it. Tutor retains the transport default. Invalid values fail before network access with `invalid_output_budget`. This allowance is a cap, not a guarantee of complete or schema-valid output, and can increase per-call output usage. Request deadlines and controller repair limits are unchanged. The first live controller run at 8192 completed two responses that failed JSON parsing, then correctly stopped after one repair; see the evaluation notes.
+
+
+Assessment now uses a default `timeoutMs: 60000` with its 8192-token output allowance. Its Python bridge permits 70 seconds for process startup and the provider request. The shared transport default stays 30 seconds, so Tutor behavior is unchanged. Timeout errors still stop without automatic provider retries; the one-repair and learning-retry limits are unchanged. Offline tests verify the Assessment deadline, cancellation, and longer bridge deadline.

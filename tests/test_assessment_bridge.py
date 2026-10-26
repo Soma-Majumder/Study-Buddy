@@ -96,7 +96,7 @@ globalThis.fetch = async (_url, request) => {
     def test_process_timeout_and_broken_envelope_are_safe(self):
         import subprocess
         from types import SimpleNamespace
-        for outcome in (subprocess.TimeoutExpired('node', 40), SimpleNamespace(returncode=0, stdout='{}')):
+        for outcome in (subprocess.TimeoutExpired('node', 70), SimpleNamespace(returncode=0, stdout='{}')):
             kwargs = {'side_effect': outcome} if isinstance(outcome, Exception) else {'return_value': outcome}
             with patch('study_buddy.assessment.subprocess.run', **kwargs):
                 with self.assertRaises(AssessmentFailure):
@@ -123,3 +123,10 @@ globalThis.fetch = async (_url, request) => {
                 run_assessment({})
         self.assertEqual((raised.exception.stage, raised.exception.code, raised.exception.http_status, raised.exception.stop_reason),
                          ('provider adapter', 'adapter_error', None, None))
+
+    def test_python_bridge_deadline_exceeds_assessment_request_deadline(self):
+        from types import SimpleNamespace
+        with patch('study_buddy.assessment.subprocess.run', return_value=SimpleNamespace(
+                returncode=0, stdout=json.dumps(dict(ok=True, result=dict(output=None))))) as run:
+            self.assertIsNone(run_assessment({}))
+        self.assertEqual(run.call_args.kwargs['timeout'], 70)

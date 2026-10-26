@@ -68,3 +68,19 @@ Report: `results/2026-10-26T18-46-52-537794+00-00-assessment-controller.json`. T
 The controller saved zero quizzes, questions, keys, attempts, or results; session status is failed, technical repair count zero, learning retry count zero, and no learner key leak or foreign-key issue was found. No repair or further live call was made.
 
 The next configuration change should give Assessment a longer request deadline to match its larger 8,192-token response budget, with a Python subprocess deadline longer than the request deadline. Keep Tutor's existing deadlines and all repair/learning retry limits unchanged. Test timeout behavior offline before another live quality evaluation. A longer timeout is not itself evidence of better questions.
+
+
+## Quality rerun with Assessment-specific longer deadlines
+
+Report: `results/2026-10-26T18-48-33-478279+00-00-assessment-controller.json`. The request deadline was extended to 60 seconds, with a 70-second Python subprocess deadline; Tutor deadlines and retry budgets remain unchanged. Offline checks: 57 JavaScript tests and nine Assessment bridge tests passed, including deadline/cancellation checks.
+
+The one live invocation ran 35,013 ms and returned `output_truncated` / `max_tokens` at the 8,192-token allowance. Capture contains all ten questions and a partial answer key ending during position 9. The controller did not attempt JSON validation or repair after this transport failure; it saved zero quiz records or scores, recorded failed status, and left technical/learning retry counters at zero. The capture is incomplete evidence and was not repaired or accepted manually.
+
+### Partial content inspection only — no accepted quiz to score
+
+- Q5 is ambiguous: “prevents the membrane from becoming excessively stiff” and “increases movement so the membrane loosens” can both describe the cold-condition buffering effect. Its partial key chooses the former while incorrectly calling the latter a reversal. This fails the one-defensible-answer criterion.
+- Q2 explicitly tests the taught double-bond → kink → packing → fluidity relationship, which is a useful understanding item. Q10 asks why tails point inward, but overlaps with Q1's bilayer arrangement.
+- Q3, Q6, Q7, Q8, and Q9 still lean heavily on recalling a sentence or a named role. Q8's wrong options remain implausible and use giveaway absolutes such as “every” and “always.”
+- Some rationales now contrast a mistaken idea with the correct relationship, but unsupported statements remain: the Q8 rationale turns “rare without enzymes” into “enzymes make switching possible,” and the Q7 rationale asserts sugars occur only on the outside beyond the supplied sentence.
+
+The longer timeout resolved this run's deadline bottleneck but did not produce a complete, learner-ready quiz or establish improved quality. The next change should reduce generation verbosity and simplify the instructions while explicitly preventing overlapping cold-condition choices; do not blindly increase both budgets again. A fresh complete output and per-question review are needed. No further paid call was made.

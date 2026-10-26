@@ -30,7 +30,7 @@ def run_assessment(handoff, *, repair_request=None):
         process = subprocess.run(
             [os.environ.get('STUDY_BUDDY_NODE', 'node'), str(ROOT / 'backend/assessment-command.mjs')],
             input=json.dumps(dict(handoff=handoff, repair_request=repair_request)),
-            text=True, capture_output=True, cwd=ROOT, timeout=40,
+            text=True, capture_output=True, cwd=ROOT, timeout=70,
         )
         body = json.loads(process.stdout)
         if not isinstance(body, dict) or process.returncode != 0 or body.get('ok') is not True:

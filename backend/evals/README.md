@@ -64,3 +64,6 @@ The first capture run succeeded after one schema repair. Both responses were val
 ### Assessment content quality
 
 Use `assessment-quality-rubric.md` to review grounding, one-answer clarity, distractor plausibility, fair wording, and rationale quality separately from JSON validation. The prompt now requests parallel answer categories, plausible confusions of taught relationships, varied understanding tasks, and fewer specialist-name recall items. These changes were motivated by the captured October 26 sample; they have not yet been live-evaluated. The six-understanding-item target is a prompt/review preference, not a new runtime rule or PRD acceptance threshold.
+
+
+The latest longer-deadline evaluation completed after 35 seconds but hit the 8192-token cap. Partial content included an ambiguous cold-condition question, so no quality improvement is claimed. Assessment now defaults to 60 seconds, with a 70-second Python bridge deadline; Tutor keeps the shared 30-second request default. See the review notes before changing budgets or rerunning live evaluations.

@@ -85,3 +85,25 @@ test('Assessment preserves safe truncation and API diagnostics without raw provi
   error => error.stage === 'model call' && error.code === 'output_truncated' && error.stopReason === 'max_tokens'
     && !JSON.stringify(error).includes('private-generated-text'));
 });
+
+
+test('Assessment defaults to a 60-second deadline and still aborts a stalled request', async () => {
+  const realSetTimeout = globalThis.setTimeout;
+  const realClearTimeout = globalThis.clearTimeout;
+  let delay;
+  let fire;
+  globalThis.setTimeout = (callback, ms) => { delay = ms; fire = callback; return 1; };
+  globalThis.clearTimeout = () => {};
+  try {
+    await assert.rejects(runAssessmentQuiz(await fixture('tutor_to_assessment'), {
+      claudeOptions: options(async (_url, {signal}) => new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new Error('private-abort-error')), {once: true});
+        fire();
+      })),
+    }), error => error.code === 'request_timeout' && error.stage === 'model call');
+    assert.equal(delay, 60_000);
+  } finally {
+    globalThis.setTimeout = realSetTimeout;
+    globalThis.clearTimeout = realClearTimeout;
+  }
+});
