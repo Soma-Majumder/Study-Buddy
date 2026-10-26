@@ -237,8 +237,10 @@ class ControllerTests(unittest.TestCase):
         started = self.start_quiz()
         qid = started['quiz']['quiz_id']
         answers = self.answers_for(qid)
-        submit_answers(self.conn, LEARNER, qid, answers)
-        with self.assertRaises(SubmissionRejected): submit_answers(self.conn, LEARNER, qid, answers)
+        original = submit_answers(self.conn, LEARNER, qid, answers)
+        before = list(self.conn.iterdump())
+        self.assertEqual(submit_answers(self.conn, LEARNER, qid, answers), original)
+        self.assertEqual(list(self.conn.iterdump()), before)
         self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM attempts').fetchone()[0], 1)
         self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM results').fetchone()[0], 1)
 
@@ -291,8 +293,64 @@ class ControllerTests(unittest.TestCase):
                     conn.close()
             with ThreadPoolExecutor(max_workers=2) as pool:
                 outcomes = list(pool.map(lambda _: submit(), range(2)))
-            self.assertCountEqual(outcomes, ['grading', 'rejected'])
+            self.assertCountEqual(outcomes, ['grading', 'grading'])
             with closing(sqlite3.connect(path)) as saved:
                 self.assertEqual(saved.execute('SELECT COUNT(*) FROM attempts').fetchone()[0], 1)
                 self.assertEqual(saved.execute('SELECT COUNT(*) FROM results').fetchone()[0], 1)
                 self.assertEqual(saved.execute('SELECT COUNT(*) FROM responses').fetchone()[0], 10)
+
+
+    def test_changed_replay_rejected_without_altering_saved_evidence(self):
+        started = self.start_quiz(); qid = started['quiz']['quiz_id']
+        answers = self.answers_for(qid)
+        submit_answers(self.conn, LEARNER, qid, answers)
+        before = list(self.conn.iterdump())
+        with self.assertRaisesRegex(SubmissionRejected, 'different answers'):
+            submit_answers(self.conn, LEARNER, qid, self.answers_for(qid, (1,)))
+        self.assertEqual(list(self.conn.iterdump()), before)
+
+    def test_replay_does_not_regrade_or_rewind_later_session_state(self):
+        from unittest.mock import patch
+        started = self.start_quiz(); qid = started['quiz']['quiz_id']
+        answers = self.answers_for(qid)
+        original = submit_answers(self.conn, LEARNER, qid, answers)
+        self.conn.execute("UPDATE study_sessions SET status='failed' WHERE session_id=?", (original['session_id'],))
+        self.conn.commit()
+        before = list(self.conn.iterdump())
+        with patch('study_buddy.controller.grade', side_effect=AssertionError('Replay must not regrade')):
+            replay = submit_answers(self.conn, LEARNER, qid, answers)
+        self.assertEqual(replay['attempt_id'], original['attempt_id'])
+        self.assertEqual(replay['graded'], original['graded'])
+        self.assertEqual(replay['status'], 'failed')
+        self.assertIsNone(replay['next_step'])
+        self.assertEqual(list(self.conn.iterdump()), before)
+
+    def test_simultaneous_different_answers_have_one_winner(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from contextlib import closing
+        import tempfile
+        import threading
+        started = self.start_quiz(); qid = started['quiz']['quiz_id']
+        submissions = [self.answers_for(qid), self.answers_for(qid, (1,))]
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / 'study.db')
+            with closing(sqlite3.connect(path)) as target:
+                self.conn.backup(target)
+            barrier = threading.Barrier(2)
+            def submit(answers):
+                with closing(sqlite3.connect(path, timeout=5)) as conn:
+                    conn.execute('PRAGMA foreign_keys=ON')
+                    barrier.wait(timeout=5)
+                    try:
+                        return submit_answers(conn, LEARNER, qid, answers)
+                    except SubmissionRejected:
+                        return None
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                outcomes = list(pool.map(submit, submissions))
+            self.assertEqual(sum(result is not None for result in outcomes), 1)
+            winner = next(result for result in outcomes if result is not None)
+            with closing(sqlite3.connect(path)) as conn:
+                self.assertEqual(conn.execute('SELECT COUNT(*) FROM attempts').fetchone()[0], 1)
+                self.assertEqual(conn.execute('SELECT COUNT(*) FROM results').fetchone()[0], 1)
+                self.assertEqual(conn.execute('SELECT COUNT(*) FROM responses').fetchone()[0], 10)
+                self.assertEqual(conn.execute('SELECT score FROM results').fetchone()[0], winner['graded']['score'])
