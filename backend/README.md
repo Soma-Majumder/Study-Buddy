@@ -275,3 +275,14 @@ Assessment now uses a default `timeoutMs: 60000` with its 8192-token output allo
 The shared transport accepts optional `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and sends it as `output_config.effort`; invalid values fail before network access with `invalid_effort`. Assessment defaults to `low`. The transport omits the field when unspecified, preserving Tutor behavior. No `thinking` field or legacy thinking budget is sent. Backend callers overriding the model must check that model's supported controls.
 
 Anthropic's [effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort) and [Haiku 5.5 migration guide](https://platform.claude.com/docs/en/models/haiku-5-5/migration-guide), checked October 26, 2026, describe effort and adaptive thinking. The first explicit-low evaluation passed controller validation without repair; semantic question quality still needs improvement. See the evaluation review for exact usage and limits.
+
+
+## Assessment: schema-constrained output
+
+Assessment now passes a trusted, repo-derived schema as `output_config.format: {type: "json_schema", schema: ...}` alongside low effort. `backend/assessment-schema.mjs` projects the existing quiz schema into Claude's supported subset and forbids extra fields in every object. The provider response is `{result: <quiz-or-local-error>}`; the adapter unwraps result before returning the original quiz contract to Python. Callers cannot override Assessment's format schema through claudeOptions. Tutor omits outputSchema and remains unchanged.
+
+The local insufficient-content object remains an allowed response branch and still fails quiz validation, following the existing controller repair/failure policy. A top-level anyOf was rejected by the API; nesting the quiz/error choice under required result resolved that compatibility issue. No invalid response is sanitized or silently accepted.
+
+Unsupported provider-side numeric, string-length, and exact-array-size bounds are omitted from the derived grammar only. The canonical schema and Python validator retain exactly ten questions/keys, valid positions, IDs, taught/focused concept checks, and distinct options. Grammar success does not prove factual correctness or useful questions. Refusals, truncation, and provider failures still stop under the current policy.
+
+Source checked October 26, 2026: [Anthropic structured-output documentation](https://platform.claude.com/docs/en/build-with-claude/structured-outputs). Offline tests reproduce the forbidden concept_id and placeholder-field defects, preserve the failure branch, check request schema/effort merging, and demonstrate that full local size validation remains necessary. The successful live format test saved ten questions/private keys on its first call with no repair; semantic quality remains separate.

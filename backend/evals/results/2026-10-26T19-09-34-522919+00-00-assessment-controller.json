@@ -1,0 +1,128 @@
+{
+  "date": "2026-10-26T19:09:34.522919+00:00",
+  "scope": "Live Assessment through real controller; Tutor is a hand-written fixture",
+  "prompt_sha256": "c10099aee063444233c440a13cc8c6ded4f0d88ed7bea10edad8262a978ed714",
+  "generations": [
+    {
+      "repair_requested": false,
+      "error_stage": "model call",
+      "error_code": "api_rejected",
+      "http_status": 400,
+      "stop_reason": null,
+      "latency_ms": 504
+    }
+  ],
+  "review": "Structured-output schema compatibility probe rejected with HTTP 400 before a quiz response. No records saved. Superseded by strict root result-envelope schema in the successful 19:10 evaluation.",
+  "assessment_structured_output": true,
+  "assessment_effort": "low",
+  "assessment_max_tokens": 8192,
+  "assessment_timeout_ms": 60000,
+  "bridge_timeout_seconds": 70,
+  "response_text_file": "2026-10-26T19-09-34-522919+00-00-assessment-response-text.jsonl",
+  "handoff": {
+    "schema_version": "1.0",
+    "handoff_id": "handoff_ehz5gpocqprg",
+    "direction": "tutor_to_assessment",
+    "task": "create_quiz",
+    "context": {
+      "learner_session_id": "session_j1f8agrrpjff",
+      "round": "first"
+    },
+    "sources": [
+      {
+        "lesson_id": "lesson_cell_membranes",
+        "lesson_version": 2,
+        "url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/",
+        "license": "CC BY-NC-SA 4.0",
+        "attribution": "Cell & Molecular Biology, Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University"
+      }
+    ],
+    "expected_output": "Exactly 10 multiple-choice questions, each with four options (a-d) and one concept_id from payload.concepts. Test only the explanation_text. Return a private answer key to the controller, never the learner or Tutor.",
+    "uncertainty": {
+      "level": "low",
+      "reasons": [
+        "This is a hand-written development fixture, not a live Tutor response.",
+        "The explanation intentionally omits membrane protein types, lipid rafts, detailed enzyme mechanisms, and numerical fluidity predictions. Do not quiz those details."
+      ]
+    },
+    "payload": {
+      "lesson_id": "lesson_cell_membranes",
+      "lesson_version": 2,
+      "explanation_id": "expl_nuvhf160mzs2",
+      "explanation_text": "A cell membrane is a flexible boundary. Phospholipids have water-loving heads and water-avoiding tails: this combination is called amphipathic. They form a bilayer with heads toward water on both sides and tails tucked inside. Saturated fatty acid tails pack closely. Double bonds kink unsaturated tails, making close packing harder and increasing fluidity. Fluidity describes how freely membrane components move. Tail saturation, chain length, temperature, and cholesterol affect it. Cholesterol buffers fluidity: it restrains movement when the membrane is very fluid and prevents excessive stiffening in the cold. The fluid mosaic model describes a mixture of lipids, cholesterol, and proteins whose components can move sideways. The two membrane layers, or leaflets, differ in composition. Lipids rarely switch leaflets without enzymes such as flippases, floppases, and scramblases. Sugars on the outer surface form the glycocalyx and help cells recognize one another, including distinguishing self from non-self.",
+      "concepts": [
+        {
+          "concept_id": "c_amphipathic_phospholipids",
+          "name": "Amphipathic phospholipids form the bilayer",
+          "taught_summary": "Amphipathic phospholipids form a bilayer: water-loving heads face water on both sides; water-avoiding tails face inward."
+        },
+        {
+          "concept_id": "c_fatty_acid_saturation",
+          "name": "Saturated vs. unsaturated fatty acids",
+          "taught_summary": "Saturated tails pack closely; double bonds kink unsaturated tails, hindering close packing and increasing fluidity."
+        },
+        {
+          "concept_id": "c_fluidity_factors",
+          "name": "What affects membrane fluidity",
+          "taught_summary": "Membrane fluidity is affected by tail saturation, chain length, temperature, and cholesterol."
+        },
+        {
+          "concept_id": "c_cholesterol_buffer",
+          "name": "Cholesterol as a fluidity buffer",
+          "taught_summary": "Cholesterol restrains movement in a very fluid membrane and prevents excessive stiffening in the cold."
+        },
+        {
+          "concept_id": "c_fluid_mosaic_model",
+          "name": "Fluid mosaic model",
+          "taught_summary": "The fluid mosaic model describes lipids, cholesterol, and proteins with components able to move sideways."
+        },
+        {
+          "concept_id": "c_membrane_asymmetry",
+          "name": "Membrane asymmetry and lipid flipping",
+          "taught_summary": "Leaflets differ in composition; switching leaflets is rare without flippases, floppases, or scramblases."
+        },
+        {
+          "concept_id": "c_glycocalyx_recognition",
+          "name": "Glycocalyx and cell recognition",
+          "taught_summary": "Outer-surface sugars form the glycocalyx and support cell recognition and self/non-self distinction."
+        }
+      ]
+    }
+  },
+  "controller_result": {
+    "session_id": "session_j1f8agrrpjff",
+    "status": "failed",
+    "next_step": null,
+    "handoff": null,
+    "error": "Assessment could not create a quiz. No quiz was started."
+  },
+  "saved_counts": {
+    "quizzes": 0,
+    "questions": 0,
+    "answer_keys": 0,
+    "attempts": 0,
+    "results": 0
+  },
+  "session_state": [
+    "failed",
+    0
+  ],
+  "repair_count": 0,
+  "foreign_key_errors": [],
+  "learner_key_leak": false,
+  "gates": {
+    "valid_quiz_saved": false,
+    "learner_keys_private": true,
+    "bounded_generations": true,
+    "learning_retry_untouched": true,
+    "foreign_keys_valid": true
+  },
+  "token_usage_totals": {
+    "input_tokens": null,
+    "output_tokens": null,
+    "cache_creation_input_tokens": null,
+    "cache_read_input_tokens": null,
+    "thinking_tokens": null,
+    "thinking_share_of_output": null
+  }
+}

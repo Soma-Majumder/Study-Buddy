@@ -22,6 +22,7 @@ export async function callClaude(input, {
   timeoutMs = 30_000,
   maxTokens = 4096,
   effort,
+  outputSchema,
 } = {}) {
   if (typeof apiKey !== 'string' || !apiKey.trim()) {
     throw new ClaudeCallError('missing_api_key', 'ANTHROPIC_API_KEY is required.');
@@ -41,6 +42,10 @@ export async function callClaude(input, {
     throw new ClaudeCallError('invalid_effort', 'A supported reasoning effort is required.');
   }
 
+  if (outputSchema !== undefined && (!outputSchema || typeof outputSchema !== 'object' || Array.isArray(outputSchema))) {
+    throw new ClaudeCallError('invalid_output_schema', 'An output schema object is required.');
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -55,7 +60,10 @@ export async function callClaude(input, {
       body: JSON.stringify({
         model,
         max_tokens: maxTokens,
-        ...(effort !== undefined ? {output_config: {effort}} : {}),
+        ...((effort !== undefined || outputSchema !== undefined) ? {output_config: {
+          ...(effort !== undefined ? {effort} : {}),
+          ...(outputSchema !== undefined ? {format: {type: 'json_schema', schema: outputSchema}} : {}),
+        }} : {}),
         system: input.system,
         messages: [{role: 'user', content: input.user}],
       }),

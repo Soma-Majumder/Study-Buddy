@@ -227,3 +227,16 @@ The removed verbatim cholesterol comparison stem did not recur, but this alone d
 | Q10 | Recall glycocalyx role; correct choice is much more detailed than alternatives. |
 
 The abstract design instructions did not meet the six-understanding-item target, remove ambiguity, or establish quality improvement. No accepted quiz exists to recommend to learners. Next prioritize the recurring output-contract defect before more prompt-only iteration; separately design a reliable content review/revision approach for ambiguous and unsupported items. No third paid call was made.
+
+
+## Output-format fix: API-constrained schema, live success
+
+No pedagogical prompt tuning was done in this step. Added a repo-derived schema projection to Claude output_config.format and merged it with effort. Extra keys are prohibited; the full original Python schema/semantic validator remains authoritative. Local insufficient-content failures are preserved as an explicit schema branch.
+
+API compatibility: initial top-level quiz/error union attempts returned HTTP 400; three controller reports at 19:07:33, 19:08:25, and 19:09:34 record safe status and zero saved records. Two additional diagnostic rejection probes inspected only allowlisted schema-error indicators/wording, without recording raw error bodies. The API rejected top-level anyOf, so the final schema uses a strict root object with required result containing the union. The adapter unwraps result before controller validation.
+
+Successful report: `results/2026-10-26T19-10-34-267200+00-00-assessment-controller.json`. One call, 27256 ms, zero validation errors, zero repairs. Saved one quiz, ten questions, ten private keys; session awaiting_answers; zero attempts/results and learning retries; no learner key leak or foreign-key errors. Usage: 5213 input tokens, 6284 output tokens, 4459 reported thinking tokens (~71.0% share). No output budget or effort change was made.
+
+All 64 JavaScript and 109 Python tests passed; preexisting unclosed SQLite connection warnings remain. New tests verify grammar rejection of the recurring extra fields, success/error branches, API request merging, unsupported-bound projection, and original-schema enforcement of ten items. Existing fake-provider bridge tests were updated to return the transport envelope without bypassing controller validation.
+
+This is a verified format fix on one live sample, not a reliability estimate or semantic-quality approval. Some constraints are not expressible in the provider grammar and still require local validation. No content-quality claim is made for the newly accepted quiz; review ambiguity, distractors, and grounding separately.

@@ -5,10 +5,13 @@ import { runAssessmentQuiz } from './assessment.mjs';
 
 const fixture = async name => JSON.parse(await readFile(new URL(
   `../schemas/v1/examples/${name}.example.json`, import.meta.url), 'utf8'));
-const response = text => ({ok: true, json: async () => ({
+const response = text => {
+  try { text = JSON.stringify({result: JSON.parse(text)}); } catch {}
+  return {ok: true, json: async () => ({
   stop_reason: 'end_turn', content: [{type: 'text', text}], model: 'test-model',
   usage: {input_tokens: 20, output_tokens: 10},
-})});
+})};
+};
 const options = fetchImpl => ({apiKey: 'fake-test-key', model: 'test-model', fetchImpl});
 
 test('Assessment packages the handoff and makes exactly one provider request', async () => {
@@ -20,7 +23,10 @@ test('Assessment packages the handoff and makes exactly one provider request', a
     const body = JSON.parse(request.body);
     assert.match(body.system, /Assessment/);
     assert.equal(body.max_tokens, 8192);
-    assert.deepEqual(body.output_config, {effort: 'low'});
+    assert.equal(body.output_config.effort, 'low');
+    assert.equal(body.output_config.format.type, 'json_schema');
+    assert.equal(body.output_config.format.schema.properties.result.anyOf[0].properties.answer_key.items.additionalProperties, false);
+    assert.equal(body.output_config.format.schema.properties.result.anyOf[0].properties.answer_key.items.properties.concept_id, undefined);
     assert.equal(body.thinking, undefined);
     const data = JSON.parse(body.messages[0].content);
     assert.equal(data.handoff.handoff_id, handoff.handoff_id);

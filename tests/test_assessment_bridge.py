@@ -37,7 +37,7 @@ globalThis.fetch = async (_url, request) => {
     quiz.handoff_id = data.handoff.handoff_id;
     quiz.explanation_id = data.handoff.payload.explanation_id;
     quiz.round = data.handoff.context.round;
-    text = JSON.stringify(quiz);
+    text = JSON.stringify({result: quiz});
   }
   return {ok: true, json: async () => ({stop_reason: 'end_turn', content: [{type: 'text', text}],
     model: 'offline-fixture', usage: {input_tokens: 1, output_tokens: 1}})};

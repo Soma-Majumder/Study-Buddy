@@ -137,3 +137,19 @@ test('rejects invalid effort before network access', async () => {
       fetchImpl: () => assert.fail('No request expected')}), error => error.code === 'invalid_effort');
   }
 });
+
+
+test('combines schema-constrained output with effort in one output_config', async () => {
+  const schema = {type: 'object', properties: {}, additionalProperties: false};
+  await callClaude(input, {apiKey: key, effort: 'low', outputSchema: schema, fetchImpl: async (_url, request) => {
+    assert.deepEqual(JSON.parse(request.body).output_config, {effort: 'low', format: {type: 'json_schema', schema}});
+    return response();
+  }});
+});
+
+test('rejects invalid output schema containers before any request', async () => {
+  for (const outputSchema of [null, [], 'schema']) {
+    await assert.rejects(callClaude(input, {apiKey: key, outputSchema,
+      fetchImpl: () => assert.fail('No request expected')}), error => error.code === 'invalid_output_schema');
+  }
+});

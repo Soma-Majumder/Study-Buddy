@@ -1,3 +1,4 @@
+import {assessmentResponseSchema} from './assessment-schema.mjs';
 import { buildAssessmentInput } from './assessment-input.mjs';
 import { callClaude, ClaudeCallError } from './claude.mjs';
 
@@ -22,6 +23,7 @@ export async function runAssessmentQuiz(handoff, {repairRequest = null, claudeOp
       throw new Error('Invalid controller correction request.');
     }
     const input = buildAssessmentInput(handoff);
+    input.system += '\nTransport envelope: put the complete quiz object or local error object inside the single top-level field result, as required by the response schema. The inner object keeps the documented fields.';
     if (repairRequest !== null) {
       // Use fixed correction instructions, never arbitrary caller/model prose.
       input.user = JSON.stringify({
@@ -30,11 +32,11 @@ export async function runAssessmentQuiz(handoff, {repairRequest = null, claudeOp
       });
     }
     stage = 'model call';
-    const response = await callClaude(input, {maxTokens: 8192, timeoutMs: 60_000, effort: 'low', ...claudeOptions});
+    const response = await callClaude(input, {maxTokens: 8192, timeoutMs: 60_000, effort: 'low', ...claudeOptions, outputSchema: assessmentResponseSchema});
     // Return invalid output to controller validation so its existing repair
     // policy applies. Never retry locally or expose raw non-JSON model text.
     let output = null;
-    try { output = JSON.parse(response.text); } catch { /* invalid generation */ }
+    try { output = JSON.parse(response.text)?.result ?? null; } catch { /* invalid generation */ }
     return {output, model: response.model, usage: response.usage};
   } catch (error) {
     // Provider errors and malformed input stop; do not leak provider bodies.
