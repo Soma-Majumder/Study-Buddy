@@ -55,3 +55,10 @@ Run the updated prompt through the controller, then complete this rubric for eve
 ## Concise-prompt revision
 
 After the longer-deadline run hit the token cap, the prompt was condensed and each private rationale was limited by instruction to one sentence of at most 25 words. This is a generation/review target, not a new schema constraint: existing consumers and validators are unchanged. Review rationale length alongside correctness; concise wording must preserve qualifiers. Explicitly reject choices that restate the same effect, such as preventing excessive cold stiffness versus allowing more movement. The change has not yet been live-evaluated.
+
+
+## Concrete examples added to the prompt
+
+Two compact authored examples now demonstrate cause/effect (tail packing versus movement) and comparison across conditions (cholesterol buffering). All options address the same variables and use plausible relationship reversals, with one short rationale. Each example is explicitly conditional on current teaching and focus scope; example facts do not extend the factual input. No example IDs are supplied and correct letters must not be copied as a pattern.
+
+For the next live review, check that generated items transfer these design principles rather than merely reproduce the two examples or repeat them to fill ten positions. Preserve explanation-only grounding, one defensible answer, and distinct learning targets. These examples have not yet been live-evaluated, and six understanding items remains a quality target rather than a runtime guarantee.

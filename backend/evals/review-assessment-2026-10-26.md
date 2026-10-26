@@ -157,3 +157,8 @@ All ten keyed answers and rationales appear supported by the supplied fixture ex
 | 10 | Recall role | Overlaps with Q9's recognition wording; does not establish a different understanding target. |
 
 Only Q2 and Q3 clearly require the rubric's understanding tasks rather than sentence/role recall, below the six-item quality target. Completion improved in this sample, while pedagogical quality remains unresolved. Next: refine the quiz-generation approach using concrete good/bad question examples or a separate quality review step, keeping controller format checks and bounded operations distinct from semantic review. No extra generation was made.
+
+
+## Prepared concrete question-design examples
+
+Added two brief examples to the Assessment prompt: a double-bond/packing/movement cause-and-effect question and a two-condition cholesterol comparison. Wrong choices reverse the same taught relationships rather than introduce absurd facts or unrelated molecule categories. Keys and rationales are explicitly developer/model instruction examples, not learner-visible fields. The examples cannot supply new facts or override current concept/retry scope. No paid generation was made; future evaluation must check both genuine transfer and avoidance of duplicate questions.
