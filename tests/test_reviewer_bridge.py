@@ -149,3 +149,25 @@ globalThis.fetch = async (_url, request) => {
         self.assertEqual(kwargs['timeout'], 13)
         self.assertEqual(json.loads(kwargs['input']), dict(context=self.context, provider_timeout_ms=12000))
         self.assertNotIn('fake-reviewer-key', kwargs['input'])
+
+    def test_default_controller_dispatch_runs_real_bridge_and_saves_report(self):
+        from study_buddy.controller import dispatch_quality_review
+        helper = fixtures.QualityStorageTests(); helper.setUp()
+        self.addCleanup(helper.doCleanups)
+        helper.stage()
+        result = dispatch_quality_review(helper.conn, LEARNER, helper.op)
+        self.assertEqual(result['stage'], 'approved')
+        self.assertEqual(helper.conn.execute('SELECT COUNT(*) FROM quiz_quality_reports').fetchone()[0], 1)
+        self.assertFalse(dispatch_quality_review(helper.conn, LEARNER, helper.op)['dispatched'])
+        self.assertEqual(len(self.calls()), 1)
+
+    def test_default_controller_dispatch_records_real_bridge_error(self):
+        from study_buddy.controller import dispatch_quality_review
+        helper = fixtures.QualityStorageTests(); helper.setUp()
+        self.addCleanup(helper.doCleanups)
+        helper.stage()
+        os.environ['REVIEW_BRIDGE_MODE'] = 'rate'
+        result = dispatch_quality_review(helper.conn, LEARNER, helper.op)
+        self.assertEqual((result['stage'], result['error']), ('failed', 'review_rate_limited'))
+        self.assertEqual(helper.conn.execute('SELECT status FROM study_sessions').fetchone()[0], 'failed')
+        self.assertEqual(len(self.calls()), 1)
