@@ -10,9 +10,11 @@ ROOT = Path(__file__).resolve().parent.parent
 VALIDATOR = jsonschema.Draft202012Validator(json.loads((ROOT / 'schemas/v1/quiz_quality_review.schema.json').read_text()))
 CRITERIA = ('grounding', 'exactly_one_answer', 'plausible_distractors', 'fair_wording', 'rationale_quality')
 UNDERSTANDING = {'comparison', 'cause_effect', 'prediction', 'misconception_correction'}
-# Six understanding items is the generation goal; the gate blocks only below the minimum.
+# Quality-style problems are warnings, never blocks: the quiz is still published and the
+# warning is returned for monitoring. Wrong, ambiguous, ungrounded, cued or uncertain
+# items remain hard blocks. Six understanding items is the generation goal.
 UNDERSTANDING_GOAL = 6
-MINIMUM_UNDERSTANDING = 4
+SOFT_CODES = {'insufficient_understanding', 'repeated_target'}
 
 
 class ReviewRejected(ValueError):
@@ -25,13 +27,13 @@ def candidate_hash(candidate):
     return hashlib.sha256(('study-buddy-private-quiz/v1\n' + payload).encode('utf-8')).hexdigest()
 
 
-def validate_review(report, context, *, minimum_understanding=MINIMUM_UNDERSTANDING):
+def validate_review(report, context, *, minimum_understanding=UNDERSTANDING_GOAL):
     """Return pass/needs_revision/blocked, never permission to publish.
 
     context is backend-owned: operation_id, candidate_version, handoff, and
     candidate. The caller must authenticate ownership and load its snapshot.
-    Six understanding items is the generation goal (UNDERSTANDING_GOAL); fewer than
-    MINIMUM_UNDERSTANDING blocks the quiz. Neither is a PRD change.
+    Fewer than UNDERSTANDING_GOAL understanding items and repeated targets are soft: they
+    appear in `warnings` and never change the decision. Not a PRD change.
     """
     if type(minimum_understanding) is not int or not 0 <= minimum_understanding <= 10:
         raise ValueError('Understanding target must be an integer from 0 to 10.')
@@ -76,13 +78,15 @@ def validate_review(report, context, *, minimum_understanding=MINIMUM_UNDERSTAND
         raise ReviewRejected('Failed quiz-level criteria require actionable issues.')
     if 'uncertain' in (overall['concept_coverage'], overall['target_diversity']) and not overall['uncertainty_notes']:
         raise ReviewRejected('Uncertain quiz-level criteria require an uncertainty note.')
-    judgments.extend([overall['concept_coverage'], overall['target_diversity']])
+    # A failed target_diversity is soft: it is explained by repeated_target (or a hard issue code,
+    # which still blocks through reasons). An uncertain one still blocks.
+    judgments.extend([overall['concept_coverage'], 'uncertain' if overall['target_diversity'] == 'uncertain' else 'pass'])
     issues.extend(overall['issues'])
     uncertainty.extend(overall['uncertainty_notes'])
     understanding = sum(q['primary_demand'] in UNDERSTANDING for q in report['questions'])
-    reasons = sorted({i['code'] for i in issues})
-    if understanding < minimum_understanding:
-        reasons.append('insufficient_understanding')
+    codes = {i['code'] for i in issues}
+    reasons = sorted(codes - SOFT_CODES)
+    warnings = sorted((codes & SOFT_CODES) | ({'insufficient_understanding'} if understanding < minimum_understanding else set()))
     if 'uncertain' in judgments or uncertainty:
         decision = 'blocked'
         reasons.append('review_uncertainty')
@@ -90,5 +94,5 @@ def validate_review(report, context, *, minimum_understanding=MINIMUM_UNDERSTAND
         decision = 'needs_revision'
     else:
         decision = 'pass'
-    return dict(decision=decision, candidate_hash=expected['candidate_hash'],
-                understanding_count=understanding, reasons=sorted(set(reasons)))
+    return dict(decision=decision, candidate_hash=expected['candidate_hash'], understanding_count=understanding,
+                reasons=sorted(set(reasons)), warnings=warnings)

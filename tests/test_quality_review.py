@@ -72,20 +72,30 @@ class QualityReviewTests(unittest.TestCase):
         self.report['questions'][0]['grounding'] = 'uncertain'
         with self.assertRaises(ReviewRejected): validate_review(self.report, self.context)
 
-    def test_quiz_issues_block_pass_and_related_positions_are_bounded(self):
-        self.report['quiz_review']['target_diversity'] = 'fail'
-        self.report['quiz_review']['issues'] = [dict(code='repeated_target', detail='Items repeat a target.', related_positions=[1, 2])]
+    def test_hard_quiz_issue_blocks_and_repeated_target_only_warns(self):
+        self.report['quiz_review']['concept_coverage'] = 'fail'
+        self.report['quiz_review']['issues'] = [dict(code='missing_coverage', detail='A taught concept is untested.', related_positions=[1, 2])]
         self.assertEqual(validate_review(self.report, self.context)['decision'], 'needs_revision')
         self.report['quiz_review']['issues'][0]['related_positions'] = [11]
         with self.assertRaises(ReviewRejected): validate_review(self.report, self.context)
+        soft = copy.deepcopy(json.loads((FIXTURES / 'pass.json').read_text())['report'])
+        soft['quiz_review']['target_diversity'] = 'fail'
+        soft['quiz_review']['issues'] = [dict(code='repeated_target', detail='Items repeat a target.', related_positions=[1, 2])]
+        result = validate_review(soft, self.context)
+        self.assertEqual((result['decision'], result['reasons'], result['warnings']), ('pass', [], ['repeated_target']))
 
-    def test_controller_counts_understanding_and_excludes_recall_evidence_boundary(self):
+    def test_controller_counts_understanding_and_only_warns_when_below_the_goal(self):
         self.assertEqual(validate_review(self.report, self.context)['understanding_count'], 6)
+        self.assertEqual(validate_review(self.report, self.context)['warnings'], [])
         for q in self.report['questions']: q['primary_demand'] = 'evidence_boundary'
         result = validate_review(self.report, self.context)
         self.assertEqual(result['understanding_count'], 0)
-        self.assertEqual(result['decision'], 'needs_revision')
-        self.assertIn('insufficient_understanding', result['reasons'])
+        self.assertEqual((result['decision'], result['reasons']), ('pass', []))
+        self.assertEqual(result['warnings'], ['insufficient_understanding'])
+
+    def test_uncertain_target_diversity_still_blocks(self):
+        self.report['quiz_review'].update(target_diversity='uncertain', uncertainty_notes=['Cannot tell.'])
+        self.assertEqual(validate_review(self.report, self.context)['decision'], 'blocked')
 
     def test_unsupported_rubric_and_hash_versions_are_rejected(self):
         for field in ('rubric_version', 'hash_version', 'schema_version'):

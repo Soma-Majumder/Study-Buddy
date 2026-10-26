@@ -1,7 +1,7 @@
 {
   "name": "strict_labels_reference",
-  "source": "policy: the reference quiz itself scores four under strict labels",
-  "known_defect": "Not a defect: manual reference quiz with Q4 as recall and Q9 as evidence_boundary has exactly four understanding items.",
+  "source": "policy: the reference quiz itself scores four under strict labels; only a warning",
+  "known_defect": "Soft: manual reference quiz with Q4 as recall and Q9 as evidence_boundary has four understanding items. Warns, does not block.",
   "report": {
     "schema_version": "1.0",
     "operation_id": "quality_a1b2c3d4e5f6",
@@ -205,5 +205,8 @@
     }
   },
   "expected_decision": "pass",
-  "expected_reasons": []
+  "expected_reasons": [],
+  "expected_warnings": [
+    "insufficient_understanding"
+  ]
 }

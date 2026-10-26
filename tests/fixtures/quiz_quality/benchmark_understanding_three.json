@@ -1,7 +1,7 @@
 {
-  "name": "understanding_below_minimum_three",
-  "source": "policy: blocking minimum is four",
-  "known_defect": "Three understanding items (Q2, Q4 recall; Q9 evidence_boundary) is one below the blocking minimum of four.",
+  "name": "understanding_three",
+  "source": "policy: understanding and repeated-target problems are warnings, not blocks",
+  "known_defect": "Soft: three understanding items (Q2, Q4 recall; Q9 evidence_boundary). Warns, does not block.",
   "report": {
     "schema_version": "1.0",
     "operation_id": "quality_a1b2c3d4e5f6",
@@ -204,8 +204,9 @@
       "uncertainty_notes": []
     }
   },
-  "expected_decision": "needs_revision",
-  "expected_reasons": [
+  "expected_decision": "pass",
+  "expected_reasons": [],
+  "expected_warnings": [
     "insufficient_understanding"
   ]
 }

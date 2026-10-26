@@ -24,8 +24,8 @@ def uncertain(context,**kwargs):
 
 def content_failure(context,**kwargs):
     r=passing_review(context)
-    r['quiz_review']['target_diversity']='fail'
-    r['quiz_review']['issues']=[dict(code='repeated_target',detail='Repeated target.',related_positions=[1,2])]
+    r['quiz_review']['concept_coverage']='fail'
+    r['quiz_review']['issues']=[dict(code='missing_coverage',detail='Repeated target.',related_positions=[1,2])]
     return r
 
 
