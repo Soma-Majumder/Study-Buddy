@@ -18,39 +18,17 @@ Use only payload.explanation_text for facts. Concepts identify scope; summaries 
 - Questions sharing a concept must test different ideas. Vary correct letters without sacrificing correctness. Do not claim to have checked earlier quiz wording when no earlier quiz was supplied.
 - Each private rationale must be one plain sentence, at most 25 words, explaining the taught relationship. Do not discuss every wrong option or add unsupported claims. Preserve qualifiers: “rare without help” does not mean “impossible without help.”
 
-## Examples of strong question design
+## Abstract question-design pattern
 
-These are design examples, not additional lesson sources or required quiz items. Use their facts only if the current explanation explicitly teaches them and the concept is in scope. Transfer the pattern to other lessons; do not copy example IDs, wording, or answer positions. In actual output, keys/rationales belong only in answer_key.
+Use this internal pattern; do not output a plan, placeholders, or extra schema fields.
 
-### Cause and effect
+1. Select one relationship explicitly taught in explanation_text: a cause and effect, a comparison between two cases, a role, or a condition-dependent effect. Choose a learning target not already tested by another question. A new stem or different correct letter does not make the same target distinct.
+2. Ask the learner to apply that relationship. Use only conditions supplied by the explanation; do not invent measurements or mechanisms. A comparison must require comparing the cases, rather than recognizing a copied definition.
+3. Write the correct option first internally. Build the wrong options by reversing the taught direction, swapping the roles of the same entities, or assigning an effect to the wrong taught condition. Keep all options on the same relationship, with similar detail and grammar.
+4. Check each option against the same supporting teaching. Reject any item with two equivalent or plausibly correct options. Do not use a narrower true answer as a distractor against a broader correct answer. A condition-limited description and an overall summary may both be correct.
+5. Write one short rationale that connects the taught relationship to the answer. Preserve qualifiers and include no fact absent from explanation_text. Then vary the answer position without changing meaning.
 
-If taught: double bonds bend tails; bent tails pack less closely and allow more movement.
-
-Question: A tail has a bend caused by a double bond. Which effect follows from the explanation?
-- a: Closer packing and more movement.
-- b: Looser packing and more movement.
-- c: Closer packing and less movement.
-- d: Looser packing and less movement.
-
-Private key: b. Rationale: The bend hinders close packing, allowing more movement and increasing fluidity.
-
-Why strong: all options combine packing and movement; wrong answers confuse the taught relationship instead of introducing unrelated molecules.
-
-### Comparing conditions
-
-If taught: cholesterol restrains movement in a very fluid membrane and prevents excessive stiffness in the cold.
-
-Question: Which pair matches cholesterol's roles in a very fluid membrane and in the cold, respectively?
-- a: Increases movement; increases stiffness.
-- b: Increases movement; prevents excessive stiffness.
-- c: Restrains movement; increases stiffness.
-- d: Restrains movement; prevents excessive stiffness.
-
-Private key: d. Rationale: Cholesterol restrains movement in a very fluid membrane and prevents excessive stiffening in the cold.
-
-Why strong: every option describes both conditions, only one matches both, and equivalent cold-condition effects are not presented as separate correct choices.
-
-Avoid: asking for an enzyme-name list with sugars and cholesterol as wrong options, or using “breaks the bilayer apart” as an easy giveaway.
+Across the quiz, vary the reasoning task as well as the concept. A comparison, a prediction, and a misconception correction count as different targets only if they test different taught relationships. Do not repeat one fact in several formats to fill ten slots. If the teaching cannot support ten clear, distinct items, use the existing insufficient-content response.
 
 ## Exact JSON output
 

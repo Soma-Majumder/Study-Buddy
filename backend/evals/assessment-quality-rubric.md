@@ -62,3 +62,10 @@ After the longer-deadline run hit the token cap, the prompt was condensed and ea
 Two compact authored examples now demonstrate cause/effect (tail packing versus movement) and comparison across conditions (cholesterol buffering). All options address the same variables and use plausible relationship reversals, with one short rationale. Each example is explicitly conditional on current teaching and focus scope; example facts do not extend the factual input. No example IDs are supplied and correct letters must not be copied as a pattern.
 
 For the next live review, check that generated items transfer these design principles rather than merely reproduce the two examples or repeat them to fill ten positions. Preserve explanation-only grounding, one defensible answer, and distinct learning targets. These examples have not yet been live-evaluated, and six understanding items remains a quality target rather than a runtime guarantee.
+
+
+## Abstract design pattern replaces question examples
+
+The prompt no longer includes the membrane question/answer examples. It now asks the agent to select a distinct explicitly taught relationship, choose a reasoning task, build parallel distractors by reversing or swapping that relationship, reject overlapping true answers, and write one short grounded rationale. Planning stays internal and does not add output fields. The pattern also flags a narrower true option competing with a broader correct summary, as observed in the cholesterol item.
+
+For the next evaluation, check genuine target diversity rather than counting different stems or shuffled choices. Both the factual reference and retry focus remain the supplied handoff; no new subject-matter examples are introduced. A full accepted quiz must still be reviewed for correctness and distractor plausibility. This revision is not yet live-verified. Earlier example-specific review notes above describe historical prompt versions.

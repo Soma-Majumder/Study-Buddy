@@ -190,3 +190,8 @@ Q5 repeats the example stem exactly: “Which pair matches cholesterol's roles i
 Rationales are one sentence, 11–19 words each. Most keys match the explanation, but the ambiguity and added rationale detail above block quality approval. About four items target comparison/cause/correction (Q2, Q3, Q5, Q6), below the six-item target; two closely reuse examples and two pairs overlap in learning target. No student outcome or robust improvement is established.
 
 Next design adjustment: replace lesson-specific question text with an abstract planning pattern, or use examples from another topic clearly excluded from factual input, then review grounding and transfer carefully. Do not weaken the rubric or silently accept copied/ambiguous questions just because schema validation succeeds. No third generation was made.
+
+
+## Prepared abstract design pattern
+
+Removed the two lesson-specific question examples after the model copied one verbatim. Their replacement is a five-step abstract design pattern: choose a distinct taught relationship, ask for an application, construct parallel plausible confusions, reject equivalent/narrower-true alternatives, and write a short explanation-grounded rationale. No additional factual material or question templates are provided. Existing privacy, exact JSON, scope, and controller stopping rules are unchanged. No paid generation was made, and effectiveness remains to be tested live.
