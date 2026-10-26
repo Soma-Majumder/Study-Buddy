@@ -10,11 +10,13 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sqlite3
 
 import jsonschema
 
-from study_buddy.answer_keys import new_id, save_quiz, get_client_quiz
+from study_buddy.answer_keys import new_id, save_quiz, get_client_quiz, get_answer_key
 from scripts.validate_quiz import check as check_quiz
+from study_buddy.grading import grade
 
 ROOT = Path(__file__).resolve().parent.parent
 HANDOFF_SCHEMA = json.loads((ROOT / 'schemas/v1/tutor_to_assessment.schema.json').read_text())
@@ -196,3 +198,75 @@ def start_quiz_session(conn, learner_id, lesson_id, *, assessment, tutor=run_tut
             (context['handoffId'],)).fetchone()[0], 'Could not save the quiz. No quiz was started.')
     return dict(session_id=context['sessionId'], status='awaiting_answers', next_step='submit_answers',
                 quiz=client_quiz, error=None)
+
+class SubmissionRejected(ValueError):
+    """Invalid, unauthorized, stale, or already-submitted learner input."""
+
+
+def submit_answers(conn, learner_id, quiz_id, answers):
+    """Grade one complete submission and atomically save verified evidence.
+
+    Rejected input creates no attempt or score. A claimed submission writes
+    its attempt, responses, result, and weak concepts in one transaction.
+    Session status stays grading for later Assessment feedback/routing.
+    """
+    row = conn.execute(
+        'SELECT s.session_id, s.lesson_id, s.status FROM study_sessions s '
+        'JOIN quizzes q ON q.session_id = s.session_id '
+        'WHERE q.quiz_id = ? AND s.learner_id = ?', (quiz_id, learner_id),
+    ).fetchone()
+    if row is None:
+        raise SubmissionRejected('Quiz is unavailable for this learner.')
+    session_id, lesson_id, status = row
+    if status != 'awaiting_answers':
+        raise SubmissionRejected('This session is not accepting answers.')
+    questions = {r[0] for r in conn.execute('SELECT question_id FROM questions WHERE quiz_id = ?', (quiz_id,))}
+    if (not isinstance(answers, dict) or set(answers) != questions or
+            any(not isinstance(v, str) or v not in ('a', 'b', 'c', 'd') for v in answers.values())):
+        raise SubmissionRejected('Answer every quiz question with one option from a to d.')
+    keys = get_answer_key(conn, quiz_id)
+    if len(questions) != 10 or len(keys) != 10 or {k['question_id'] for k in keys} != questions:
+        # A technical defect never becomes a learner's wrong answer.
+        with conn:
+            conn.execute("UPDATE study_sessions SET status = 'failed', failure_reason = ? WHERE session_id = ?",
+                         ('The saved quiz or answer key is incomplete. No score was recorded.', session_id))
+        return dict(session_id=session_id, status='failed', next_step=None, graded=None,
+                    error='The saved quiz or answer key is incomplete. No score was recorded.')
+    graded = grade(keys, answers)
+    attempt_id, result_id = new_id('attempt'), new_id('result')
+    recorded_at = conn.execute("SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now')").fetchone()[0]
+    with conn:
+        # Conditional update acquires SQLite's write lock. A simultaneous or
+        # repeated submission cannot claim a session already moved to grading.
+        claimed = conn.execute(
+            "UPDATE study_sessions SET status = 'grading' WHERE session_id = ? AND status = 'awaiting_answers'",
+            (session_id,),
+        ).rowcount
+        if not claimed or conn.execute('SELECT 1 FROM attempts WHERE quiz_id = ?', (quiz_id,)).fetchone():
+            raise SubmissionRejected('This quiz was already submitted or is no longer accepting answers.')
+        conn.execute('SAVEPOINT save_submission')
+        try:
+            conn.execute('INSERT INTO attempts VALUES (?, ?, ?, ?)',
+                         (attempt_id, quiz_id, learner_id, recorded_at))
+            conn.executemany('INSERT INTO responses VALUES (?, ?, ?, ?)', [
+                (attempt_id, i['question_id'], i['selected'], int(i['is_correct'])) for i in graded['items']
+            ])
+            # These are deterministic key-based rationales, not AI-written feedback.
+            conn.execute('INSERT INTO results VALUES (?, ?, ?, ?, ?, ?)',
+                         (result_id, attempt_id, graded['score'], json.dumps(graded['items']),
+                          int(graded['passed']), recorded_at))
+            conn.executemany('INSERT INTO weak_concepts VALUES (?, ?, ?, ?, ?, ?)', [
+                (learner_id, w['concept_id'], attempt_id, lesson_id, w['missed_count'], recorded_at)
+                for w in graded['weak_concepts']
+            ])
+        except sqlite3.Error:
+            conn.execute('ROLLBACK TO save_submission')
+            conn.execute('RELEASE save_submission')
+            message = 'Could not save the submission. No score was recorded.'
+            conn.execute("UPDATE study_sessions SET status = 'failed', failure_reason = ? WHERE session_id = ?",
+                         (message, session_id))
+            return dict(session_id=session_id, status='failed', next_step=None, graded=None, error=message)
+        conn.execute('RELEASE save_submission')
+    # Feedback, retry eligibility/reservation, and final summary are next steps.
+    return dict(session_id=session_id, quiz_id=quiz_id, attempt_id=attempt_id, result_id=result_id,
+                status='grading', next_step='assessment_feedback', graded=graded, error=None)

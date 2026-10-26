@@ -5,8 +5,9 @@ from pathlib import Path
 import sqlite3
 import unittest
 
-from study_buddy.controller import start_session, start_quiz_session, run_tutor, TutorFailure
+from study_buddy.controller import start_session, start_quiz_session, run_tutor, TutorFailure, submit_answers, SubmissionRejected
 from study_buddy.lessons import load_lessons
+from study_buddy.answer_keys import get_answer_key
 
 ROOT = Path(__file__).resolve().parent.parent
 LEARNER = 'learner_a1b2c3d4e5f6'
@@ -181,3 +182,115 @@ class ControllerTests(unittest.TestCase):
             handoff['handoff_id'] = 'handoff_forged'
             return self.assessment(handoff, repair_request=repair_request)
         self.assertEqual(self.start_quiz(assessment=mutating)['status'], 'failed')
+
+    def answers_for(self, quiz_id, wrong_positions=()):
+        keys = get_answer_key(self.conn, quiz_id)
+        return {k['question_id']: (
+            ('b' if k['correct_option'] == 'a' else 'a') if i in wrong_positions else k['correct_option']
+        ) for i, k in enumerate(keys, 1)}
+
+    def test_submission_grades_thresholds_and_saves_concept_evidence(self):
+        for wrong, score, passed in [((), 10, True), ((1, 2), 8, True), ((1, 2, 3), 7, False), ((3, 4, 6, 7), 6, False)]:
+            with self.subTest(score=score):
+                started = self.start_quiz()
+                qid = started['quiz']['quiz_id']
+                result = submit_answers(self.conn, LEARNER, qid, self.answers_for(qid, wrong))
+                self.assertEqual((result['graded']['score'], result['graded']['passed']), (score, passed))
+                self.assertEqual((result['status'], result['next_step']), ('grading', 'assessment_feedback'))
+                self.assertEqual(self.conn.execute('SELECT score, passed FROM results WHERE result_id = ?',
+                                                  (result['result_id'],)).fetchone(), (score, int(passed)))
+                self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM responses WHERE attempt_id = ?',
+                                                  (result['attempt_id'],)).fetchone()[0], 10)
+                counts = dict(self.conn.execute('SELECT concept_id, missed_count FROM weak_concepts WHERE source_attempt_id = ?',
+                                                (result['attempt_id'],)))
+                self.assertEqual(counts, {w['concept_id']: w['missed_count'] for w in result['graded']['weak_concepts']})
+                if score == 6:
+                    self.assertEqual(counts, {'c_fatty_acid_saturation': 2, 'c_cholesterol_buffer': 2})
+                self.assertEqual(self.conn.execute('SELECT learning_retry_count FROM study_sessions WHERE session_id = ?',
+                                                  (result['session_id'],)).fetchone()[0], 0)
+
+    def test_incomplete_unknown_or_invalid_answers_create_no_attempt(self):
+        started = self.start_quiz()
+        qid = started['quiz']['quiz_id']
+        answers = self.answers_for(qid)
+        missing = dict(answers); missing.pop(next(iter(missing)))
+        unknown = dict(answers); unknown['q_unknown'] = 'a'
+        invalid = dict(answers); invalid[next(iter(invalid))] = 'z'
+        for values in [missing, unknown, invalid, None]:
+            with self.subTest(answers=type(values).__name__):
+                with self.assertRaises(SubmissionRejected):
+                    submit_answers(self.conn, LEARNER, qid, values)
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM attempts').fetchone()[0], 0)
+        self.assertEqual(self.conn.execute('SELECT status FROM study_sessions').fetchone()[0], 'awaiting_answers')
+
+    def test_other_learner_cannot_submit_quiz_or_see_key(self):
+        started = self.start_quiz()
+        qid = started['quiz']['quiz_id']
+        with self.assertRaises(SubmissionRejected) as error:
+            submit_answers(self.conn, 'learner_z1b2c3d4e5f6', qid, self.answers_for(qid))
+        self.assertEqual(str(error.exception), 'Quiz is unavailable for this learner.')
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM attempts').fetchone()[0], 0)
+
+    def test_replayed_submission_never_creates_second_attempt(self):
+        started = self.start_quiz()
+        qid = started['quiz']['quiz_id']
+        answers = self.answers_for(qid)
+        submit_answers(self.conn, LEARNER, qid, answers)
+        with self.assertRaises(SubmissionRejected): submit_answers(self.conn, LEARNER, qid, answers)
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM attempts').fetchone()[0], 1)
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM results').fetchone()[0], 1)
+
+    def test_failed_result_save_rolls_back_attempt_responses_and_weak_concepts(self):
+        started = self.start_quiz()
+        qid = started['quiz']['quiz_id']
+        self.conn.execute("CREATE TRIGGER fail_result BEFORE INSERT ON results BEGIN SELECT RAISE(ABORT, 'test failure'); END")
+        result = submit_answers(self.conn, LEARNER, qid, self.answers_for(qid, (3, 4, 6, 7)))
+        self.assertEqual(result['status'], 'failed')
+        self.assertIsNone(result['graded'])
+        for table in ['attempts', 'responses', 'results', 'weak_concepts']:
+            self.assertEqual(self.conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0], 0)
+        self.assertEqual(self.conn.execute('SELECT status FROM study_sessions').fetchone()[0], 'failed')
+
+    def test_missing_private_key_is_a_technical_failure_not_a_wrong_answer(self):
+        started = self.start_quiz()
+        qid = started['quiz']['quiz_id']
+        answers = self.answers_for(qid)
+        self.conn.execute('DELETE FROM answer_keys WHERE question_id = ?', (next(iter(answers)),))
+        self.conn.commit()
+        result = submit_answers(self.conn, LEARNER, qid, answers)
+        self.assertEqual(result['status'], 'failed')
+        self.assertIsNone(result['graded'])
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM attempts').fetchone()[0], 0)
+
+    def test_simultaneous_submissions_save_only_one_attempt(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from contextlib import closing
+        import tempfile
+        import threading
+        started = self.start_quiz()
+        qid = started['quiz']['quiz_id']
+        answers = self.answers_for(qid)
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / 'study.sqlite')
+            disk = sqlite3.connect(path)
+            self.conn.backup(disk)
+            disk.close()
+            barrier = threading.Barrier(2)
+            def submit():
+                conn = sqlite3.connect(path, timeout=5)
+                conn.execute('PRAGMA foreign_keys = ON')
+                try:
+                    barrier.wait(timeout=5)
+                    try:
+                        return submit_answers(conn, LEARNER, qid, answers)['status']
+                    except SubmissionRejected:
+                        return 'rejected'
+                finally:
+                    conn.close()
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                outcomes = list(pool.map(lambda _: submit(), range(2)))
+            self.assertCountEqual(outcomes, ['grading', 'rejected'])
+            with closing(sqlite3.connect(path)) as saved:
+                self.assertEqual(saved.execute('SELECT COUNT(*) FROM attempts').fetchone()[0], 1)
+                self.assertEqual(saved.execute('SELECT COUNT(*) FROM results').fetchone()[0], 1)
+                self.assertEqual(saved.execute('SELECT COUNT(*) FROM responses').fetchone()[0], 10)
