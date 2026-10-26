@@ -6,9 +6,9 @@ import { QUIZ_EXPECTED_OUTPUT } from './handoff-policy.mjs';
 const projectFile = path => new URL(path, import.meta.url);
 
 // Build first-round or focused reteaching input. Never contacts Claude.
-export async function buildTutorInput({ lessonId, sessionId, handoffId, explanationId, round = 'first', returnHandoff, currentAttempt, learningRetryCount }) {
+export async function buildTutorInput({ lessonId, sessionId, handoffId, explanationId, round = 'first', returnHandoff, currentAttempt, learningRetryCount, retryReservation }) {
   if (!['first', 'retry'].includes(round)) throw new Error('Unknown Tutor round.');
-  if (round === 'first' && (returnHandoff !== undefined || currentAttempt !== undefined)) {
+  if (round === 'first' && (returnHandoff !== undefined || currentAttempt !== undefined || retryReservation !== undefined)) {
     throw new Error('First-round input must not include a reteaching handoff.');
   }
   // IDs belong to the controller; the model must receive them, not invent them.
@@ -49,7 +49,7 @@ export async function buildTutorInput({ lessonId, sessionId, handoffId, explanat
 
   const weak = round === 'retry' ? checkReteaching({
     handoff: returnHandoff, currentAttempt, learningRetryCount,
-    sessionId, lesson, sources: [source],
+    sessionId, lesson, sources: [source], retryReservation, handoffId, explanationId,
   }) : [];
   const focusIds = weak.map(c => c.concept_id);
 
