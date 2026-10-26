@@ -4,3 +4,6 @@
 node_modules/
 __pycache__/
 *.pyc
+
+# Generated evaluation output; may contain private quiz keys and raw model text
+backend/evals/results/
