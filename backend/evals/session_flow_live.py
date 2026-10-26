@@ -63,13 +63,28 @@ def main():
               ('quizzes', 'attempts', 'results', 'quiz_quality_calls', 'quiz_quality_publications')}
     kinds = dict(conn.execute('SELECT kind, COUNT(*) FROM quiz_quality_calls GROUP BY kind').fetchall())
     session = conn.execute('SELECT status, learning_retry_count, failure_reason FROM study_sessions').fetchone()
+    reviews = []
+    for data, decision, version in conn.execute('SELECT report_data, decision, candidate_version FROM quiz_quality_reports ORDER BY rowid'):
+        rep = json.loads(data)
+        tally = {}
+        for q in rep['questions']:
+            for c in ('grounding', 'exactly_one_answer', 'plausible_distractors', 'fair_wording', 'rationale_quality'):
+                if q[c] != 'pass':
+                    tally.setdefault(c, {}).setdefault(q[c], []).append(q['position'])
+        codes = sorted({i['code'] for q in rep['questions'] for i in q['issues']} | {i['code'] for i in rep['quiz_review']['issues']})
+        demands = {}
+        for q in rep['questions']:
+            demands[q['primary_demand']] = demands.get(q['primary_demand'], 0) + 1
+        reviews.append(dict(candidate_version=version, decision=decision, non_pass_by_criterion=tally, issue_codes=codes,
+                            quiz_level={k: rep['quiz_review'][k] for k in ('concept_coverage', 'target_diversity')}, demands=demands))
     report = dict(date=datetime.now(timezone.utc).isoformat(), model=os.environ.get('ANTHROPIC_MODEL', 'default'),
                   elapsed_seconds=elapsed, status=result['status'], error=result['error'], scores=result['scores'],
                   steps=result['steps'], session=dict(status=session[0], learning_retry_count=session[1], failure_reason=session[2]),
                   row_counts=counts, quality_calls_by_kind=kinds, foreign_key_violations=len(conn.execute('PRAGMA foreign_key_check').fetchall()),
-                  summary_saved=result['summary'] is not None)
+                  summary_saved=result['summary'] is not None, reviews=reviews)
     out.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: report[k] for k in ('status', 'error', 'scores', 'elapsed_seconds', 'row_counts', 'quality_calls_by_kind')}, indent=2))
+    print('reviews:', json.dumps(reviews))
     print('steps:', ' > '.join(f"{s['step']}:{s['round']}:{s['status']}" for s in result['steps']))
 
 
