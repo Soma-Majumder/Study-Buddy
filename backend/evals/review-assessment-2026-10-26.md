@@ -25,3 +25,10 @@ The prompt now explicitly prohibits answer_key_placeholder and concept_id in ans
 ## Limits and next check
 
 One sample provides no reliability estimate. Next, generate a fresh sample through controller validation and its reserved repair path, then review content again. Focused retry generation and adversarial live testing still need evaluation. This run does not establish student learning improvement or mastery.
+
+
+## Revised prompt through controller
+
+Report: `results/2026-10-26T18-35-41-271377+00-00-assessment-controller.json`. This run used the revised prompt, a fixture Tutor with controller-generated IDs, the real Python/Node Assessment bridge, and an isolated in-memory SQLite database. It made one adapter invocation, which failed at the model-call stage after 18,156 ms. No output reached quiz validation. The safe error boundary does not preserve the provider failure category, so timeout, provider rejection, truncation, and transport failure cannot be distinguished from this report. Do not infer the cause or token charges from this result.
+
+The controller returned failed status with no next step and persisted zero quizzes, questions, keys, attempts, or results. Learning retry count and technical repair count both remained zero; no repair call was made for the provider failure. No learner key leak or foreign-key violation was found. This verifies failure handling in this run, not revised-prompt correctness or live repair success. Next improvement: preserve a fixed safe failure code (without provider bodies or credentials) before another live run.

@@ -44,3 +44,8 @@ One sample per live case is an initial smoke evaluation, not a reliability estim
 ## Assessment quiz evaluation
 
 Run one paid first-round generation explicitly with `node --env-file=.env backend/evals/assessment-quiz.mjs --live` from the repository root. This runner uses the hand-written Tutor fixture, does not invoke controller repair or write a study-session database, and saves parsed output plus model/usage, hashes, and latency. Developer reports contain private keys and must not be learner-facing. Validate the saved `output` against its saved `handoff` using `scripts.validate_quiz.check`; inspect correctness, grounding, distractors, clarity, and coverage separately. See `review-assessment-2026-10-26.md` for the first sample, which failed format validation. Prompt changes after that run have not yet been live-tested.
+
+
+### Controller routing evaluation
+
+With `ANTHROPIC_API_KEY` privately loaded into the process environment and Node on PATH (or `STUDY_BUDDY_NODE` set), run `python -B backend/evals/assessment_controller.py --live`. This authorizes a first generation and at most one controller-reserved repair, using the fixture Tutor and an isolated in-memory database. It records generation validation errors, actual saved counts, status/counters, key isolation, and foreign-key checks. It does not run a live Tutor, assess learner outcomes, or complete a full study session. Reports may contain private quiz keys. The initial revised-prompt controller run failed during model call, before validation; see the review notes.
