@@ -112,3 +112,10 @@ A well-formed report can lead to pass, needs_revision, or blocked for uncertaint
 Migration 005 and the fresh schema now include quality operation and call reservation tables. `study_buddy/quality_state.py` enforces unique operation/call identities, a fixed elapsed deadline, one content revision, two reviews, and the existing single shared technical correction. State approval is bound to a candidate version/hash and is not publication. The trusted caller must validate reviewer reports before recording their derived decision.
 
 Candidate/private-key payload staging, validated report persistence, model dispatch, and atomic publication are not wired yet. The helpers leave existing session statuses and learning retries unchanged; the future controller integration must propagate failed operations to accurate session status and enforce the gate. No automatic resume is offered after a reserved call crashes. This milestone passed offline tests without paid calls.
+
+
+## Private staging milestone completed
+
+Migration 006 and quality_storage now persist immutable candidate question data, separate private keys, teaching snapshots, and validated reports. Storage composes with call completion in one transaction. Full candidate hashes are reconstructed on private reads; review decisions are derived against the saved candidate rather than caller-supplied verdicts. Initial/revised versions and failing/uncertain reports remain auditable.
+
+The gate still has no model harness or publication integration. Rejected malformed reports require the future dispatcher to record a terminal failure; storage itself does not dispatch or retry. New orchestration should use the storage helpers rather than the earlier low-level hash-only completion path. Existing first/retry generation routes remain unchanged.

@@ -2,8 +2,10 @@
 
 These are trusted controller primitives. complete_quality_call must receive
 controller-validated review outcomes, never raw model or learner decisions.
-Candidate payload/report persistence and controller wiring are separate work.
+quality_storage composes these primitives with private payload/report saves.
+Controller/model wiring and publication remain separate work.
 """
+from contextlib import nullcontext
 import hashlib
 import json
 import time
@@ -130,13 +132,14 @@ def reserve_quality_call(conn, learner_id, operation_id, kind):
                          process_timeout_seconds=min(70, remaining))
 
 
-def complete_quality_call(conn, learner_id, call_id, *, outcome, candidate=None, reviewed_hash=None):
+def complete_quality_call(conn, learner_id, call_id, *, outcome, candidate=None, reviewed_hash=None, manage_transaction=True):
     """Record a result once. Review outcomes must already pass validate_review.
 
-    This primitive does not store candidate payloads/reports or approve a quiz
-    for publication. It stores only their binding hash and operation progress.
+    This low-level primitive stores hashes/state only; prefer quality_storage
+    for atomic payload/report completion. manage_transaction=False is internal
+    to a caller-owned transaction, never a public/model parameter.
     """
-    with conn:
+    with conn if manage_transaction else nullcontext():
         call = conn.execute('SELECT operation_id, kind, status, candidate_version, candidate_hash, result_fingerprint '
                             'FROM quiz_quality_calls WHERE call_id = ?', (call_id,)).fetchone()
         if not call:
