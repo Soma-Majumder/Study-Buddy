@@ -35,6 +35,7 @@ Rules:
 | `quizzes`, `questions` | Ten questions per quiz, each tied to one concept, no answers inside | quizzes & questions |
 | `answer_keys` | Correct option per question. Backend only, in its own table so it cannot leak by accident | private keys |
 | `attempts`, `responses` | A student's submitted answers, graded by the controller | attempts & responses |
+| `feedback_operations` | One persisted Assessment feedback operation per attempt, its return handoff ID, and running/ready/failed state; duplicates reuse it rather than refreshing the repair budget | feedback routing |
 | `results` | Score out of 10, feedback, pass/fail for each attempt | scores, feedback |
 | `weak_concepts` | Learner, concept, source attempt, lesson, when recorded | weak concepts |
 
