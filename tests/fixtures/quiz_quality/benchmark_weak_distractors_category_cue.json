@@ -218,7 +218,6 @@
   "expected_decision": "needs_revision",
   "expected_reasons": [
     "answer_cue",
-    "insufficient_understanding",
     "weak_distractor"
   ],
   "candidate_override": {

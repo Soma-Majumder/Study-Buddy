@@ -215,7 +215,6 @@
   },
   "expected_decision": "needs_revision",
   "expected_reasons": [
-    "insufficient_understanding",
     "repeated_target"
   ],
   "candidate_override": {

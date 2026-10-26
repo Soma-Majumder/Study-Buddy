@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 import unittest
 
-from study_buddy.quality_review import VALIDATOR, validate_review
+from study_buddy.quality_review import MINIMUM_UNDERSTANDING, UNDERSTANDING_GOAL, VALIDATOR, validate_review
 
 FIXTURES = Path(__file__).resolve().parent / 'fixtures/quiz_quality'
 CASES = sorted(FIXTURES.glob('benchmark_*.json'))
@@ -20,7 +20,7 @@ class QualityBenchmarkFixtureTests(unittest.TestCase):
         self.context = json.loads((FIXTURES / 'context.json').read_text())
 
     def test_benchmark_cases_exist(self):
-        self.assertGreaterEqual(len(CASES), 7)
+        self.assertGreaterEqual(len(CASES), 8)
 
     def test_each_case_has_expected_decision_and_reasons(self):
         for path in CASES:
@@ -34,30 +34,24 @@ class QualityBenchmarkFixtureTests(unittest.TestCase):
                 self.assertEqual(result['decision'], case['expected_decision'])
                 self.assertEqual(result['reasons'], case['expected_reasons'])
 
-    def test_no_benchmark_defect_is_approved(self):
+    def test_defects_never_pass_and_threshold_edges_follow_policy(self):
+        edges = {'understanding_boundary_five': 5, 'strict_labels_reference': 4, 'understanding_below_minimum_three': 3}
         for path in CASES:
             case = json.loads(path.read_text())
             with self.subTest(case=case['name']):
-                self.assertNotEqual(case['expected_decision'], 'pass')
+                if case['name'] in edges:
+                    result = validate_review(case['report'], self.context)
+                    self.assertEqual(result['understanding_count'], edges[case['name']])
+                    self.assertEqual(case['expected_decision'], 'pass' if edges[case['name']] >= MINIMUM_UNDERSTANDING else 'needs_revision')
+                else:
+                    self.assertNotEqual(case['expected_decision'], 'pass')
 
-    def test_strict_labels_show_reference_quiz_falls_below_six(self):
-        case = json.loads((FIXTURES / 'benchmark_strict_labels_reference.json').read_text())
-        result = validate_review(case['report'], self.context)
-        self.assertEqual(result['understanding_count'], 4)
+    def test_goal_is_six_and_gate_blocks_only_below_four(self):
+        self.assertEqual((UNDERSTANDING_GOAL, MINIMUM_UNDERSTANDING), (6, 4))
         pass_report = json.loads((FIXTURES / 'pass.json').read_text())['report']
-        self.assertEqual(validate_review(pass_report, self.context)['understanding_count'], 6)
-
-    def test_understanding_boundary_is_exactly_six(self):
+        self.assertEqual(validate_review(pass_report, self.context)['understanding_count'], UNDERSTANDING_GOAL)
+        recall_heavy = json.loads((FIXTURES / 'benchmark_recall_heavy_all_items_pass.json').read_text())
+        self.assertEqual(validate_review(recall_heavy['report'], self.context)['decision'], 'needs_revision')
+        # The older strict goal-as-gate behaviour remains available explicitly.
         five = json.loads((FIXTURES / 'benchmark_understanding_boundary_five.json').read_text())
-        self.assertEqual(validate_review(five['report'], self.context)['understanding_count'], 5)
-        pass_report = json.loads((FIXTURES / 'pass.json').read_text())['report']
-        self.assertEqual(validate_review(pass_report, self.context)['decision'], 'pass')
-        self.assertEqual(validate_review(five['report'], self.context, minimum_understanding=5)['decision'], 'pass')
-
-    def test_proposed_threshold_of_four_blocks_only_clearly_recall_heavy_quizzes(self):
-        outcomes = {}
-        for name in ('understanding_boundary_five', 'strict_labels_reference', 'recall_heavy_all_items_pass'):
-            case = json.loads((FIXTURES / f'benchmark_{name}.json').read_text())
-            outcomes[name] = validate_review(case['report'], self.context, minimum_understanding=4)['decision']
-        self.assertEqual(outcomes, dict(understanding_boundary_five='pass', strict_labels_reference='pass',
-                                        recall_heavy_all_items_pass='needs_revision'))
+        self.assertEqual(validate_review(five['report'], self.context, minimum_understanding=UNDERSTANDING_GOAL)['decision'], 'needs_revision')

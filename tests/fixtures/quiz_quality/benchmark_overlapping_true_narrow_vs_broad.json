@@ -213,8 +213,7 @@
   },
   "expected_decision": "needs_revision",
   "expected_reasons": [
-    "ambiguous_answer",
-    "insufficient_understanding"
+    "ambiguous_answer"
   ],
   "candidate_override": {
     "schema_version": "1.0",

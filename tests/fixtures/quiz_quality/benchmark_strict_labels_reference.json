@@ -1,7 +1,7 @@
 {
   "name": "strict_labels_reference",
-  "source": "challenge: the manual reference itself falls to 4 understanding items under strict labels (3 if Q2 is also recall)",
-  "known_defect": "Manual reference quiz with Q4 (apply the given definition) as recall and Q9 (preserve a qualifier) as evidence_boundary.",
+  "source": "policy: the reference quiz itself scores four under strict labels",
+  "known_defect": "Not a defect: manual reference quiz with Q4 as recall and Q9 as evidence_boundary has exactly four understanding items.",
   "report": {
     "schema_version": "1.0",
     "operation_id": "quality_a1b2c3d4e5f6",
@@ -204,8 +204,6 @@
       "uncertainty_notes": []
     }
   },
-  "expected_decision": "needs_revision",
-  "expected_reasons": [
-    "insufficient_understanding"
-  ]
+  "expected_decision": "pass",
+  "expected_reasons": []
 }

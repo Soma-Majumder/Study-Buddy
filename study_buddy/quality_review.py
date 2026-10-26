@@ -10,6 +10,9 @@ ROOT = Path(__file__).resolve().parent.parent
 VALIDATOR = jsonschema.Draft202012Validator(json.loads((ROOT / 'schemas/v1/quiz_quality_review.schema.json').read_text()))
 CRITERIA = ('grounding', 'exactly_one_answer', 'plausible_distractors', 'fair_wording', 'rationale_quality')
 UNDERSTANDING = {'comparison', 'cause_effect', 'prediction', 'misconception_correction'}
+# Six understanding items is the generation goal; the gate blocks only below the minimum.
+UNDERSTANDING_GOAL = 6
+MINIMUM_UNDERSTANDING = 4
 
 
 class ReviewRejected(ValueError):
@@ -22,12 +25,13 @@ def candidate_hash(candidate):
     return hashlib.sha256(('study-buddy-private-quiz/v1\n' + payload).encode('utf-8')).hexdigest()
 
 
-def validate_review(report, context, *, minimum_understanding=6):
+def validate_review(report, context, *, minimum_understanding=MINIMUM_UNDERSTANDING):
     """Return pass/needs_revision/blocked, never permission to publish.
 
     context is backend-owned: operation_id, candidate_version, handoff, and
     candidate. The caller must authenticate ownership and load its snapshot.
-    Six understanding items is proposed quality policy, not a PRD/runtime change.
+    Six understanding items is the generation goal (UNDERSTANDING_GOAL); fewer than
+    MINIMUM_UNDERSTANDING blocks the quiz. Neither is a PRD change.
     """
     if type(minimum_understanding) is not int or not 0 <= minimum_understanding <= 10:
         raise ValueError('Understanding target must be an integer from 0 to 10.')
