@@ -3,6 +3,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import sqlite3
 import sys
@@ -19,6 +20,7 @@ from scripts.validate_quiz import check
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--live', action='store_true', help='Authorize one paid generation plus at most one controller repair')
+    parser.add_argument('--capture-response-text', action='store_true', help='Save private model text in a local evaluation artifact')
     args = parser.parse_args()
     if not args.live:
         parser.error('--live is required; this evaluation can make two paid requests')
@@ -26,6 +28,15 @@ def main():
                   scope='Live Assessment through real controller; Tutor is a hand-written fixture',
                   prompt_sha256=hashlib.sha256((ROOT / 'backend/prompts/assessment-quiz-system.md').read_bytes()).hexdigest(),
                   generations=[], review='pending', assessment_max_tokens=8192)
+
+    if args.capture_response_text:
+        capture = ROOT / 'backend/evals/results' / (report['date'].replace(':', '-').replace('.', '-') + '-assessment-response-text.jsonl')
+        capture.parent.mkdir(parents=True, exist_ok=True)
+        capture.touch(mode=0o600, exist_ok=False)
+        report['response_text_file'] = capture.name
+        preload = str(ROOT / 'backend/evals/capture-response.mjs')
+        os.environ['NODE_OPTIONS'] = (os.environ.get('NODE_OPTIONS', '') + ' --import=' + json.dumps(preload)).strip()
+        os.environ['STUDY_BUDDY_EVAL_CAPTURE_PATH'] = str(capture)
 
     def tutor(context):
         handoff = json.loads((ROOT / 'schemas/v1/examples/tutor_to_assessment.example.json').read_text())

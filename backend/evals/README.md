@@ -52,3 +52,10 @@ With `ANTHROPIC_API_KEY` privately loaded into the process environment and Node 
 
 
 Controller generation failures now record `error_code`, `http_status`, and `stop_reason` alongside `error_stage`. The single-generation JavaScript runner records the same safe metadata when available. Existing reports are preserved without inventing missing diagnostics. Offline fake-provider tests cover propagation across the real Python/Node boundary; no additional live call was made to verify error reporting.
+
+
+### Opt-in response-text capture
+
+Append `--capture-response-text` to the controller evaluation command to save text blocks from successful Claude responses in a local `*-assessment-response-text.jsonl` artifact. This still requires `--live` and may make two paid requests. The evaluation process loads `capture-response.mjs` through a Node preload; application code has no capture dependency. Files are created with owner-only permissions and may contain private answer keys. They must not be served to learners. Headers, request bodies, thinking blocks, and provider error bodies are excluded. An offline fake-provider test verifies those exclusions.
+
+The first capture run succeeded after one schema repair. Both responses were valid JSON; earlier parse failures were not reproduced. See the review notes for exact evidence and remaining content-quality limitations.

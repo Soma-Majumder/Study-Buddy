@@ -48,3 +48,14 @@ Report: `results/2026-10-26T18-40-19-056969+00-00-assessment-controller.json`. T
 This live controller run made two calls (20,256 ms and 21,060 ms). Neither returned a truncation error. Both completed transport but failed JSON parsing in the adapter, producing `output: null`; the validator reported “None is not of type object.” The controller reserved exactly one technical repair and failed after the second invalid generation. It saved no quiz, questions, keys, attempt, or result. Learning retry stayed zero, learner keys were not exposed, and foreign-key checks passed.
 
 This confirms the live repair limit and rejection of non-JSON output. It does not establish quiz quality or sustained resolution of truncation. Raw non-JSON text was discarded by design, so the exact formatting defect is unknown; do not assume Markdown fences or any other cause. Next diagnostic step: capture model response text only in an explicit backend evaluation artifact (never a learner response or normal error), then inspect why parsing fails. No third live call was made.
+
+
+## Explicit response-text capture: controller succeeds after one repair
+
+Report: `results/2026-10-26T18-42-45-856555+00-00-assessment-controller.json`. Raw text: `results/2026-10-26T18-42-45-856555+00-00-assessment-response-text.jsonl`. Capture was explicitly enabled for this evaluation through a Node preload; normal application code does not load it. It records only successful response text blocks and an allowlisted stop reason, excluding request data/headers, thinking blocks, and provider error bodies. Raw text may contain quiz keys and is a backend developer artifact.
+
+Both captured responses were valid JSON; the earlier JSON parsing failure was not reproduced, and its exact formatting cause remains unknown. The first output failed schema validation because an answer-key entry contained forbidden concept_id. The controller reserved one technical repair before the second call; the corrected output passed the existing quiz validator. Calls took 21,177 ms and 13,724 ms.
+
+The isolated database contained exactly one quiz, ten questions, and ten private keys, with no attempts or results. Session status was awaiting_answers, technical repair count one, learning retry count zero, no foreign-key errors, and no keys in the learner response. This live sample demonstrates successful validation/repair/persistence, not robust generation across lessons or runs.
+
+Assistant content inspection: all ten keyed answers and rationales appear supported by the fixture explanation; all seven taught concepts are covered. Several distractors remain easy category mismatches (for example sugars as flipping enzymes), and question 7 emphasizes specialist enzyme names rather than understanding. Do not equate schema validity with pedagogical quality. No third generation was made.
