@@ -8,7 +8,8 @@ import sys
 from threading import Event
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from study_buddy.maintenance_worker import run_maintenance_worker
+from study_buddy.maintenance_worker import (run_maintenance_worker, WorkerConfigurationError,
+    MaintenanceLockRetriesExhausted)
 
 
 def main():
@@ -26,11 +27,14 @@ def main():
             previous[signum] = signal.signal(signum, request_stop)
         result = run_maintenance_worker(args.database, limit=args.limit,
             interval_seconds=args.interval, stop_event=stop,
-            on_cycle=lambda counts: print(json.dumps(dict(event='cycle_completed', **counts)), flush=True))
+            on_cycle=lambda counts: print(json.dumps(dict(event='cycle_completed', **counts)), flush=True),
+            on_retry=lambda info: print(json.dumps(dict(event='lock_retry', **info)), flush=True))
         print(json.dumps(dict(event='worker_stopped', **result)), flush=True)
-    except ValueError as error:
+    except WorkerConfigurationError as error:
         parser.exit(2, f'Invalid worker configuration: {error}\n')
-    except (sqlite3.Error, OSError):
+    except MaintenanceLockRetriesExhausted:
+        parser.exit(75, 'Maintenance worker stopped after temporary database lock retries; restart when contention clears.\n')
+    except (sqlite3.Error, OSError, ValueError):
         parser.exit(1, 'Maintenance worker failed; check database availability and schema before restarting.\n')
     finally:
         for signum, handler in previous.items():

@@ -4,7 +4,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from tests import test_quality_expiry as fixtures
 from study_buddy.maintenance_worker import run_maintenance_cycle
@@ -152,3 +152,96 @@ class MaintenanceLoopTests(unittest.TestCase):
                     if process.poll() is None:
                         process.kill(); process.communicate()
                     process.stdout.close(); process.stderr.close()
+
+
+class MaintenanceRetryTests(unittest.TestCase):
+    @staticmethod
+    def locked(code=sqlite3.SQLITE_BUSY):
+        error = sqlite3.OperationalError('intentionally irrelevant text')
+        error.sqlite_errorcode = code
+        return error
+
+    def test_transient_lock_then_success_resets_retry_budget_each_cycle(self):
+        from study_buddy.maintenance_worker import run_maintenance_worker
+        stop = Mock()
+        stop.is_set.return_value = False
+        stop.wait.side_effect = [False, False, False, True]
+        retries, completed = [], []
+        with patch('study_buddy.maintenance_worker.run_maintenance_cycle',
+                   side_effect=[self.locked(), {}, self.locked(sqlite3.SQLITE_LOCKED), {}]) as cycle:
+            result = run_maintenance_worker('unused', stop_event=stop,
+                on_cycle=completed.append, on_retry=retries.append)
+        self.assertEqual(cycle.call_count, 4)
+        self.assertEqual(result['cycles_completed'], 2)
+        self.assertEqual([row['retry_number'] for row in retries], [1, 1])
+        self.assertEqual(len(completed), 2)
+
+    def test_retry_exhaustion_is_bounded_with_backoff(self):
+        from study_buddy.maintenance_worker import run_maintenance_worker, MaintenanceLockRetriesExhausted
+        stop = Mock(); stop.is_set.return_value = False; stop.wait.return_value = False
+        callback = Mock()
+        with patch('study_buddy.maintenance_worker.run_maintenance_cycle', side_effect=self.locked(sqlite3.SQLITE_BUSY | (2 << 8))) as cycle:
+            with self.assertRaises(MaintenanceLockRetriesExhausted):
+                run_maintenance_worker('unused', stop_event=stop, on_cycle=callback)
+        self.assertEqual(cycle.call_count, 4)
+        self.assertEqual(stop.wait.call_args_list, [unittest.mock.call(1), unittest.mock.call(2), unittest.mock.call(4)])
+        callback.assert_not_called()
+
+    def test_shutdown_interrupts_retry_wait_without_another_attempt(self):
+        from study_buddy.maintenance_worker import run_maintenance_worker
+        stop = Mock(); stop.is_set.return_value = False; stop.wait.return_value = True
+        with patch('study_buddy.maintenance_worker.run_maintenance_cycle', side_effect=self.locked()) as cycle:
+            self.assertEqual(run_maintenance_worker('unused', stop_event=stop)['cycles_completed'], 0)
+        cycle.assert_called_once()
+
+    def test_message_alone_does_not_authorize_retry(self):
+        from study_buddy.maintenance_worker import run_maintenance_worker
+        for error in (sqlite3.OperationalError('database is locked'), ValueError('sweep bug')):
+            with self.subTest(error=error), patch('study_buddy.maintenance_worker.run_maintenance_cycle', side_effect=error) as cycle:
+                with self.assertRaises(type(error)):
+                    run_maintenance_worker('unused')
+                cycle.assert_called_once()
+
+    def test_cli_distinguishes_configuration_sweep_and_exhaustion(self):
+        import importlib.util
+        from study_buddy.maintenance_worker import WorkerConfigurationError, MaintenanceLockRetriesExhausted
+        path = Path(__file__).resolve().parent.parent / 'scripts/run_maintenance_worker.py'
+        spec = importlib.util.spec_from_file_location('worker_cli_for_test', path)
+        cli = importlib.util.module_from_spec(spec); spec.loader.exec_module(cli)
+        for error, code, expected in ((WorkerConfigurationError('bad limit'), 2, 'Invalid worker configuration'),
+                                      (ValueError('sweep bug'), 1, 'Maintenance worker failed'),
+                                      (MaintenanceLockRetriesExhausted(), 75, 'temporary database lock retries')):
+            import io
+            with self.subTest(error=error), patch('sys.argv', ['worker', 'unused']), patch.object(cli, 'run_maintenance_worker', side_effect=error), patch('sys.stderr', new_callable=io.StringIO) as stderr:
+                with self.assertRaises(SystemExit) as raised:
+                    cli.main()
+                self.assertEqual(raised.exception.code, code)
+                self.assertIn(expected, stderr.getvalue())
+                if code != 2:
+                    self.assertNotIn('Invalid worker configuration', stderr.getvalue())
+
+    def test_real_sqlite_write_lock_recovers_with_a_fresh_cycle(self):
+        from threading import Event
+        from study_buddy.maintenance_worker import run_maintenance_worker
+        fixture = MaintenanceWorkerTests(); fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        real_connect = sqlite3.connect
+        stop = Event()
+        completed, retries = [], []
+        with closing(real_connect(fixture.database)) as locker:
+            locker.execute('BEGIN IMMEDIATE')
+            def quick_connect(*args, **kwargs):
+                kwargs['timeout'] = 0.01
+                return real_connect(*args, **kwargs)
+            def release_lock(info):
+                retries.append(info)
+                locker.rollback()
+            def finish(counts):
+                completed.append(counts)
+                stop.set()
+            with patch('study_buddy.maintenance_worker.sqlite3.connect', side_effect=quick_connect):
+                result = run_maintenance_worker(fixture.database, stop_event=stop,
+                    on_retry=release_lock, on_cycle=finish)
+        self.assertEqual(result['cycles_completed'], 1)
+        self.assertEqual(len(retries), 1)
+        self.assertEqual(completed[0]['operations_expired'], 1)
