@@ -3,6 +3,7 @@ import copy
 import json
 
 from scripts.validate_quiz import check
+from study_buddy.assessment import run_assessment
 from study_buddy.answer_keys import new_id, save_quiz, get_client_quiz
 
 
@@ -10,7 +11,7 @@ class RetryQuizRejected(ValueError):
     pass
 
 
-def dispatch_retry_quiz(conn, learner_id, source_attempt_id, *, assessment):
+def dispatch_retry_quiz(conn, learner_id, source_attempt_id, *, assessment=run_assessment):
     from study_buddy.controller import _check_handoff
     with conn:
         owned = conn.execute(

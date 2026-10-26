@@ -22,6 +22,7 @@ from study_buddy.routing import decide_next_step
 from study_buddy.reteaching import dispatch_reteaching
 from study_buddy.retry_quiz import dispatch_retry_quiz
 from study_buddy.summary import finish_session
+from study_buddy.assessment import run_assessment
 
 ROOT = Path(__file__).resolve().parent.parent
 HANDOFF_SCHEMA = json.loads((ROOT / 'schemas/v1/tutor_to_assessment.schema.json').read_text())
@@ -154,11 +155,11 @@ def _fail(conn, context, repair_count, message):
                      (repair_count, context['handoffId']))
     return dict(session_id=context['sessionId'], status='failed', next_step=None, handoff=None, error=message)
 
-def start_quiz_session(conn, learner_id, lesson_id, *, assessment, tutor=run_tutor):
+def start_quiz_session(conn, learner_id, lesson_id, *, assessment=run_assessment, tutor=run_tutor):
     """Route a validated Tutor handoff to an injected Assessment runner.
 
     assessment(handoff, repair_request=None) returns a private quiz-output
-    object. There is no production AI Assessment runner yet. The controller
+    object. The default runner invokes the single-call Claude adapter. The controller
     owns validation and the remaining repair budget for this handoff.
     """
     started = start_session(conn, learner_id, lesson_id, tutor=tutor)
