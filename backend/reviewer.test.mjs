@@ -21,7 +21,7 @@ function input() {
 const reportFor = (context, report = pass) => ({...structuredClone(report), ...context.controller_context});
 const response = (text, extra = {}) => ({ok: true, json: async () => ({stop_reason: 'end_turn',
   content: [{type: 'text', text}], model: 'test-reviewer', usage: {input_tokens: 100, output_tokens: 200}, ...extra})});
-const options = fetchImpl => ({apiKey: 'fake-key', model: 'test-reviewer', fetchImpl});
+const options = fetchImpl => ({allowPaidCalls: true, apiKey: 'fake-key', model: 'test-reviewer', fetchImpl});
 
 test('sends one isolated review with fixed grammar, bounded defaults, model and usage', async () => {
   const context = input(); const report = reportFor(context); let calls = 0;
@@ -110,4 +110,9 @@ test('deadline override aborts a stalled call once', async () => {
     calls++; return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('secret-abort')), {once: true}));
   }), timeoutMs: 5}}), e => e.code === 'request_timeout' && e.stage === 'model call');
   assert.equal(calls, 1);
+});
+
+test('Reviewer propagates disabled live calls without invoking transport',async()=>{
+  await assert.rejects(runReviewer(input(),{claudeOptions:{...options(()=>assert.fail('No provider call')),allowPaidCalls:false}}),
+    error=>error.code==='live_calls_disabled'&&error.stage==='model call');
 });
