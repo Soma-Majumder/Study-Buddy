@@ -88,6 +88,11 @@ def reserve_quality_call(conn, learner_id, operation_id, kind):
         raise QualityStateRejected('Unknown quality call kind.')
     with conn:
         op = _operation(conn, learner_id, operation_id)
+        from study_buddy.quality_expiry import _expire_locked, _fail_deadline_locked
+        now = time.time()
+        expired = _expire_locked(conn, op, now)
+        if expired['expired'] or (op['stage'] == 'failed' and op['failure_code'] == 'quality_deadline'):
+            return _snapshot(conn, learner_id, operation_id, reserved=False, call_id=None)
         previous = conn.execute('SELECT call_id FROM quiz_quality_calls WHERE operation_id = ? AND kind = ?',
                                 (operation_id, kind)).fetchone()
         if previous:
@@ -98,7 +103,7 @@ def reserve_quality_call(conn, learner_id, operation_id, kind):
         now = time.time()
         remaining = op['deadline_at'] - now
         if remaining <= 1:
-            _fail(conn, operation_id, 'quality_deadline')
+            _fail_deadline_locked(conn, op, now)
             return _snapshot(conn, learner_id, operation_id, reserved=False, call_id=None)
         expected = {'generation': 'generating', 'review': 'reviewing', 'revision': 'needs_revision',
                     'review_revision': 'reviewing_revision'}
@@ -175,8 +180,8 @@ def complete_quality_call(conn, learner_id, call_id, *, outcome, candidate=None,
         _active(conn, op)
         now = time.time()
         if now >= op['deadline_at']:
-            _fail(conn, operation_id, 'quality_deadline')
-            conn.execute("UPDATE quiz_quality_calls SET status = 'failed', outcome = 'deadline', finished_at = ? WHERE call_id = ?", (now, call_id))
+            from study_buddy.quality_expiry import _fail_deadline_locked
+            _fail_deadline_locked(conn, op, now)
             return _snapshot(conn, learner_id, operation_id, applied=False)
         failure = None
         if outcome in ('error', 'blocked'):

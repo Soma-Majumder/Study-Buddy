@@ -9,6 +9,7 @@ from study_buddy.quality_state import QualityStateRejected, _operation, reserve_
 from study_buddy.quality_storage import build_private_reviewer_context, store_review_report
 from study_buddy.quality_review import ReviewRejected
 from study_buddy.reviewer import run_reviewer, ReviewerFailure
+from study_buddy.quality_expiry import expire_quality_operation
 
 
 def _result(conn, learner_id, operation_id, *, dispatched=False, call_id=None):
@@ -31,6 +32,8 @@ def _fail_quality_call(conn, learner_id, operation_id, call_id, code):
                             (call_id, operation_id)).fetchone()
         if not call or call[1] not in ('review', 'review_revision', 'generation', 'revision', 'technical_repair'):
             raise QualityStateRejected('A reserved quality call is required.')
+        if call[0] != 'reserved' and op['stage']=='failed' and op['failure_code']=='quality_deadline':
+            return
         if call[0] != 'reserved':
             raise QualityStateRejected('Completed quality calls cannot be overwritten.')
         now = time.time()
@@ -64,6 +67,7 @@ def dispatch_quality_review(conn, learner_id, operation_id, *, reviewer=run_revi
     after a crash. Reserved calls require explicit reconciliation, not replay.
     No database transaction spans the provider call. Does not revise or publish.
     """
+    expire_quality_operation(conn, learner_id, operation_id)
     with conn:
         op = _operation(conn, learner_id, operation_id)
         if op['stage'] in ('approved', 'failed', 'needs_revision'):
@@ -124,6 +128,7 @@ def dispatch_quality_revision(conn, learner_id, operation_id, *, assessment=None
     from study_buddy.quality_storage import build_private_revision_context, store_candidate, _handoff
     from scripts.validate_quiz import check as check_quiz
     assessment = assessment or run_assessment_revision
+    expire_quality_operation(conn, learner_id, operation_id)
     with conn:
         op = _operation(conn, learner_id, operation_id)
     if op['stage'] in ('approved', 'failed'):

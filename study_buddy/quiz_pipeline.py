@@ -14,6 +14,7 @@ from study_buddy.quality_state import (_operation, _active, QualityStateRejected
 from study_buddy.quality_storage import store_candidate
 from study_buddy.quality_dispatch import dispatch_quality_review, dispatch_quality_revision, _fail_quality_call, _fail_preparing_session
 from study_buddy.quality_publication import publish_reviewed_quiz
+from study_buddy.quality_expiry import expire_quality_operation
 
 SCHEMA=json.loads((Path(__file__).resolve().parent.parent/'schemas/v1/tutor_to_assessment.schema.json').read_text())
 
@@ -78,6 +79,7 @@ def continue_quality_quiz(conn,learner_id,operation_id,*,assessment=run_assessme
     Injected runners must accept the timeout keyword arguments just like adapters.
     """
     for _ in range(6):
+        expire_quality_operation(conn,learner_id,operation_id)
         with conn:op=_operation(conn,learner_id,operation_id)
         stage=op['stage']
         if stage=='approved':
