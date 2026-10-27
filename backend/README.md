@@ -6,7 +6,7 @@ Current operation as of October 26, 2026, based on merged `dev` commit `8c53b0d`
 
 **Implemented in dev:** approved lesson loading; Tutor teaching/reteaching; Assessment quiz generation and result explanations; Reviewer dispatch, bounded content revision and exact-candidate publication; deterministic grading; one learning retry; saved attempts/feedback/weak concepts and final summaries; learner-scoped ownership; duplicate-submission replay; paid-call opt-in; crash expiry; maintenance worker; migration tracking/baselining/execution. This is backend functionality, not a production deployment.
 
-**Under review:** none at this time.
+**Under review:** [PR #47](https://github.com/Soma-Majumder/Study-Buddy/pull/47) adds read-only `get_session_status`, `get_current_quiz` and `get_saved_summary` reconnect actions. Do not assume they exist on `dev` until merged.
 
 **Local prototype, not merged:** `codex/lesson-picker` provides a terminal fixture demo. It does not run live agents or save progress. Keep it distinct from backend integration and the planned web interface.
 
@@ -108,6 +108,25 @@ Each cycle owns/closes a fresh connection, opens an existing initialized databas
 The repeating worker retries only SQLite BUSY/LOCKED codes, including extended codes, with three waits of 1, 2 and 4 seconds. Success resets the per-cycle budget; errors without a matching SQLite code are not guessed from message text. Retry waits are interruptible. Lock waiting is up to five seconds per SQLite acquisition, not a hard total runtime guarantee. One-shot cleanup does not retry.
 
 Exit codes: 0 clean shutdown; 1 runtime/database failure; 2 invalid operator configuration; 75 temporary-lock retries exhausted. Sweep `ValueError` failures are runtime errors, not mislabeled configuration. Output includes `cycle_completed`, `lock_retry`, and `worker_stopped` with counts or delays only. Production still needs a chosen host, supervisor/restart policy and monitoring. This repository installs no OS service or scheduler.
+
+## Read-only session status
+
+`controller.get_session_status(conn, trusted_learner_id, session_id)` returns an owned-session snapshot using one SELECT: `session_id`, actual saved `status`, display `stage`, `learning_retry_count`, `quiz_available`, active `quiz_id` (or null), `summary_available`, and a fixed safe `message` (or null). Ownership failures and unknown IDs use the same `SessionStatusRejected` message. The caller supplies authenticated identity; this helper does not implement authentication or a public HTTP endpoint.
+
+Quiz availability requires `awaiting_answers`, the latest quiz's saved publication binding and no saved attempt. Completed summaries are advertised only when their row exists. Actual state is reported without inferring completion, invoking agents, retrying saves or sweeping deadlines. Raw failure reasons, questions, keys, candidate data, feedback and summary bodies are not read or returned. Availability is metadata: actual quiz retrieval must still pass controller publication/ownership checks. The query neither commits nor rolls back caller work and also works on a read-only SQLite connection. Preparing operations abandoned past their deadline remain in their saved state until the separate expiry process reconciles them.
+
+## Read-only current quiz retrieval
+
+`controller.get_current_quiz(conn, trusted_learner_id, session_id)` returns `{session_id, status, quiz, next_step}` for an owned session awaiting answers. The quiz contains only quiz/question IDs, positions, prompts and a–d choices. Ownership is checked before private evidence. The latest quiz must be unanswered and have a saved publication binding matching its operation, session, lesson/version, teaching/round and retry count. Existing approval/report/generator fingerprints and exact published questions/private keys are rechecked internally before projecting the learner response. Private audit records and answers are never returned.
+
+Reads share a SQLite snapshot via a nested savepoint; this supports read-only connections, makes no application writes and preserves an existing caller transaction on success or rejection. It does not publish, dispatch agents, alter budgets or sweep expiry. An already published quiz remains retrievable after its preparation deadline. Wrong-owner, missing, stale, unreviewed or inconsistent requests raise a fixed `QuizRetrievalRejected` message; database infrastructure errors propagate. This is a controller callable, not a public HTTP/authentication implementation. The raw `answer_keys.get_client_quiz` remains an internal projection and must not be exposed without these checks.
+
+
+## Read-only completed summary retrieval
+
+`controller.get_saved_summary(conn, trusted_learner_id, session_id)` reads an owned completed session and its existing summary without calling `finish_session`, agents or grading. It validates the saved JSON identity, lesson/version, final attempt, scores, rounds and weak concepts against scoped persisted evidence, then explicitly projects approved summary/lesson/attempt/concept fields. Unexpected JSON fields are omitted and the learner-facing disclaimer is fixed; no raw arbitrary stored message, answer keys or private review data are returned.
+
+A missing, malformed, inconsistent or non-completed summary raises the same `SummaryRetrievalRejected` message as an unavailable/wrong-owner session. Database errors propagate. All reads share a snapshot via a nested savepoint, support a read-only connection and preserve pending caller work. This is a controller callable, not authentication or a public HTTP endpoint. Summary retrieval and the persisted reconnect integration tests are included in PR #47 alongside status and current-quiz retrieval as one reconnect capability.
 
 ## Documentation maintenance
 
