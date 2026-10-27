@@ -588,3 +588,18 @@ A missing, malformed, inconsistent or non-completed summary raises the same `Sum
 Run `python -B -m unittest tests.test_controller_integration -v` from the repository root with development dependencies installed. Five offline integration scenarios create disposable file-backed databases, verify baseline 008, apply migration 009, and exercise reservation replays, duplicate answers, read-only reconnect, the 8/10 passing threshold, one focused retry, summary-save recovery, and abandoned-start expiry. Every reconnect checks owner isolation and approved response fields; fixture counters verify that reads and replays do not restart agents. Maintenance is tested alongside successful/retrying/completed sessions as well as abandoned starts. Fixtures prove controller behavior, not generated educational content quality.
 
 Validation on 2026-10-27: 457 Python tests and 95 JavaScript adapter/harness tests passed. Python tests emit existing SQLite ResourceWarnings; the suite has no failing tests. No paid calls, application database migrations, deployed worker, pushes or PR updates were performed for this integration step. Review/merge of pending PRs, deployed identity/API wiring, process supervision and a separately authorized live-agent check remain outside this local verification.
+
+
+### Offline controller scenario menu (local)
+
+From the repository root, run:
+
+```sh
+python3 -B scripts/offline_controller_demo.py
+```
+
+Choose 1–5 for pass (8/10), practice (6/10 then one 10/10 retry), failed summary save and recovery, abandoned-start expiry, or duplicate Start/answer submissions. Choose `a` to run all or `q` to quit. For a noninteractive rehearsal use `python3 -B scripts/offline_controller_demo.py --scenario all`; individual names are `pass`, `practice`, `recovery`, `crash`, and `duplicates`. Python development dependencies from requirements-dev.txt must be installed; the demo needs no Node runtime or API key and does not load .env.
+
+Each scenario uses a new temporary database, the current full schema and approved lesson fixture. Agents are explicit deterministic callbacks from scripts/offline_controller_fixtures.py; simulated learner answers use fixture keys internally without displaying them. The tool exercises real controller grading, routing, persistence, recovery, read-only reconnect and maintenance. It prints agent activity, the saved controller trace, final status, record counts and fixture-call counts, and removes the database on completion or failure. There is deliberately no application database path argument.
+
+The Reviewer report is synthetic and retry questions may repeat fixture questions to fill ten slots; this demonstrates controller mechanics, not educational quality or live provider behavior. Crash expiry is demonstrated by backdating only the disposable reservation. The duplicate scenario checks an in-progress and completed Start replay, original-attempt reuse and changed-answer rejection. The crash scenario intentionally ends failed and counts as a successful demonstration when that failure is saved correctly. Ordinary tests forbid provider processes and network connections while exercising all scenarios, including when paid-call opt-in is set. No prompt, shared schema, production database, or PR is changed by running the demo.
