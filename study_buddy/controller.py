@@ -15,6 +15,7 @@ import jsonschema
 
 from study_buddy.answer_keys import new_id, get_answer_key
 from study_buddy.grading import grade
+from study_buddy.session_start_requests import reserve_session_start, StartRequestRejected
 from study_buddy.session_status import get_session_status, SessionStatusRejected
 from study_buddy.quiz_retrieval import get_current_quiz, QuizRetrievalRejected
 from study_buddy.feedback import explain_results
@@ -90,41 +91,58 @@ def _check_handoff(handoff, context, lesson, concepts):
             raise ValueError('Retry explanation must teach exactly the verified focus concepts.')
 
 
-def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor):
+def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor, request_id=None, lesson_version=None):
     """Return {session_id, status, next_step, handoff, error}.
 
     The real Tutor harness owns generation validation and its one repair.
     Controller validation is a final boundary check; it never restarts the
     harness or grants another repair. Repair outcomes are saved on return;
     crash-safe repair reservation during the JS call remains future work.
+    Supplying request_id and lesson_version enables the local reservation path;
+    only its winner calls Tutor. Calls without an ID retain legacy behavior.
     """
     if not isinstance(learner_id, str) or not re.fullmatch(r'learner_[a-z0-9]{12}', learner_id):
         raise ValueError('A controller-owned learner ID is required.')
     if not conn.execute('SELECT 1 FROM learners WHERE learner_id = ?', (learner_id,)).fetchone():
         raise ValueError('Learner is not registered.')
-    lesson = conn.execute(
-        'SELECT version, source_url, license, attribution FROM lessons '
-        'WHERE lesson_id = ? AND approved = 1 ORDER BY version DESC LIMIT 1', (lesson_id,),
-    ).fetchone()
-    if not lesson:
-        raise ValueError('An approved lesson is required.')
+    reservation = None
+    if request_id is not None:
+        reservation = reserve_session_start(conn, learner_id, request_id, lesson_id, lesson_version)
+        if not reservation['reserved']:
+            return dict(session_id=reservation['session_id'], status=reservation['status'],
+                        next_step=None, handoff=None, error=None, request_id=request_id, reserved=False)
+        context = dict(lessonId=lesson_id, lessonVersion=lesson_version,
+                       sessionId=reservation['session_id'], handoffId=reservation['handoff_id'],
+                       explanationId=reservation['explanation_id'], round='first')
+        lesson = conn.execute(
+            'SELECT version, source_url, license, attribution FROM lessons '
+            'WHERE lesson_id=? AND version=? AND approved=1', (lesson_id, lesson_version)).fetchone()
+        if not lesson:
+            return _fail(conn, context, 0, 'The reserved lesson is no longer approved. No quiz was started.')
+    else:
+        if lesson_version is not None:
+            raise StartRequestRejected('An explicit lesson version requires a session-start request ID.')
+        lesson = conn.execute(
+            'SELECT version, source_url, license, attribution FROM lessons '
+            'WHERE lesson_id = ? AND approved = 1 ORDER BY version DESC LIMIT 1', (lesson_id,),
+        ).fetchone()
+        if not lesson:
+            raise ValueError('An approved lesson is required.')
+        context = dict(lessonId=lesson_id, sessionId=new_id('session'),
+                       handoffId=new_id('handoff'), explanationId=new_id('expl'), round='first')
+        with conn:
+            conn.execute(
+                "INSERT INTO study_sessions (session_id, learner_id, lesson_id, lesson_version, status, created_at) "
+                "VALUES (?, ?, ?, ?, 'teaching', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
+                (context['sessionId'], learner_id, lesson_id, lesson[0]),
+            )
+            conn.execute("INSERT INTO handoff_repairs VALUES (?, ?, 'tutor_to_assessment', 0)",
+                         (context['handoffId'], context['sessionId']))
+    session_id = context['sessionId']
     concepts = dict(conn.execute(
         'SELECT concept_id, name FROM concepts WHERE lesson_id = ? AND lesson_version = ?',
         (lesson_id, lesson[0]),
     ))
-    context = dict(lessonId=lesson_id, sessionId=new_id('session'),
-                   handoffId=new_id('handoff'), explanationId=new_id('expl'), round='first')
-    session_id = context['sessionId']
-    with conn:
-        conn.execute(
-            "INSERT INTO study_sessions (session_id, learner_id, lesson_id, lesson_version, status, created_at) "
-            "VALUES (?, ?, ?, ?, 'teaching', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
-            (session_id, learner_id, lesson_id, lesson[0]),
-        )
-        conn.execute(
-            "INSERT INTO handoff_repairs VALUES (?, ?, 'tutor_to_assessment', 0)",
-            (context['handoffId'], session_id),
-        )
     repair_count = 0
     try:
         result = tutor(context)
@@ -151,7 +169,8 @@ def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor):
     except Exception:
         return _fail(conn, context, repair_count, 'Could not save the explanation. No quiz was started.')
     # A quiz does not exist yet: keep teaching status, never awaiting_answers or completed.
-    return dict(session_id=session_id, status='teaching', next_step='assessment', handoff=handoff, error=None)
+    return dict(session_id=session_id, status='teaching', next_step='assessment', handoff=handoff, error=None,
+                **({'request_id': request_id, 'reserved': True} if reservation is not None else {}))
 
 
 def _fail(conn, context, repair_count, message):
@@ -164,12 +183,14 @@ def _fail(conn, context, repair_count, message):
     return dict(session_id=context['sessionId'], status='failed', next_step=None, handoff=None, error=message)
 
 def start_quiz_session(conn, learner_id, lesson_id, *, assessment=run_assessment, tutor=run_tutor,
-                       reviewer=None, revision_assessment=None):
+                       reviewer=None, revision_assessment=None, request_id=None, lesson_version=None):
     """Tutor -> bounded generation/review/revision -> exact approved publication."""
     from study_buddy.quiz_pipeline import start_quiz_pipeline
     from study_buddy.reviewer import run_reviewer
     from study_buddy.assessment import run_assessment_revision
-    started = start_session(conn, learner_id, lesson_id, tutor=tutor)
+    started = start_session(conn, learner_id, lesson_id, tutor=tutor, request_id=request_id, lesson_version=lesson_version)
+    if started.get('reserved') is False:
+        return dict(started, quiz=None)
     if started['status'] == 'failed': return started
     return start_quiz_pipeline(conn, learner_id, started['handoff'], assessment=assessment,
                                reviewer=reviewer or run_reviewer,

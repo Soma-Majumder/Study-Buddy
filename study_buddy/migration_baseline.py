@@ -1,8 +1,8 @@
 """Baseline preview and explicit atomic adoption for the complete SQLite schema.
 
 The preview never creates tracking records and never applies migrations.
-Only the current full schema through 008 is supported; partial adoption needs
-an explicitly reviewed historical reference, not table-name inference.
+Only reviewed full schemas through 008 and 009 are supported. Historical 008
+is frozen separately; adoption is never inferred from table names.
 """
 from contextlib import closing
 import hashlib
@@ -15,7 +15,8 @@ from study_buddy.migrations import (discover_migrations, initialize_migration_tr
                                    record_applied_migration, MigrationTrackingRejected)
 
 ROOT = Path(__file__).resolve().parent.parent
-BASELINE_VERSION = 8
+BASELINE_VERSION = 9
+BASELINE_REFERENCES = {8: ROOT/'db/baselines/008_schema.sql', 9: ROOT/'db/schema.sql'}
 # Tokenize quotes before interpreting their contents as comments/whitespace.
 # Preserve quoted strings/identifiers exactly; normalize unquoted case/spacing.
 TOKENS = re.compile(r"--[^\n]*|/\*[\s\S]*?\*/|'(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"|`(?:``|[^`])*`|\[[^\]]*\]|[A-Za-z_][A-Za-z_0-9]*|\s+|.")
@@ -42,14 +43,15 @@ def plan_baseline(conn, *, through_version):
     under a write lock; this read-only preview can become stale afterward.
     """
     files = discover_migrations()
-    if (type(through_version) is not int or through_version != BASELINE_VERSION or
+    if (type(through_version) is not int or through_version not in BASELINE_REFERENCES or
             not files or files[-1]['version'] != BASELINE_VERSION):
-        raise MigrationTrackingRejected('Only the reviewed complete schema through migration 008 can be baselined.')
+        raise MigrationTrackingRejected('Only the reviewed complete schemas through migration 008 or 009 can be baselined.')
+    files = [migration for migration in files if migration['version'] <= through_version]
     tracking = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migrations'").fetchone()
     if tracking and list_applied_migrations(conn):
         raise MigrationTrackingRejected('This database already has recorded migration history; use normal migration status.')
     with closing(sqlite3.connect(':memory:')) as reference:
-        reference.executescript((ROOT/'db/schema.sql').read_text())
+        reference.executescript(BASELINE_REFERENCES[through_version].read_text())
         expected = _schema_objects(reference)
         if tracking:
             initialize_migration_tracking(reference)
@@ -59,7 +61,7 @@ def plan_baseline(conn, *, through_version):
                 raise MigrationTrackingRejected('The existing empty tracking table differs from the reviewed metadata schema.')
     actual = _schema_objects(conn)
     if actual != expected:
-        raise MigrationTrackingRejected('Database schema does not exactly match the reviewed full schema through 008.')
+        raise MigrationTrackingRejected(f'Database schema does not exactly match the reviewed full schema through {through_version:03d}.')
     # Checks work without changing the target connection's foreign_keys setting.
     if conn.execute('PRAGMA foreign_key_check').fetchone() is not None:
         raise MigrationTrackingRejected('Database has foreign-key violations; repair them before baselining.')
@@ -67,7 +69,7 @@ def plan_baseline(conn, *, through_version):
         raise MigrationTrackingRejected('Database integrity check failed; repair it before baselining.')
     fingerprint = hashlib.sha256(json.dumps(actual, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
     manifest = [{key:m[key] for key in ('version','filename','sha256')} for m in files]
-    return dict(status='baseline_ready', through_version=BASELINE_VERSION,
+    return dict(status='baseline_ready', through_version=through_version,
                 schema_sha256=fingerprint, manifest_sha256=_manifest_hash(manifest), would_record=manifest,
                 records_written=0)
 
@@ -96,7 +98,7 @@ def record_verified_baseline(conn, *, through_version, expected_schema_sha256, e
         preview = plan_baseline(conn, through_version=through_version)
         if (preview['schema_sha256'], preview['manifest_sha256']) != (expected_schema_sha256, expected_manifest_sha256):
             raise MigrationTrackingRejected('Database schema or migration files changed since the approved preview.')
-        files = discover_migrations()
+        files = [migration for migration in discover_migrations() if migration['version'] <= through_version]
         manifest = [{key:m[key] for key in ('version','filename','sha256')} for m in files]
         if _manifest_hash(manifest) != expected_manifest_sha256:
             raise MigrationTrackingRejected('Migration files changed during baseline verification.')

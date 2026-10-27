@@ -12,7 +12,7 @@ from study_buddy.migration_baseline import plan_baseline
 from study_buddy.migrations import initialize_migration_tracking, record_applied_migration, MigrationTrackingRejected
 
 ROOT = Path(__file__).resolve().parent.parent
-SCHEMA = (ROOT/'db/schema.sql').read_text()
+SCHEMA = (ROOT/'db/baselines/008_schema.sql').read_text()
 
 
 class MigrationBaselineTests(unittest.TestCase):
@@ -40,7 +40,7 @@ class MigrationBaselineTests(unittest.TestCase):
         with self.assertRaises(MigrationTrackingRejected):self.preview()
 
     def test_explicit_current_version_is_required(self):
-        for version in (0,1,7,9,True,'8'):
+        for version in (0,1,7,10,True,'8'):
             with self.assertRaises(MigrationTrackingRejected):plan_baseline(self.conn,through_version=version)
 
     def test_missing_table_or_partial_schema_is_not_silently_baselined(self):

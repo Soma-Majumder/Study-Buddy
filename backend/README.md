@@ -6,7 +6,7 @@ Current operation as of October 26, 2026, based on merged `dev` commit `8c53b0d`
 
 **Implemented in dev:** approved lesson loading; Tutor teaching/reteaching; Assessment quiz generation and result explanations; Reviewer dispatch, bounded content revision and exact-candidate publication; deterministic grading; one learning retry; saved attempts/feedback/weak concepts and final summaries; learner-scoped ownership; duplicate-submission replay; paid-call opt-in; crash expiry; maintenance worker; migration tracking/baselining/execution. This is backend functionality, not a production deployment.
 
-**Under review:** [PR #47](https://github.com/Soma-Majumder/Study-Buddy/pull/47) adds read-only `get_session_status`, `get_current_quiz` and `get_saved_summary` reconnect actions. Do not assume they exist on `dev` until merged.
+**Under review:** [PR #48](https://github.com/Soma-Majumder/Study-Buddy/pull/48) adds opt-in session-start request reservations (migration 009). Do not assume they exist on `dev` until merged.
 
 **Local prototype, not merged:** `codex/lesson-picker` provides a terminal fixture demo. It does not run live agents or save progress. Keep it distinct from backend integration and the planned web interface.
 
@@ -109,7 +109,7 @@ The repeating worker retries only SQLite BUSY/LOCKED codes, including extended c
 
 Exit codes: 0 clean shutdown; 1 runtime/database failure; 2 invalid operator configuration; 75 temporary-lock retries exhausted. Sweep `ValueError` failures are runtime errors, not mislabeled configuration. Output includes `cycle_completed`, `lock_retry`, and `worker_stopped` with counts or delays only. Production still needs a chosen host, supervisor/restart policy and monitoring. This repository installs no OS service or scheduler.
 
-## Read-only session status
+## Read-only session status (PR #47, merged)
 
 `controller.get_session_status(conn, trusted_learner_id, session_id)` returns an owned-session snapshot using one SELECT: `session_id`, actual saved `status`, display `stage`, `learning_retry_count`, `quiz_available`, active `quiz_id` (or null), `summary_available`, and a fixed safe `message` (or null). Ownership failures and unknown IDs use the same `SessionStatusRejected` message. The caller supplies authenticated identity; this helper does not implement authentication or a public HTTP endpoint.
 
@@ -127,6 +127,12 @@ Reads share a SQLite snapshot via a nested savepoint; this supports read-only co
 `controller.get_saved_summary(conn, trusted_learner_id, session_id)` reads an owned completed session and its existing summary without calling `finish_session`, agents or grading. It validates the saved JSON identity, lesson/version, final attempt, scores, rounds and weak concepts against scoped persisted evidence, then explicitly projects approved summary/lesson/attempt/concept fields. Unexpected JSON fields are omitted and the learner-facing disclaimer is fixed; no raw arbitrary stored message, answer keys or private review data are returned.
 
 A missing, malformed, inconsistent or non-completed summary raises the same `SummaryRetrievalRejected` message as an unavailable/wrong-owner session. Database errors propagate. All reads share a snapshot via a nested savepoint, support a read-only connection and preserve pending caller work. This is a controller callable, not authentication or a public HTTP endpoint. Summary retrieval and the persisted reconnect integration tests are included in PR #47 alongside status and current-quiz retrieval as one reconnect capability.
+
+## Session-start request reservations (migration 009, PR #48)
+
+PR #48 adds `009_session_start_requests.sql` and the same table to the fresh `db/schema.sql`. It is not a deployed schema change until merged and migrated. Migration files 001–008 retain their exact contents. The previous complete schema is frozen in `db/baselines/008_schema.sql` so the baseline tool can explicitly verify either historical 008 or current 009, without assuming the new table already exists.
+
+For an untracked original full-schema database, preview/adopt `--through-version 8` against the frozen reference, then obtain the pending fingerprint and execute 009 with a new backup. Already tracked 008 databases skip adoption and execute only pending 009. For a new database created from current `db/schema.sql`, preview/adopt `--through-version 9`; never rerun 009 over that table. Baseline 008 must record only migrations 001–008 even though 009 is now discoverable. Incorrect version/schema pairs are rejected. After deployment review, use the same explicit maintenance commands described above, keeping writes paused and backups recoverable. No application database was changed by the offline tests.
 
 ## Documentation maintenance
 
