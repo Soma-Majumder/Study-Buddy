@@ -94,3 +94,8 @@ Capture and main evaluation files are created owner-only. The usage JSONL is met
 The local Reviewer prompt now asks for shortest sufficient literal support quotes (normally one, a second when needed), short actionable issue/uncertainty descriptions, empty arrays when no issue exists, and no narration of passing options. All ten checks, exact evidence requirements and honest uncertainty remain mandatory. Reviewer stays at low effort, 8192 output tokens and existing timeout limits. No additional live evaluation has verified this verbosity change yet.
 
 Offline validation: 503 Python tests and 95 JavaScript tests passed. Tests simulate transport truncation, verify usage capture before rejection, reject private text/headers/reasoning in metadata, preserve unknown usage and keep the explicit paid-call CLI guard. No paid calls were made for this change.
+
+
+### Focused revision follow-up
+
+When evaluating the dedicated Assessment revision prompt, record its hash in addition to the generation, quality-reference and Reviewer prompt hashes. Compare the original candidate with the revised one: sound items should remain unchanged; edits should address flagged positions or a concrete linked correctness/scope problem. Verify all ten returned items and keys, including unchanged ones, before publication. Repeated-target warnings may need one targeted replacement rather than a complete redesign. Preserve the distinction between warning policy and required correctness fixes. Compare per-phase usage and stop reasons; shorter instructions alone do not prove fewer thinking tokens or reliable completion. No paid run accompanies this prompt change.
