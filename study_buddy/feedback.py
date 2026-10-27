@@ -13,7 +13,7 @@ import jsonschema
 from study_buddy.answer_keys import new_id, get_answer_key
 from study_buddy.feedback_runner import run_feedback
 from study_buddy.grading import grade
-from study_buddy.operation_deadlines import record_operation_deadline
+from study_buddy.operation_deadlines import record_operation_deadline, check_operation_deadline_locked
 from study_buddy.result_check import check
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -43,19 +43,25 @@ def explain_results(conn, learner_id, attempt_id, *, assessment=run_feedback):
      text, url, license_, attribution) = row
 
     def existing():
-        op = conn.execute('SELECT handoff_id, status FROM feedback_operations WHERE attempt_id = ?',
-                          (attempt_id,)).fetchone()
-        if op is None:
-            return None
-        feedback = None
-        if op[1] == 'ready':
-            feedback = json.loads(conn.execute('SELECT feedback FROM results WHERE result_id = ?',
-                                               (result_id,)).fetchone()[0])
-        current_status = conn.execute('SELECT status FROM study_sessions WHERE session_id = ?',
-                                      (session_id,)).fetchone()[0]
-        return dict(session_id=session_id, attempt_id=attempt_id, operation_status=op[1],
-                    status=current_status, score=score, passed=bool(passed), next_step='retry_decision' if op[1] == 'ready' and current_status == 'grading' else None,
-                    feedback=feedback, error='Assessment feedback failed.' if op[1] == 'failed' else None)
+        with conn:
+            conn.execute('UPDATE study_sessions SET status=status WHERE session_id=? AND learner_id=?', (session_id, learner_id))
+            op = conn.execute('SELECT handoff_id,status FROM feedback_operations WHERE attempt_id=?', (attempt_id,)).fetchone()
+            if op is None:
+                return None
+            check_operation_deadline_locked(conn, 'feedback', learner_id, attempt_id)
+            op = conn.execute('SELECT handoff_id,status FROM feedback_operations WHERE attempt_id=?', (attempt_id,)).fetchone()
+            feedback = None
+            if op[1] == 'ready':
+                feedback = json.loads(conn.execute('SELECT feedback FROM results WHERE result_id=?', (result_id,)).fetchone()[0])
+            current_status = conn.execute('SELECT status FROM study_sessions WHERE session_id=?', (session_id,)).fetchone()[0]
+            return dict(session_id=session_id, attempt_id=attempt_id, operation_status=op[1],
+                        status=current_status, score=score, passed=bool(passed),
+                        next_step='retry_decision' if op[1] == 'ready' and current_status == 'grading' else None,
+                        feedback=feedback, error='Assessment feedback failed.' if op[1] == 'failed' else None)
+
+    def active_locked():
+        conn.execute('UPDATE study_sessions SET status=status WHERE session_id=? AND learner_id=?', (session_id, learner_id))
+        return check_operation_deadline_locked(conn, 'feedback', learner_id, attempt_id)
 
     previous = existing()
     if previous:
@@ -103,14 +109,21 @@ def explain_results(conn, learner_id, attempt_id, *, assessment=run_feedback):
 
     def fail(message):
         with conn:
-            conn.execute("UPDATE feedback_operations SET status = 'failed' WHERE attempt_id = ?", (attempt_id,))
-            conn.execute("UPDATE study_sessions SET status = 'failed', failure_reason = ? WHERE session_id = ?",
-                         (message, session_id))
+            allowed = active_locked()
+            if allowed:
+                conn.execute("UPDATE feedback_operations SET status='failed' WHERE attempt_id=? AND status='running'", (attempt_id,))
+                conn.execute("UPDATE study_sessions SET status='failed',failure_reason=? WHERE session_id=? AND status='grading'", (message, session_id))
+        if not allowed:
+            return existing()
         return dict(session_id=session_id, attempt_id=attempt_id, operation_status='failed',
                     status='failed', score=score, passed=bool(passed), next_step=None, feedback=None, error=message)
 
     repair_request = None
     while True:
+        with conn:
+            allowed = active_locked()
+        if not allowed:
+            return existing()
         try:
             output = assessment(copy.deepcopy(context), repair_request=repair_request)
         except Exception:
@@ -126,10 +139,13 @@ def explain_results(conn, learner_id, attempt_id, *, assessment=run_feedback):
         if valid:
             break
         with conn:
+            allowed = active_locked()
             reserved = conn.execute(
                 'UPDATE handoff_repairs SET repair_count = 1 WHERE handoff_id = ? AND repair_count = 0',
                 (handoff_id,),
-            ).rowcount
+            ).rowcount if allowed else 0
+        if not allowed:
+            return existing()
         if not reserved:
             return fail('Assessment feedback stayed invalid after one repair. The verified score is preserved.')
         repair_request = ('Return a complete result-explanation object for the original quiz and attempt. '
@@ -138,8 +154,10 @@ def explain_results(conn, learner_id, attempt_id, *, assessment=run_feedback):
                           'This is the single repair; explain the saved grading without changing it.')
     try:
         with conn:
-            conn.execute('UPDATE results SET feedback = ? WHERE result_id = ?', (json.dumps(output), result_id))
-            conn.execute("UPDATE feedback_operations SET status = 'ready' WHERE attempt_id = ?", (attempt_id,))
+            allowed = active_locked()
+            if allowed:
+                conn.execute('UPDATE results SET feedback = ? WHERE result_id = ?', (json.dumps(output), result_id))
+                conn.execute("UPDATE feedback_operations SET status = 'ready' WHERE attempt_id = ?", (attempt_id,))
     except sqlite3.Error:
         return fail('Could not save Assessment feedback. The verified score is preserved.')
     return existing()

@@ -3,6 +3,7 @@ import copy
 import json
 
 from study_buddy.grading import grade
+from study_buddy.operation_deadlines import check_operation_deadline_locked
 from study_buddy.answer_keys import get_answer_key
 
 
@@ -32,6 +33,10 @@ def dispatch_reteaching(conn, learner_id, attempt_id, *, tutor=None):
             raise ReteachingRejected('A saved reteaching reservation is required.')
         sid, context_json, op_status, status, retry_count, lesson_id, version = row
         saved = json.loads(context_json)
+        check_operation_deadline_locked(conn, 'reteaching', learner_id, attempt_id)
+        op_status, context_json = conn.execute('SELECT status,context FROM session_routes WHERE attempt_id=?', (attempt_id,)).fetchone()
+        saved = json.loads(context_json)
+        status = conn.execute('SELECT status FROM study_sessions WHERE session_id=?', (sid,)).fetchone()[0]
         if op_status == 'failed':
             return dict(session_id=sid, operation_status='failed', status=status, next_step=None,
                         handoff=None, error=saved.get('retry_failure', 'Reteaching failed.'))
@@ -82,13 +87,37 @@ def dispatch_reteaching(conn, learner_id, attempt_id, *, tutor=None):
                                          handoffId=saved['tutor_handoff_id'], explanationId=saved['explanation_id']))
     repair_count = 0
 
+    def stopped_result():
+        row = conn.execute('SELECT r.status,r.context,s.status FROM session_routes r '
+                           'JOIN study_sessions s ON s.session_id=r.session_id '
+                           'WHERE r.attempt_id=? AND s.learner_id=?', (attempt_id, learner_id)).fetchone()
+        saved_state = json.loads(row[1])
+        ready = row[0] == 'dispatched' and 'tutor_handoff' in saved_state
+        return dict(session_id=sid, operation_status='failed' if row[0] == 'failed' else 'ready' if ready else 'running',
+                    status=row[2], next_step='assessment' if ready and row[2] == 'reteaching' else None,
+                    handoff=saved_state.get('tutor_handoff') if ready else None,
+                    error=saved_state.get('retry_failure', 'Reteaching failed.') if row[0] == 'failed' else None)
+
+    def active_locked():
+        conn.execute('UPDATE study_sessions SET status=status WHERE session_id=? AND learner_id=?', (sid, learner_id))
+        return check_operation_deadline_locked(conn, 'reteaching', learner_id, attempt_id)
+
     def fail(message):
         failed = dict(saved, retry_failure=message)
         with conn:
-            conn.execute("UPDATE session_routes SET status = 'failed', context = ? WHERE attempt_id = ?", (json.dumps(failed), attempt_id))
-            conn.execute("UPDATE study_sessions SET status = 'failed', failure_reason = ? WHERE session_id = ?", (message, sid))
-            conn.execute('UPDATE handoff_repairs SET repair_count = ? WHERE handoff_id = ?', (repair_count, context['handoffId']))
+            allowed = active_locked()
+            if allowed:
+                conn.execute("UPDATE session_routes SET status='failed',context=? WHERE attempt_id=?", (json.dumps(failed), attempt_id))
+                conn.execute("UPDATE study_sessions SET status='failed',failure_reason=? WHERE session_id=?", (message, sid))
+                conn.execute('UPDATE handoff_repairs SET repair_count=? WHERE handoff_id=?', (repair_count, context['handoffId']))
+        if not allowed:
+            return stopped_result()
         return dict(session_id=sid, operation_status='failed', status='failed', next_step=None, handoff=None, error=message)
+
+    with conn:
+        allowed = active_locked()
+    if not allowed:
+        return stopped_result()
 
     try:
         result = tutor(copy.deepcopy(context))
@@ -104,13 +133,17 @@ def dispatch_reteaching(conn, learner_id, attempt_id, *, tutor=None):
         return fail('Tutor could not return valid focused reteaching. The learning retry stays consumed.')
     try:
         with conn:
-            conn.execute('INSERT INTO explanations VALUES (?, ?, ?, ?)',
-                         (context['explanationId'], sid, 'retry', handoff['payload']['explanation_text']))
-            conn.executemany('INSERT INTO explanation_concepts VALUES (?, ?)',
-                             [(context['explanationId'], c['concept_id']) for c in handoff['payload']['concepts']])
-            conn.execute('UPDATE handoff_repairs SET repair_count = ? WHERE handoff_id = ?', (repair_count, context['handoffId']))
-            conn.execute('UPDATE session_routes SET context = ? WHERE attempt_id = ?',
-                         (json.dumps(dict(saved, tutor_handoff=handoff)), attempt_id))
+            allowed = active_locked()
+            if allowed:
+                conn.execute('INSERT INTO explanations VALUES (?, ?, ?, ?)',
+                             (context['explanationId'], sid, 'retry', handoff['payload']['explanation_text']))
+                conn.executemany('INSERT INTO explanation_concepts VALUES (?, ?)',
+                                 [(context['explanationId'], c['concept_id']) for c in handoff['payload']['concepts']])
+                conn.execute('UPDATE handoff_repairs SET repair_count = ? WHERE handoff_id = ?', (repair_count, context['handoffId']))
+                conn.execute('UPDATE session_routes SET context = ? WHERE attempt_id = ?',
+                             (json.dumps(dict(saved, tutor_handoff=handoff)), attempt_id))
     except Exception:
         return fail('Could not save focused reteaching. The learning retry stays consumed.')
+    if not allowed:
+        return stopped_result()
     return dict(session_id=sid, operation_status='ready', status='reteaching', next_step='assessment', handoff=handoff, error=None)

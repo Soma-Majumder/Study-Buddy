@@ -57,7 +57,7 @@ class OperationDeadlineTests(unittest.TestCase):
             with closing(sqlite3.connect(path)) as reopened:
                 from study_buddy.feedback import explain_results
                 out = explain_results(reopened, LEARNER, self.h.attempt_id, assessment=forbidden)
-                self.assertEqual(out['operation_status'], 'running')
+                self.assertEqual(out['operation_status'], 'failed')
                 self.assertEqual(reopened.execute('SELECT started_at,deadline_at FROM feedback_operation_deadlines').fetchone(), (2000, 2180))
                 self.assertEqual(reopened.execute('SELECT score FROM results').fetchone()[0], 6)
 
@@ -76,10 +76,11 @@ class OperationDeadlineTests(unittest.TestCase):
         expected = (3000, 3120)
         self.assertEqual(self.conn.execute('SELECT started_at,deadline_at FROM reteaching_operation_deadlines').fetchone(), expected)
         decide_next_step(self.conn, LEARNER, self.h.attempt_id)
-        with self.assertRaises(KeyboardInterrupt):
-            dispatch_reteaching(self.conn, LEARNER, self.h.attempt_id, tutor=crash)
+        with patch('study_buddy.operation_deadlines.time.time', return_value=3000):
+            with self.assertRaises(KeyboardInterrupt):
+                dispatch_reteaching(self.conn, LEARNER, self.h.attempt_id, tutor=crash)
         replay = dispatch_reteaching(self.conn, LEARNER, self.h.attempt_id, tutor=forbidden)
-        self.assertEqual(replay['operation_status'], 'running')
+        self.assertEqual(replay['operation_status'], 'failed')
         self.assertEqual(self.conn.execute('SELECT started_at,deadline_at FROM reteaching_operation_deadlines').fetchone(), expected)
         self.assertEqual(self.conn.execute('SELECT learning_retry_count FROM study_sessions').fetchone()[0], 1)
 

@@ -646,6 +646,15 @@ Migration 010 gives legacy active feedback (`running` while grading) and reteach
 
 Migration 001–009 bytes remain unchanged. Historical complete schema 009 is frozen at `db/baselines/009_schema.sql`, alongside 008; the baseline tool now explicitly supports 008, 009 and fresh schema 010. Tracked 009 databases apply pending 010 after backup and maintenance review. Untracked verified 009 databases adopt baseline 009, then apply 010; freshly initialized current databases adopt baseline 010. Existing 008 databases apply pending 009 and 010 after their verified baseline. Never run 010 over a fresh schema that already contains these tables.
 
-This step stores timing only. Feedback/reteaching deadline enforcement, late-result rejection and maintenance expiry are not wired yet; those stages can still remain running after a crash until that follow-up. No deployed database was migrated. This is local work on `codex/controller-integration`, with no push or existing PR update.
+Timing is enforced on controller activity by the local follow-up below. Periodic maintenance expiry is not wired yet; an abandoned operation nobody revisits can still remain running until that follow-up. No deployed database was migrated. This is local work on `codex/controller-integration`, with no push or existing PR update.
 
 Verification for the timing change: 479 Python tests passed, including reopened-database durability, repair/replay invariance, atomic claim rollback, timing constraints, historical baseline compatibility, legacy active-work adoption, and migration-history rollback. Tests use offline fixtures only.
+
+
+### Local follow-up: enforce feedback and reteaching deadlines
+
+Controller entries reconcile existing running claims against the saved migration-010 deadline. At or after expiry, feedback records `feedback_deadline` and reteaching records `reteaching_deadline`, atomically failing the active operation and matching session. Saved grading evidence, learning-retry count, timing and existing repair reservations are preserved. Replays never grant another dispatch.
+
+Checks run under a write lock before dispatch and result persistence; feedback also checks before reserving its single repair and before invoking that repair. Late valid output, invalid output and provider exceptions cannot revive expired work or replace its deadline failure. Feedback expiry leaves the deterministic grading feedback in results intact; it does not save the late generated explanation. Reteaching expiry saves no new explanation or Tutor handoff and leaves the learning retry consumed. Already ready feedback and saved reteaching handoffs are preserved; retry quiz preparation has its own quality-operation deadline. Missing timing blocks work rather than inventing a new window.
+
+No transaction spans an injected agent callback. Existing provider adapter timeouts remain in place; this change rejects late output and does not cancel an in-flight provider request or dynamically shorten its timeout. Maintenance scanning for abandoned feedback/reteaching remains a separate step. No agent prompts, shared handoff schemas, paid calls, application database migrations, pushes or PR updates are involved.
