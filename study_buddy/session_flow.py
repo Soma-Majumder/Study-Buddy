@@ -13,7 +13,8 @@ from study_buddy.feedback_runner import run_feedback
 
 def _stopped(session_id, steps, error, status='failed'):
     return dict(session_id=session_id, status=status, steps=steps, scores=[s['score'] for s in steps if 'score' in s],
-                summary=None, error=error)
+                summary=None, error=error,
+                **({'next_action': 'resume_summary'} if status == 'pending_save' else {}))
 
 
 def run_study_session(conn, learner_id, lesson_id, answer_quiz, *, tutor=run_tutor, assessment=run_assessment,
@@ -62,3 +63,29 @@ def run_study_session(conn, learner_id, lesson_id, answer_quiz, *, tutor=run_tut
         return dict(session_id=session_id, status='completed', steps=steps,
                     scores=[s['score'] for s in steps if 'score' in s], summary=done['summary'], error=None)
     return _stopped(session_id, steps, 'The session did not reach a summary.')
+
+
+def resume_summary(conn, learner_id, session_id):
+    """Retry final persistence for an owned existing session; never start a session.
+
+    learner_id comes from trusted application context. finish_session validates
+    ownership, pending/completed state, and saved evidence. Invalid/premature
+    sessions raise SummaryRejected; database failures propagate without claiming
+    completion. Only summary/terminal-status persistence is retried.
+    """
+    done = finish_session(conn, learner_id, session_id)
+    step = dict(step='summary', status=done['status'], error=done.get('error'))
+    if done['status'] == 'completed':
+        return dict(session_id=session_id, status='completed', steps=[step],
+                    scores=[attempt['score'] for attempt in done['summary']['attempts']],
+                    summary=done['summary'], error=None)
+    # Ownership has been verified by finish_session before these reads. Preserve
+    # verified scores even when the summary is still pending; no new grading.
+    scores = [row[0] for row in conn.execute(
+        'SELECT r.score FROM attempts a JOIN quizzes q ON q.quiz_id=a.quiz_id '
+        'JOIN results r ON r.attempt_id=a.attempt_id '
+        'JOIN study_sessions s ON s.session_id=q.session_id '
+        'WHERE s.session_id=? AND s.learner_id=? AND a.learner_id=? ORDER BY a.rowid',
+        (session_id, learner_id, learner_id))]
+    return dict(session_id=session_id, status=done['status'], steps=[step], scores=scores,
+                summary=None, error=done.get('error'), next_action='resume_summary')
