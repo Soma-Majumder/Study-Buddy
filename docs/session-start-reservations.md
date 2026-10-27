@@ -21,3 +21,11 @@ Before deployment, review the shared record and migration with Soma. Untracked o
 Offline tests cover identical replays, namespace/input conflicts, terminal-state replay, explicit new requests, invalid/unapproved inputs, foreign-key requirements, caller-work preservation, rollback and simultaneous identical/conflicting requests. Fixtures use no model calls.
 
 Controller wiring tests cover same-ID replay, unchanged reserved IDs, no downstream work on duplicate quiz starts, terminal failure and process-loss replay, record-save failure before Tutor, a concurrent duplicate returning while the winner is in flight, and replay after a completed full study session. These are fixture-based integration checks, not live model runs.
+
+## Local follow-up: reserved-start deadline
+
+On `codex/session-start-deadlines`, migration-009 reservations have a fixed deadline of their saved UTC `created_at` plus 120 seconds. This is a protocol constant for these records, not a configurable timeout; changing the window requires a versioned or persisted policy. No migration changes are needed and replays never refresh the timestamp. The window exceeds the current 75-second Tutor adapter timeout.
+
+The controller checks under a database write lock before dispatch and again in the explanation-save transaction. At or after the deadline it records `failed` with `session_start_deadline` and discards late Tutor content. A session already terminal cannot accept the result. A replay also reconciles an overdue start, without dispatching again. A first-round quality operation takes over expiry once created; the start check does not expire its work or completed/published sessions. No database transaction spans Tutor execution.
+
+The periodic worker is not wired to discover abandoned starts yet. An unvisited abandoned claim remains until that follow-up; these checks enforce the deadline on controller activity. PR #48 remains unchanged. All verification is offline on disposable databases.

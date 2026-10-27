@@ -15,7 +15,7 @@ import jsonschema
 
 from study_buddy.answer_keys import new_id, get_answer_key
 from study_buddy.grading import grade
-from study_buddy.session_start_requests import reserve_session_start, StartRequestRejected
+from study_buddy.session_start_requests import reserve_session_start, StartRequestRejected, check_session_start_deadline_locked
 from study_buddy.feedback import explain_results
 from study_buddy.routing import decide_next_step
 from study_buddy.reteaching import dispatch_reteaching
@@ -141,6 +141,13 @@ def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor, request_id=No
         (lesson_id, lesson[0]),
     ))
     repair_count = 0
+    if reservation is not None:
+        with conn:
+            conn.execute('UPDATE study_sessions SET status=status WHERE session_id=?', (session_id,))
+            allowed = check_session_start_deadline_locked(conn, learner_id, session_id)
+        if not allowed:
+            return dict(session_id=session_id, status='failed', next_step=None, handoff=None,
+                        error='Reserved session is no longer available for Tutor.')
     try:
         result = tutor(context)
         repair_count = result['repairCount']
@@ -157,6 +164,15 @@ def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor, request_id=No
 
     try:
         with conn:
+            if reservation is not None:
+                conn.execute('UPDATE study_sessions SET status=status WHERE session_id=?', (session_id,))
+                allowed = check_session_start_deadline_locked(conn, learner_id, session_id)
+            else:
+                allowed = True
+            if not allowed:
+                # Commit expiry before returning; discard all late Tutor content.
+                return dict(session_id=session_id, status='failed', next_step=None, handoff=None,
+                            error='Tutor result arrived after the reserved start became unavailable.')
             conn.execute('INSERT INTO explanations VALUES (?, ?, ?, ?)',
                          (context['explanationId'], session_id, 'first', handoff['payload']['explanation_text']))
             conn.executemany('INSERT INTO explanation_concepts VALUES (?, ?)',
