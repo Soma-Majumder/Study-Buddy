@@ -1,6 +1,6 @@
 # Session-start request reservation — local prototype
 
-This is a local, opt-in controller prototype on `codex/session-start-reservations`. `start_session`, `start_quiz_session` and `run_study_session` now accept `request_id` and an explicit `lesson_version`. Calls with these arguments use the reservation; calls without a request ID retain legacy behavior and are not deduplicated. The local branch now includes migration 009 and an equivalent fresh-schema table; no agent prompt changes. No new PR is created and PR #47 remains the reconnect review.
+This is an opt-in controller change on `codex/session-start-reservations`. `start_session`, `start_quiz_session` and `run_study_session` now accept `request_id` and an explicit `lesson_version`. Calls with these arguments use the reservation; calls without a request ID retain legacy behavior and are not deduplicated. This branch includes migration 009 and an equivalent fresh-schema table; no agent prompt changes. This work is reviewed separately from PR #47, which covers read-only reconnect actions.
 
 ## Record and contract
 
