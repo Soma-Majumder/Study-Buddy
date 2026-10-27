@@ -681,3 +681,9 @@ Suggested review order:
 5. Offline CLI/browser lab and cross-feature regression scenarios. Demo actions use deterministic fixtures and a disposable database, not production routes or semantic quality judgments.
 
 Validation: 500 Python tests passed on the integrated branch. Tests include first-round pass, exactly one learning retry, summary recovery, ownership isolation, duplicate starts/answers, migration adoption/rollback, deadline boundaries, and real concurrent late-result rejection. No live agents, production migrations or deployed workers were used. Paid end-to-end agent verification, learner-facing authentication/API integration and supervised deployment remain separate release work.
+
+### Local Assessment quality follow-up (after combined controller PR)
+
+`codex/assessment-understanding` strengthens Assessment generation guidance after the live run produced nine recall questions and one cause_effect question. The system prompt/reference now specify an internal ten-target plan, a six-understanding-question goal when supported, concrete abstract task patterns, necessary case information, distinct taught relationships, and a final demand/duplication audit. Grounding and exact retry scope take precedence over filling a reasoning quota. Recall must never be relabeled as reasoning or padded with a decorative story.
+
+The existing builders share these instructions with generation, technical repair and content revision. No output schema, provider effort/budget, Reviewer rubric, controller publication policy or handoff contract changes are included. Warnings remain warnings; the prompt goal does not silently become a new blocking rule. The revised prompt has only offline verification so far; semantic improvement needs a separately authorized paid evaluation. See backend/evals/assessment-quality-rubric.md for the comparison checklist. This follow-up stays local and does not update PR #49 or Soma's existing review branches.
