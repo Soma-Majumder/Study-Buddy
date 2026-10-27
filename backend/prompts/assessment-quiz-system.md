@@ -18,6 +18,15 @@ Use only payload.explanation_text for facts. Concepts identify scope; summaries 
 - Questions sharing a concept must test different ideas. Vary correct letters without sacrificing correctness. Do not claim to have checked earlier quiz wording when no earlier quiz was supplied.
 - Each private rationale must be one plain sentence, at most 25 words, explaining the taught relationship. Do not discuss every wrong option or add unsupported claims. Preserve qualifiers: “rare without help” does not mean “impossible without help.”
 
+## Final option check
+
+Before returning each item, apply these three checks internally; output only the existing JSON:
+- Hide the key and compare all four choices. Match their grammatical structure, specificity and approximate length; if one choice covers two conditions, all four must cover both. Remove clues from unique lesson wording or qualifiers appearing only in the key. Do not pad text to equalize word counts.
+- For every distractor, identify the specific taught relationship it gets wrong. Use a plausible reversal, swapped role or mixed-up taught factor on the same variables. Replace unrelated categories and filler; absence from the explanation alone is not proof that a factual claim is false. For an explicit “which factors are listed” task, a list may mix a taught factor with a different taught concept.
+- Check the stem, every option and rationale against the explanation's exact conditions and qualifiers. Do not replace a condition with an assumed cause or synonym that changes the claim (for example, “very fluid” does not authorize “warm”). If support is insufficient, rewrite within the taught facts or use the existing insufficient-content response.
+
+This check adds no calls or repair allowance and applies to both first and retry quizzes.
+
 ## Reference-guided design
 
 Apply the harness-appended quality reference to plan distinct targets and internally check every item before returning. A question that repeats a definition or an explicit sentence counts as recall even if its stem starts with “why” or includes a decorative story. Replace such items with a supported reasoning task until the six-question understanding goal is met, if the teaching permits. The reference supplies methods, not factual teaching or questions to copy. Current explanation_text and retry focus remain authoritative for content. Do not output the plan or add fields to the schema.

@@ -1,0 +1,157 @@
+{
+  "mode": "live_current_prompts_no_fixtures",
+  "prompt_sha256": {
+    "assessment-quality-reference.md": "70f72038d6e86f7896510b5e433608453ac8af745956bce2b40556e752a1c6f3",
+    "assessment-revision-system.md": "cea81b94305237fd7be5a744976437c98110794895599bc932d15a7c20fb9742",
+    "tutor-system.md": "31fee1c6142fc873c80cd4869f2148a1fa10580d28baef534f0f50b804e3af60",
+    "assessment-quiz-system.md": "0a45c82cbc0e6d413d3b32fca04f03167a5eff41ceedb7e0a7892a2da915c92e",
+    "feedback-system.md": "2be30067c5405c737cc6313ebf9947bb4c669bcfa1792affb037d7881fa272ec",
+    "reviewer-system.md": "81e1a0f3ddffc182c2667cc8b9e9c27920671bf7d9cf025f172415bd46ed5151"
+  },
+  "published": false,
+  "result": "failure",
+  "elapsed_seconds": 96.44,
+  "quality_calls": [
+    {
+      "kind": "generation",
+      "status": "completed",
+      "outcome": "valid"
+    },
+    {
+      "kind": "review",
+      "status": "completed",
+      "outcome": "needs_revision"
+    },
+    {
+      "kind": "revision",
+      "status": "completed",
+      "outcome": "valid"
+    },
+    {
+      "kind": "review_revision",
+      "status": "completed",
+      "outcome": "needs_revision"
+    }
+  ],
+  "row_counts": {
+    "study_sessions": 1,
+    "quizzes": 0,
+    "attempts": 0,
+    "results": 0
+  },
+  "usage_records": [
+    {
+      "phase": "unknown",
+      "usage": {
+        "input_tokens": 4462,
+        "output_tokens": 3270,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "thinking_tokens": 1608
+      },
+      "text_characters": 4352,
+      "stop_reason": "end_turn"
+    },
+    {
+      "phase": "assessment_generation",
+      "usage": {
+        "input_tokens": 7296,
+        "output_tokens": 7579,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "thinking_tokens": 5604
+      },
+      "text_characters": 5067,
+      "stop_reason": "end_turn"
+    },
+    {
+      "phase": "review",
+      "usage": {
+        "input_tokens": 7754,
+        "output_tokens": 4838,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "thinking_tokens": 2819
+      },
+      "text_characters": 4805,
+      "stop_reason": "end_turn"
+    },
+    {
+      "phase": "revision",
+      "usage": {
+        "input_tokens": 8291,
+        "output_tokens": 2850,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "thinking_tokens": 864
+      },
+      "text_characters": 5084,
+      "stop_reason": "end_turn"
+    },
+    {
+      "phase": "review_revision",
+      "usage": {
+        "input_tokens": 7769,
+        "output_tokens": 6405,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "thinking_tokens": 4261
+      },
+      "text_characters": 5125,
+      "stop_reason": "end_turn"
+    }
+  ],
+  "controller_status": "failed",
+  "controller_error": "content_revision_exhausted",
+  "paid_tuning_stopped": true,
+  "review_results": [
+    {
+      "candidate_version": 0,
+      "decision": "needs_revision",
+      "question_issues": [
+        {
+          "position": 4,
+          "issues": [
+            {
+              "code": "answer_cue",
+              "detail": "Correct option d is noticeably longer and more qualified than the distractors, which is an obvious length cue.",
+              "related_positions": [
+                4
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate_version": 1,
+      "decision": "needs_revision",
+      "question_issues": [
+        {
+          "position": 3,
+          "issues": [
+            {
+              "code": "weak_distractor",
+              "detail": "Leaflet thickness, sugar coating, and flipping speed are off-topic for fluidity, so the answer is easy to spot.",
+              "related_positions": [
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "position": 4,
+          "issues": [
+            {
+              "code": "answer_cue",
+              "detail": "The correct option is the only one matching the explanation's wording and is the longest, creating a length and wording cue.",
+              "related_positions": [
+                4
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
