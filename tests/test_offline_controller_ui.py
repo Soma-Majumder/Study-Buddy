@@ -51,6 +51,12 @@ class OfflineControllerUITests(unittest.TestCase):
                 self.assertEqual(result['report']['paid_calls'], 0)
                 self.assertEqual(result['report']['status'], 'failed' if scenario == 'crash' else 'completed')
                 self.assertNotIn(b'answer_key', body)
+                self.assertEqual(result['report']['next_action'], 'start_new_session' if scenario == 'crash' else 'get_saved_summary')
+                actions = [item['next_action'] for item in result['report']['guidance_history']]
+                if scenario != 'crash':
+                    self.assertIn('get_current_quiz', actions)
+                if scenario == 'recovery':
+                    self.assertEqual(actions, ['get_current_quiz', 'resume_summary', 'get_saved_summary'])
 
     def test_assets_are_allowlisted_and_browser_safety_headers_present(self):
         for path in ('/', '/app.js', '/style.css'):

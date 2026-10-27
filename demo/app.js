@@ -12,6 +12,20 @@ function node(tag, text, className) { const el = document.createElement(tag); if
 function setBusy(value) { busy = value; document.querySelectorAll('button').forEach(b => b.disabled = value || !token); }
 function label(name) { return scenarios.find(s => s[0] === name)[1]; }
 function metric(title, value) { const el = node('div', undefined, 'metric'); el.append(node('label', title), node('strong', value)); return el; }
+const actionCopy = {
+  read_session_status: ['Check progress', 'Read the saved status again. This does not restart an agent.'],
+  get_current_quiz: ['Open the quiz', 'Retrieve the published quiz for this session; ownership and publication are checked again.'],
+  resume_summary: ['Retry saving the summary', 'Use the same session ID to retry the final save. Keep the existing score and feedback.'],
+  get_saved_summary: ['View the saved summary', 'Read the completed summary without running agents or grading again.'],
+  start_new_session: ['Start a new session', 'This session has failed. A deliberate new start needs a new request ID.'],
+  contact_support: ['Ask for help', 'An expected quiz or summary is unavailable. Do not restart saved work automatically.'],
+};
+function recommendation(action) {
+  const [title, description] = actionCopy[action] || ['Guidance unavailable', 'Check the saved session status before continuing.'];
+  const card = node('section', undefined, 'recommendation');
+  card.append(node('div', 'Controller recommends', 'call-title'), node('h3', title), node('code', action || 'unavailable'), node('p', description));
+  return card;
+}
 function render(data) {
   const r = data.report;
   $('results-title').textContent = label(r.scenario);
@@ -20,7 +34,17 @@ function render(data) {
   const root = $('result-content'); root.replaceChildren();
   const metrics = node('div', undefined, 'metrics');
   metrics.append(metric('Session state', r.status === 'failed' ? 'Failed safely' : 'Completed'), metric('Quiz scores', r.scores.length ? r.scores.map(x => `${x}/10`).join(' → ') : 'No quiz'), metric('Paid calls', String(r.paid_calls)));
-  root.append(metrics, node('div', 'Fixture agent calls', 'call-title'));
+  root.append(metrics, recommendation(r.next_action));
+  if (r.guidance_history?.length > 1) {
+    const history = node('details'); history.append(node('summary', 'Recommendations during this run'));
+    const list = node('ol', undefined, 'trace');
+    r.guidance_history.forEach(step => {
+      const title = (actionCopy[step.next_action] || ['Guidance unavailable'])[0];
+      list.append(node('li', `${step.label} (${step.status}): ${title} · ${step.next_action}`));
+    }); history.append(list); root.append(history);
+  }
+  root.append(node('p', 'Guidance only. This demo has finished and its temporary database is removed; these recommendations do not run actions.', 'guidance-note'));
+  root.append(node('div', 'Fixture agent calls', 'call-title'));
   const calls = node('div', undefined, 'calls');
   Object.entries(r.fixture_calls).forEach(([key,value]) => calls.append(node('span', `${key}: ${value}`, 'call'))); root.append(calls);
   root.append(node('p', 'Fresh temporary database used and removed. Your application database was untouched.', 'notice'));

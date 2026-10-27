@@ -55,6 +55,13 @@ def run_scenario(name, emit=print):
             conn.execute('INSERT INTO learners VALUES (?)', (LEARNER,))
             conn.commit()
             captured = []
+            guidance = []
+
+            def record_guidance(connection, session_id, label):
+                snapshot = get_session_status(connection, LEARNER, session_id)
+                guidance.append(dict(label=label, status=snapshot['status'], next_action=snapshot['next_action']))
+                return snapshot
+
             if name == 'crash':
                 claim = reserve_session_start(conn, LEARNER, OPTIONS['request_id'], LESSON, 2)
                 sid = claim['session_id']
@@ -75,6 +82,8 @@ def run_scenario(name, emit=print):
                 wrong_rounds = iter(({3, 4, 6, 7}, set()) if name == 'practice' else ({1, 2},))
 
                 def answer(quiz):
+                    current_sid = conn.execute('SELECT session_id FROM quizzes WHERE quiz_id=?', (quiz['quiz_id'],)).fetchone()[0]
+                    record_guidance(conn, current_sid, 'Quiz ready')
                     if name == 'duplicates':
                         duplicate = replay(conn)
                         require(not duplicate['reserved'] and duplicate['status'] == 'awaiting_answers',
@@ -101,6 +110,7 @@ def run_scenario(name, emit=print):
                             'save failure must retain pending_save')
                     require(conn.execute('SELECT COUNT(*) FROM session_summaries').fetchone()[0] == 0,
                             'failed save must not claim a summary')
+                    record_guidance(conn, sid, 'Summary save failed')
                     calls_before = dict(agents.calls)
                     conn.execute('DROP TRIGGER demo_fail_summary')
                     conn.commit()
@@ -136,14 +146,15 @@ def run_scenario(name, emit=print):
             require(all(count == rounds for count in agents.calls.values()), 'expected fixture agent calls only')
         # Reopen read-only, as a learner reconnect would.
         with closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)) as reader:
-            status = get_session_status(reader, LEARNER, sid)
+            status = record_guidance(reader, sid, 'Final reconnect')
             require(status['status'] == result['status'], 'saved state matches returned state')
             if name != 'crash':
                 summary = get_saved_summary(reader, LEARNER, sid)['summary']
                 require([a['score'] for a in summary['attempts']] == result['scores'], 'durable summary scores')
             emit(f"Reconnect: saved status = {status['status']}; summary available = {status['summary_available']}")
         report = dict(scenario=name, status=result['status'], scores=result['scores'],
-                      fixture_calls=agents.calls, rows=rows, paid_calls=0)
+                      fixture_calls=agents.calls, rows=rows, paid_calls=0,
+                      next_action=status['next_action'], guidance_history=guidance)
         emit('Verified: ' + json.dumps(report, sort_keys=True))
     emit('Disposable demo database removed.\n')
     return report
