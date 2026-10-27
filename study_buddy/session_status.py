@@ -19,6 +19,7 @@ def get_session_status(conn, learner_id, session_id):
     No key/teaching/candidate/report/error text is read. Availability is metadata,
     not permission to fetch a quiz without the publication gate. Does not sweep
     expired operations, commit/rollback caller work, or initiate recovery.
+    next_action is advisory; its target must recheck ownership/readiness.
     """
     if not all(isinstance(value, str) and value.strip() for value in (learner_id, session_id)):
         raise SessionStatusRejected('Session is unavailable for this learner.')
@@ -48,7 +49,19 @@ def get_session_status(conn, learner_id, session_id):
         message = 'The saved summary is unavailable. Please contact support.'
     elif status == 'awaiting_answers' and not quiz_available:
         message = 'No unanswered published quiz is available for this session.'
+    # Choose advice from the same SELECT snapshot; never dispatch the action.
+    # Metadata availability still requires the retrieval helper's full checks.
+    if status == 'awaiting_answers':
+        next_action = 'get_current_quiz' if quiz_available else 'contact_support'
+    elif status == 'completed':
+        next_action = 'get_saved_summary' if summary_available else 'contact_support'
+    elif status == 'pending_save':
+        next_action = 'resume_summary'
+    elif status == 'failed':
+        next_action = 'start_new_session'
+    else:
+        next_action = 'read_session_status'
     return dict(session_id=sid, status=status, stage=STAGES[status],
                 learning_retry_count=retry_count, quiz_available=quiz_available,
                 quiz_id=quiz_id if quiz_available else None,
-                summary_available=summary_available, message=message)
+                summary_available=summary_available, message=message, next_action=next_action)

@@ -612,3 +612,20 @@ Run `python3 -B scripts/offline_controller_ui.py` from the repository root, then
 This is a developer testing interface on the local integration branch, not the learner application or its public API/authentication implementation. The Python standard-library server binds only 127.0.0.1, serves three allowlisted assets, requires the local Host and a page-provided token for scenario POSTs, rejects foreign origins, and accepts only a scenario name. There is no database path, prompt, credential or paid-call option. Responses do not include private keys or raw exceptions. All fonts/assets are local. A fresh database is created and removed per request; results are displayed in browser memory and disappear on refresh. The server handles scenarios serially, and the page disables actions while a run is active. No service is installed or deployed.
 
 Verification: all five scenarios passed through the actual browser interface, plus 468 Python tests passed including HTTP/API, invalid input, local origin/host/token checks and safe failure responses. The interface remains local; no pending PR was updated.
+
+
+### Local follow-up: session-status next-action guidance
+
+`get_session_status` adds `next_action` to its existing allowlisted response, derived from the same read-only snapshot:
+
+| Saved state | Advisory next_action |
+| --- | --- |
+| started, teaching, grading, reteaching | read_session_status |
+| awaiting_answers with available published quiz | get_current_quiz |
+| awaiting_answers without available quiz | contact_support |
+| pending_save | resume_summary |
+| completed with saved summary | get_saved_summary |
+| completed without summary | contact_support |
+| failed | start_new_session |
+
+These strings are guidance, not automatic dispatch or new endpoints. Retrieval helpers still verify ownership and saved evidence; availability metadata does not validate all quiz/summary contents. Resume must use the existing trusted learner/session identity and recheck readiness; a deliberate new session needs a fresh request ID. Checking status does not retry a provider call, sweep deadlines, retry a save, create a session, or read raw failure reasons/private content. Waiting-state guidance does not provide a polling interval or promise recovery for abandoned work. `contact_support` is an interface fallback, not an implemented support service. Local follow-up only; PR #47 and other pending reviews are unchanged. The offline browser UI is not yet wired to this field.
