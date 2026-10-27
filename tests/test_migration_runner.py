@@ -150,8 +150,8 @@ class MigrationRunnerTests(unittest.TestCase):
             file.unlink()
         for file in DEFAULT_MIGRATIONS.glob('*.sql'):
             shutil.copyfile(file, self.directory / file.name)
-        self.write(10, 'CREATE TABLE maintenance_probe (id INTEGER PRIMARY KEY);')
+        self.write(11, 'CREATE TABLE maintenance_probe (id INTEGER PRIMARY KEY);')
         result = self.run_plan()
-        self.assertEqual([row['version'] for row in result['applied']], [9, 10])
+        self.assertEqual([row['version'] for row in result['applied']], [9, 10, 11])
         self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM schema_baselines').fetchone()[0], 1)
-        self.assertEqual(len(plan_migrations(self.conn, self.directory)['applied']), 10)
+        self.assertEqual(len(plan_migrations(self.conn, self.directory)['applied']), 11)

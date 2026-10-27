@@ -13,6 +13,7 @@ import jsonschema
 from study_buddy.answer_keys import new_id, get_answer_key
 from study_buddy.feedback_runner import run_feedback
 from study_buddy.grading import grade
+from study_buddy.operation_deadlines import record_operation_deadline
 from study_buddy.result_check import check
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -92,6 +93,7 @@ def explain_results(conn, learner_id, attempt_id, *, assessment=run_feedback):
             conn.execute("INSERT INTO handoff_repairs VALUES (?, ?, 'assessment_to_tutor', 0)",
                          (handoff_id, session_id))
             conn.execute("INSERT INTO feedback_operations VALUES (?, ?, 'running')", (attempt_id, handoff_id))
+            record_operation_deadline(conn, 'feedback', attempt_id)
     except sqlite3.IntegrityError:
         previous = existing()
         if previous:

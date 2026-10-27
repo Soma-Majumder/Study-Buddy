@@ -32,9 +32,9 @@ class SessionStartMigrationTests(unittest.TestCase):
         self.assertEqual(self.baseline(self.conn,8)['records_written'],8)
         before=self.conn.execute('SELECT * FROM lessons').fetchall()
         plan=plan_migrations(self.conn)
-        self.assertEqual([m['version'] for m in plan['pending']],[9])
+        self.assertEqual([m['version'] for m in plan['pending']],[9,10])
         result=run_pending_migrations(self.conn,expected_pending_sha256=plan['pending_sha256'])
-        self.assertEqual(result['migrations_applied'],1)
+        self.assertEqual(result['migrations_applied'],2)
         self.assertEqual(self.conn.execute('SELECT * FROM lessons').fetchall(),before)
         self.assertEqual(self.conn.execute('SELECT learner_id FROM learners').fetchall(),[(LEARNER,)])
         self.assertEqual(plan_migrations(self.conn)['status'],'up_to_date')
@@ -43,11 +43,11 @@ class SessionStartMigrationTests(unittest.TestCase):
         self.assertTrue(claim['reserved'])
         self.assertFalse(reserve_session_start(self.conn,LEARNER,'migration_request_01','lesson_cell_membranes',2)['reserved'])
 
-    def test_fresh_009_baseline_records_nine_and_has_no_pending_sql(self):
+    def test_frozen_009_baseline_records_nine_and_leaves_010_pending(self):
         with closing(sqlite3.connect(':memory:')) as fresh:
-            fresh.executescript((ROOT/'db/schema.sql').read_text())
+            fresh.executescript((ROOT/'db/baselines/009_schema.sql').read_text())
             self.assertEqual(self.baseline(fresh,9)['records_written'],9)
-            self.assertEqual(plan_migrations(fresh)['status'],'up_to_date')
+            self.assertEqual([m['version'] for m in plan_migrations(fresh)['pending']],[10])
             self.assertEqual(fresh.execute('SELECT through_version FROM schema_baselines').fetchone()[0],9)
 
     def test_baseline_never_claims_wrong_schema_version(self):

@@ -35,7 +35,7 @@ class ControllerIntegrationTests(reconnect_fixtures.ReconnectFlowTests):
                 recorded_by='offline integration', reason='Disposable combined controller verification')
             plan = plan_migrations(conn)
             run_pending_migrations(conn, expected_pending_sha256=plan['pending_sha256'])
-            self.assertEqual(len(plan_migrations(conn)['applied']), 9)
+            self.assertEqual(len(plan_migrations(conn)['applied']), 10)
 
     def forbidden(self, *args, **kwargs):
         self.fail('Replay dispatched agents or another workflow')
