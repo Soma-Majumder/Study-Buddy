@@ -1,4 +1,8 @@
-# Tutor evaluation card
+# Evaluation guide
+
+Documentation status: October 26, 2026. The backend flow and Reviewer gate are implemented in merged dev; independent live Reviewer validation and the student pilot remain pending. PR #45 (summary resume convenience action) is under review. P1 diagnostic/retention features remain planned. See [current project status](../../README.md) and [backend operation](../README.md). The dated sample narratives below are development evidence, not current product completion or quality claims.
+
+## Tutor evaluation card
 
 Scope: Tutor (Agent 1), not the Assessment agent, controller persistence, or student learning outcomes.
 
