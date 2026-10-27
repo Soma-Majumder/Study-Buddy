@@ -140,7 +140,7 @@ class MigrationRunnerTests(unittest.TestCase):
         from study_buddy.migrations import DEFAULT_MIGRATIONS
         from study_buddy.migration_baseline import plan_baseline, record_verified_baseline
         root = DEFAULT_MIGRATIONS.parent.parent
-        self.conn.executescript((root / 'db/schema.sql').read_text())
+        self.conn.executescript((root / 'db/baselines/008_schema.sql').read_text())
         preview = plan_baseline(self.conn, through_version=8)
         record_verified_baseline(self.conn, through_version=8,
             expected_schema_sha256=preview['schema_sha256'],
@@ -150,8 +150,8 @@ class MigrationRunnerTests(unittest.TestCase):
             file.unlink()
         for file in DEFAULT_MIGRATIONS.glob('*.sql'):
             shutil.copyfile(file, self.directory / file.name)
-        self.write(9, 'CREATE TABLE maintenance_probe (id INTEGER PRIMARY KEY);')
+        self.write(10, 'CREATE TABLE maintenance_probe (id INTEGER PRIMARY KEY);')
         result = self.run_plan()
-        self.assertEqual([row['version'] for row in result['applied']], [9])
+        self.assertEqual([row['version'] for row in result['applied']], [9, 10])
         self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM schema_baselines').fetchone()[0], 1)
-        self.assertEqual(len(plan_migrations(self.conn, self.directory)['applied']), 9)
+        self.assertEqual(len(plan_migrations(self.conn, self.directory)['applied']), 10)

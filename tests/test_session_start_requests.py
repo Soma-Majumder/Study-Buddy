@@ -19,7 +19,6 @@ class SessionStartRequestTests(unittest.TestCase):
     def setUp(self):
         self.conn=sqlite3.connect(':memory:');self.addCleanup(self.conn.close)
         self.conn.executescript((ROOT/'db/schema.sql').read_text())
-        self.conn.executescript((ROOT/'db/proposals/session_start_requests.sql').read_text())
         load_lessons(self.conn)
         self.conn.execute('INSERT INTO learners VALUES (?)',(LEARNER,));self.conn.commit()
 

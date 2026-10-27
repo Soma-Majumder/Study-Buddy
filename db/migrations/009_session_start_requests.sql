@@ -1,5 +1,4 @@
--- Local proposal: not part of schema.sql or numbered deployment migrations yet.
--- Apply explicitly only to disposable test databases until the shared contract is reviewed.
+-- Deduplicate client Start requests before any paid agent dispatch.
 CREATE TABLE session_start_requests (
   learner_id TEXT NOT NULL REFERENCES learners(learner_id),
   request_id TEXT NOT NULL CHECK(length(request_id) BETWEEN 8 AND 128),

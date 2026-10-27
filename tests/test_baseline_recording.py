@@ -15,7 +15,7 @@ from study_buddy.migrations import (initialize_migration_tracking, list_applied_
                                    plan_migrations, MigrationTrackingRejected)
 
 ROOT=Path(__file__).resolve().parent.parent
-SCHEMA=(ROOT/'db/schema.sql').read_text()
+SCHEMA=(ROOT/'db/baselines/008_schema.sql').read_text()
 
 
 class BaselineRecordingTests(unittest.TestCase):
@@ -37,7 +37,7 @@ class BaselineRecordingTests(unittest.TestCase):
         self.assertEqual(audit[:5],(8,self.options['expected_schema_sha256'],self.options['expected_manifest_sha256'],self.options['recorded_by'],self.options['reason']))
         self.assertEqual(audit[5],result['recorded_at'])
         self.assertEqual(self.conn.execute('SELECT learner_id FROM learners').fetchall(),[('learner_preserve',)])
-        self.assertEqual(plan_migrations(self.conn)['status'],'up_to_date')
+        self.assertEqual([row['version'] for row in plan_migrations(self.conn)['pending']],[9])
         self.assertFalse(self.conn.in_transaction)
 
     def test_repeat_is_rejected_without_overwriting_history_or_audit(self):

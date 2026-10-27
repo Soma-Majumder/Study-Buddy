@@ -15,7 +15,7 @@ def reserve_session_start(conn, learner_id, request_id, lesson_id, lesson_versio
     replay returns reserved=False and current saved session status, never a new
     dispatch grant. No agents run here; crashes do not release or refresh claims.
     The caller must use a connection without pending work: commit precedes any
-    eventual agent call. The proposed table must be installed explicitly first.
+    eventual agent call. Migration 009 or the full fresh schema must be installed first.
     """
     if conn.in_transaction:
         raise StartRequestRejected('Session-start reservation requires no pending caller work.')

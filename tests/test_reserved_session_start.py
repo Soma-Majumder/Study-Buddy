@@ -23,7 +23,6 @@ class ReservedSessionStartTests(unittest.TestCase):
     def setUp(self):
         self.helper=fixtures.ControllerTests();self.helper.setUp();self.addCleanup(self.helper.doCleanups)
         self.conn=self.helper.conn
-        self.conn.executescript((ROOT/'db/proposals/session_start_requests.sql').read_text())
         self.helper.assessment_calls=[]
 
     def start(self,**changes):
@@ -111,7 +110,6 @@ class ReservedSessionStartTests(unittest.TestCase):
 
     def test_whole_flow_replay_does_not_prompt_for_answers_or_restart_agents(self):
         helper=flow_fixtures.SessionFlowTests();helper.setUp();self.addCleanup(helper.doCleanups)
-        helper.conn.executescript((ROOT/'db/proposals/session_start_requests.sql').read_text())
         done=run_study_session(helper.conn,LEARNER,'lesson_cell_membranes',helper.learner(set()),
             tutor=helper.tutor,assessment=helper.assessment,reviewer=passing_review,feedback=helper.feedback,**OPTIONS)
         self.assertEqual(done['status'],'completed')

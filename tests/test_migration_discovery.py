@@ -32,8 +32,8 @@ class MigrationDiscoveryTests(unittest.TestCase):
 
     def test_repo_files_discovered_in_order_with_exact_fingerprints(self):
         files = discover_migrations()
-        self.assertEqual([m['version'] for m in files], list(range(1,9)))
-        self.assertEqual(files[-1]['filename'], '008_quiz_quality_inputs.sql')
+        self.assertEqual([m['version'] for m in files], list(range(1,10)))
+        self.assertEqual(files[-1]['filename'], '009_session_start_requests.sql')
         for m in files:
             self.assertEqual(m['sha256'], hashlib.sha256(m['sql_bytes']).hexdigest())
 
@@ -58,7 +58,7 @@ class MigrationDiscoveryTests(unittest.TestCase):
         before = list(self.conn.iterdump())
         plan = plan_migrations(self.conn)
         self.assertEqual(plan['status'], 'baseline_required'); self.assertTrue(plan['baseline_required'])
-        self.assertEqual(len(plan['pending']), 8)  # Unrecorded does not mean unapplied.
+        self.assertEqual(len(plan['pending']), 9)  # Unrecorded does not mean unapplied.
         self.assertEqual(plan['applied'], [])
         self.assertEqual(before, list(self.conn.iterdump()))
 
