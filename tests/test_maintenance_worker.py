@@ -26,7 +26,9 @@ class MaintenanceWorkerTests(unittest.TestCase):
         result = run_maintenance_cycle(self.database, limit=1)
         self.assertEqual(result, dict(operations_checked=1, operations_expired=1,
             calls_failed=1, sessions_failed=1, retry_operations_failed=0,
-            session_starts_checked=0, session_starts_expired=0))
+            session_starts_checked=0, session_starts_expired=0,
+            feedback_operations_checked=0, feedback_operations_expired=0,
+            reteaching_operations_checked=0, reteaching_operations_expired=0))
         with closing(sqlite3.connect(self.database)) as conn:
             self.assertEqual(conn.execute('SELECT stage,failure_code FROM quiz_quality_operations').fetchone(),
                              ('failed', 'quality_deadline'))
