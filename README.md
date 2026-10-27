@@ -2,15 +2,14 @@
 
 Study Buddy helps beginner students learn an approved lesson, answer a 10-question quiz, and revisit missed concepts through feedback and one focused retry.
 
-Owners: Ivaylo Nanev and Soma Majumder. Documentation synchronized October 26, 2026 against merged `dev` commit `87c800e`. “Implemented” means merged backend behavior checked offline, not a deployed product or proven learning outcome.
+Owners: Ivaylo Nanev and Soma Majumder. Documentation synchronized October 26, 2026 against merged `dev` commit `8c53b0d`. “Implemented” means merged backend behavior checked offline, not a deployed product or proven learning outcome.
 
 ## Delivery status
 
 | Status | Scope |
 | --- | --- |
 | Implemented in `dev` | Tutor explanations/reteaching; Assessment quiz generation/result explanations; separate Reviewer quality checks and one bounded content revision; exact approved-candidate publication; deterministic grading; one learning retry; durable records and final summary saving. |
-| Implemented reliability | Ownership checks; identical-submission replay and changed-answer rejection; explicit paid-call opt-in; crash expiry and repeating maintenance worker with bounded lock retries; migration tracking, baseline adoption, backups and atomic execution. PRs [#39](https://github.com/Soma-Majumder/Study-Buddy/pull/39), [#40](https://github.com/Soma-Majumder/Study-Buddy/pull/40), and [#43](https://github.com/Soma-Majumder/Study-Buddy/pull/43) are merged. |
-| Under review | [PR #45](https://github.com/Soma-Majumder/Study-Buddy/pull/45): `resume_summary` convenience action using an existing session ID. The underlying `finish_session` already allows another pending-save attempt. |
+| Implemented reliability | Ownership checks; identical-submission replay and changed-answer rejection; explicit paid-call opt-in; crash expiry and repeating maintenance worker with bounded lock retries; migration tracking, baseline adoption, backups and atomic execution. `session_flow.resume_summary` retries a pending summary save from an existing session ID. PRs [#39](https://github.com/Soma-Majumder/Study-Buddy/pull/39), [#40](https://github.com/Soma-Majumder/Study-Buddy/pull/40), [#43](https://github.com/Soma-Majumder/Study-Buddy/pull/43), and [#45](https://github.com/Soma-Majumder/Study-Buddy/pull/45) are merged. |
 | Local prototype, not merged | `codex/lesson-picker`: terminal lesson picker, saved hand-written explanation/quiz, answer collection and deterministic feedback. No live model calls or saved progress. These demo commands are not available on `dev` yet. |
 | Planned / not yet verified | Student web UI/authentication; four more lessons for the five-lesson pilot; returning-learner history/recommendations; P1 confidence, misconception evidence, spaced review and source-linked progress; deployment/supervision; independent live Reviewer validation and student pilot. |
 

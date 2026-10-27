@@ -1,12 +1,12 @@
 # Study Buddy backend guide
 
-Current operation as of October 26, 2026, based on merged `dev` commit `87c800e`. Use the [project README](../README.md) for the product overview and delivery-status table. The [Google PRD](https://docs.google.com/document/d/1MuA6lEJigDXQGIhVv3FKvgnLPPqIrBOd5FBY1T0qZXY/edit?tab=t.6wuguzynoy44) is the product source of truth; [the PDF](../docs/Study-Buddy-PRD.pdf) is its dated export.
+Current operation as of October 26, 2026, based on merged `dev` commit `8c53b0d`. Use the [project README](../README.md) for the product overview and delivery-status table. The [Google PRD](https://docs.google.com/document/d/1MuA6lEJigDXQGIhVv3FKvgnLPPqIrBOd5FBY1T0qZXY/edit?tab=t.6wuguzynoy44) is the product source of truth; [the PDF](../docs/Study-Buddy-PRD.pdf) is its dated export.
 
 ## Implemented, under review and planned
 
 **Implemented in dev:** approved lesson loading; Tutor teaching/reteaching; Assessment quiz generation and result explanations; Reviewer dispatch, bounded content revision and exact-candidate publication; deterministic grading; one learning retry; saved attempts/feedback/weak concepts and final summaries; learner-scoped ownership; duplicate-submission replay; paid-call opt-in; crash expiry; maintenance worker; migration tracking/baselining/execution. This is backend functionality, not a production deployment.
 
-**Under review:** [PR #45](https://github.com/Soma-Majumder/Study-Buddy/pull/45) adds `session_flow.resume_summary(conn, learner_id, session_id)`. Do not assume this callable exists on `dev` until merged. `summary.finish_session` is already merged and can retry pending summary saves.
+**Under review:** none at this time.
 
 **Local prototype, not merged:** `codex/lesson-picker` provides a terminal fixture demo. It does not run live agents or save progress. Keep it distinct from backend integration and the planned web interface.
 
@@ -47,7 +47,7 @@ Versioned contracts/examples live in `schemas/v1/`. Example IDs and hand-written
 
 `controller.submit_answers` serializes claims and saved-attempt reads. Identical complete resubmissions return the saved attempt/result and grading evidence without grading again. Changed answers are rejected. Simultaneous submissions create one attempt. Replay reports current session status and does not rewind routing or start a second feedback operation. This trusted controller return value contains private grading details and must not be exposed as an unfiltered public HTTP response.
 
-`summary.finish_session(conn, trusted_learner_id, session_id)` verifies complete saved attempts, feedback, final route and grading evidence. Summary insertion, completion status and route dispatch are atomic. A failed summary save stays `pending_save`; progress is preserved. Call `finish_session` again with the same session ID to retry. Repeated successful calls return the same summary; no agents run here. A failed error-state write propagates rather than claiming success. PR #45's higher-level resume action remains under review.
+`summary.finish_session(conn, trusted_learner_id, session_id)` verifies complete saved attempts, feedback, final route and grading evidence. Summary insertion, completion status and route dispatch are atomic. A failed summary save stays `pending_save`; progress is preserved. Call `finish_session` again with the same session ID to retry. Repeated successful calls return the same summary; no agents run here. A failed error-state write propagates rather than claiming success. `session_flow.resume_summary` (PR #45, merged) wraps this retry for callers holding only the session ID.
 
 ## Configuration and live evaluations
 
