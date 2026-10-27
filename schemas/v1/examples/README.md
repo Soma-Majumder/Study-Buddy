@@ -1,6 +1,6 @@
 # Handoff fixtures (v1)
 
-These hand-written development fixtures let Assessment work begin before the live Tutor is implemented. They use the approved `lessons/cell-membranes.json` lesson and the unchanged v1 handoff schemas.
+These hand-written development fixtures remain available for offline contract tests and the local terminal prototype. Live Tutor/Assessment adapters and the Reviewer gate are now implemented in merged dev; these files are examples, not live outputs or proof of content quality. They use the approved `lessons/cell-membranes.json` lesson and the unchanged v1 handoff schemas. See [current project status](../../../README.md) for implemented, under-review and planned work.
 
 | File | Purpose |
 | --- | --- |
