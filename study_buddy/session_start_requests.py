@@ -1,4 +1,4 @@
-"""Local reservation prototype; not wired into the existing session-start path."""
+"""Local request reservation used by explicitly opted-in controller starts."""
 import re
 
 from study_buddy.answer_keys import new_id

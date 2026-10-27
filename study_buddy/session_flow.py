@@ -17,13 +17,17 @@ def _stopped(session_id, steps, error, status='failed'):
 
 
 def run_study_session(conn, learner_id, lesson_id, answer_quiz, *, tutor=run_tutor, assessment=run_assessment,
-                      reviewer=None, revision_assessment=None, feedback=run_feedback):
+                      reviewer=None, revision_assessment=None, feedback=run_feedback, request_id=None, lesson_version=None):
     """Return {session_id, status, steps, scores, summary, error}. status is 'completed' only after a saved summary."""
     steps = []
     started = start_quiz_session(conn, learner_id, lesson_id, assessment=assessment, tutor=tutor,
-                                 reviewer=reviewer, revision_assessment=revision_assessment)
+                                 reviewer=reviewer, revision_assessment=revision_assessment,
+                                 request_id=request_id, lesson_version=lesson_version)
     session_id = started.get('session_id')
     steps.append(dict(step='quiz', round='first', status=started['status'], error=started.get('error')))
+    if started.get('reserved') is False:
+        return dict(session_id=session_id, status=started['status'], steps=steps, scores=[], summary=None,
+                    error=None, next_action='read_session_status', request_id=request_id, reserved=False)
     quiz = started.get('quiz')
     if quiz is None:
         return _stopped(session_id, steps, started.get('error') or 'No quiz was published.')
