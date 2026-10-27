@@ -6,6 +6,7 @@ import jsonschema
 
 from study_buddy.answer_keys import new_id, get_answer_key
 from study_buddy.grading import grade
+from study_buddy.operation_deadlines import record_operation_deadline
 from study_buddy.feedback import VALIDATOR as FEEDBACK_VALIDATOR
 from study_buddy.result_check import check
 
@@ -117,4 +118,6 @@ def decide_next_step(conn, learner_id, attempt_id):
                            learning_retry_count=retry_count, reason=reason)
         conn.execute('INSERT INTO session_routes VALUES (?, ?, ?, ?, ?)',
                      (attempt_id, sid, route, json.dumps(context), operation_status))
+        if route == 'reteach':
+            record_operation_deadline(conn, 'reteaching', attempt_id)
     return dict(operation_status=operation_status, **context)

@@ -25,12 +25,36 @@ class MaintenanceWorkerTests(unittest.TestCase):
     def test_one_cycle_expires_saved_work_and_replay_is_empty(self):
         result = run_maintenance_cycle(self.database, limit=1)
         self.assertEqual(result, dict(operations_checked=1, operations_expired=1,
-            calls_failed=1, sessions_failed=1, retry_operations_failed=0))
+            calls_failed=1, sessions_failed=1, retry_operations_failed=0,
+            session_starts_checked=0, session_starts_expired=0,
+            feedback_operations_checked=0, feedback_operations_expired=0,
+            reteaching_operations_checked=0, reteaching_operations_expired=0))
         with closing(sqlite3.connect(self.database)) as conn:
             self.assertEqual(conn.execute('SELECT stage,failure_code FROM quiz_quality_operations').fetchone(),
                              ('failed', 'quality_deadline'))
             self.assertEqual(conn.execute('SELECT status FROM study_sessions').fetchone()[0], 'failed')
             self.assertEqual(conn.execute('SELECT COUNT(*) FROM quiz_quality_calls').fetchone()[0], 1)
+        self.assertTrue(all(value == 0 for value in run_maintenance_cycle(self.database).values()))
+
+    def test_cycle_counts_both_quality_and_abandoned_start_failures(self):
+        from study_buddy.session_start_requests import reserve_session_start
+        with closing(sqlite3.connect(self.database)) as conn:
+            conn.execute('PRAGMA foreign_keys=ON')
+            reserve_session_start(conn, fixtures.LEARNER, 'worker_mixed_01', 'lesson_cell_membranes', 2)
+            conn.execute("UPDATE session_start_requests SET created_at='2000-01-01T00:00:00.000Z'")
+            conn.commit()
+        result = run_maintenance_cycle(self.database, limit=1)
+        self.assertEqual(result['operations_expired'], 1)
+        self.assertEqual(result['session_starts_expired'], 1)
+        self.assertEqual(result['sessions_failed'], 2)
+
+    def test_later_sweep_failure_propagates_and_prior_batch_is_durable(self):
+        with patch('study_buddy.maintenance_worker.sweep_expired_session_starts',
+                   side_effect=sqlite3.OperationalError('fixture')):
+            with self.assertRaises(sqlite3.OperationalError):
+                run_maintenance_cycle(self.database)
+        with closing(sqlite3.connect(self.database)) as conn:
+            self.assertEqual(conn.execute('SELECT status FROM study_sessions').fetchone()[0], 'failed')
         self.assertTrue(all(value == 0 for value in run_maintenance_cycle(self.database).values()))
 
     def test_unexpired_work_is_preserved(self):

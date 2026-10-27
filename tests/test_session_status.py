@@ -28,10 +28,11 @@ class SessionStatusTests(unittest.TestCase):
         before = list(self.conn.iterdump()); changes = self.conn.total_changes
         result = self.status()
         self.assertEqual(set(result), {'session_id','status','stage','learning_retry_count',
-                                      'quiz_available','quiz_id','summary_available','message'})
+                                      'quiz_available','quiz_id','summary_available','message','next_action'})
         self.assertEqual(result['quiz_id'], self.started['quiz']['quiz_id'])
         self.assertTrue(result['quiz_available']); self.assertFalse(result['summary_available'])
         self.assertEqual(result['stage'], 'awaiting_answers')
+        self.assertEqual(result['next_action'], 'get_current_quiz')
         self.assertEqual(list(self.conn.iterdump()), before)
         self.assertEqual(self.conn.total_changes, changes)
 
@@ -61,18 +62,48 @@ class SessionStatusTests(unittest.TestCase):
         submit_answers(self.conn, LEARNER, qid, self.helper.answers_for(qid))
         self.conn.execute("UPDATE study_sessions SET status='awaiting_answers'"); self.conn.commit()
         self.assertFalse(self.status()['quiz_available'])
+        self.assertEqual(self.status()['next_action'], 'contact_support')
 
     def test_unpublished_quiz_cannot_be_advertised(self):
         self.conn.execute('DELETE FROM quiz_quality_publications'); self.conn.commit()
         self.assertFalse(self.status()['quiz_available'])
+        self.assertEqual(self.status()['next_action'], 'contact_support')
         self.assertIsNone(self.status()['quiz_id'])
 
     def test_saved_summary_is_available_only_after_completion(self):
         helper = summary_fixtures.SummaryTests(); helper.setUp(); self.addCleanup(helper.doCleanups)
-        self.assertFalse(get_session_status(helper.conn, LEARNER, helper.sid)['summary_available'])
+        pending = get_session_status(helper.conn, LEARNER, helper.sid)
+        self.assertFalse(pending['summary_available'])
+        self.assertEqual(pending['next_action'], 'resume_summary')
         helper.finish()
         result = get_session_status(helper.conn, LEARNER, helper.sid)
         self.assertTrue(result['summary_available']); self.assertFalse(result['quiz_available'])
+        self.assertEqual(result['next_action'], 'get_saved_summary')
+
+    def test_next_action_for_every_saved_state_is_advisory_and_does_not_write(self):
+        expected = {
+            'started': 'read_session_status', 'teaching': 'read_session_status',
+            'grading': 'read_session_status', 'reteaching': 'read_session_status',
+            'awaiting_answers': 'get_current_quiz', 'pending_save': 'resume_summary',
+            'completed': 'contact_support', 'failed': 'start_new_session',
+        }
+        for status, action in expected.items():
+            with self.subTest(status=status):
+                self.conn.execute('UPDATE study_sessions SET status=? WHERE session_id=?', (status, self.sid))
+                self.conn.commit()
+                before = list(self.conn.iterdump())
+                changes = self.conn.total_changes
+                statements = []
+                self.conn.set_trace_callback(statements.append)
+                try:
+                    result = self.status()
+                finally:
+                    self.conn.set_trace_callback(None)
+                self.assertEqual(result['next_action'], action)
+                self.assertEqual(self.conn.total_changes, changes)
+                self.assertEqual(list(self.conn.iterdump()), before)
+                self.assertEqual(len(statements), 1)
+                self.assertTrue(statements[0].startswith('SELECT '))
 
     def test_read_only_database_connection_is_supported(self):
         with tempfile.TemporaryDirectory() as directory:

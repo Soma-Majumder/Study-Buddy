@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Study Buddy · Controller Lab</title><link rel="stylesheet" href="/style.css"><script defer src="/app.js"></script></head>
+<body>
+<header><a class="brand" href="/">SB<span>Study Buddy</span></a><span class="badge"><i></i> LOCAL · OFFLINE</span></header>
+<main>
+<section class="intro"><p class="eyebrow">THE CONTROLLER LAB</p><h1>See the workflow.<br><span>Test the edge cases.</span></h1><p>Run a study session, interrupt a save, or send the same request twice. Watch how the controller keeps the session on track.</p><div class="assurances"><span>✓ No Claude charges</span><span>✓ Disposable database</span><span>✓ Simulated agents & answers</span></div></section>
+<section class="flow-section" aria-label="Controller architecture"><div class="section-label">WHERE WE’RE WORKING <span>Controller orchestration</span></div><div class="flow"><div>Start</div><b>→</b><div class="tutor">Tutor</div><b>→</b><div class="assessment">Assessment</div><b>→</b><div>Review</div><b>→</b><div>Grade & feedback</div><b>→</b><div>Summary</div></div><div class="flow-foot"><span>↳ Low score: Tutor reteaches → one retry → summary</span><span>Reconnect & expiry protect the saved state</span></div></section>
+<div class="workspace"><section class="scenarios" aria-labelledby="scenario-title"><div class="section-label">01 / CHOOSE A SCENARIO</div><h2 id="scenario-title">What should we test?</h2><div id="scenario-list"></div><button id="run-all" class="run-all" disabled>Run all five scenarios <span>↗</span></button></section>
+<section class="results" aria-labelledby="results-title"><div class="result-top"><div><div class="section-label">02 / INSPECT THE RESULT</div><h2 id="results-title">Ready when you are.</h2></div><span id="result-badge" class="status">WAITING</span></div><div id="live-status" role="status" aria-live="polite">Choose a scenario on the left to start a fresh session.</div><div id="result-content"><div class="empty"><span class="empty-icon">⌁</span><h3>A clear view of every step</h3><p>You’ll see scores, agent calls, saved records, and the controller trace here.</p></div></div><div id="history" hidden><h3>This run</h3><ul id="history-list"></ul></div></section></div>
+<footer>Real controller logic. Fixture content. Synthetic review reports demonstrate routing, not educational quality. Every run uses a new database that is removed afterward.</footer>
+</main></body></html>

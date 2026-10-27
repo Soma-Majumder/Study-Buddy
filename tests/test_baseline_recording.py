@@ -37,7 +37,7 @@ class BaselineRecordingTests(unittest.TestCase):
         self.assertEqual(audit[:5],(8,self.options['expected_schema_sha256'],self.options['expected_manifest_sha256'],self.options['recorded_by'],self.options['reason']))
         self.assertEqual(audit[5],result['recorded_at'])
         self.assertEqual(self.conn.execute('SELECT learner_id FROM learners').fetchall(),[('learner_preserve',)])
-        self.assertEqual([row['version'] for row in plan_migrations(self.conn)['pending']],[9])
+        self.assertEqual([row['version'] for row in plan_migrations(self.conn)['pending']],[9,10])
         self.assertFalse(self.conn.in_transaction)
 
     def test_repeat_is_rejected_without_overwriting_history_or_audit(self):

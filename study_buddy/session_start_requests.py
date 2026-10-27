@@ -1,5 +1,8 @@
 """Local request reservation used by explicitly opted-in controller starts."""
 import re
+import math
+import time
+from datetime import datetime, timezone
 
 from study_buddy.answer_keys import new_id
 
@@ -41,6 +44,9 @@ def reserve_session_start(conn, learner_id, request_id, lesson_id, lesson_versio
                                  (existing[2],learner_id)).fetchone()
             if not session or session[1:] != existing[:2]:
                 raise StartRequestRejected('Saved session-start evidence is inconsistent.')
+            check_session_start_deadline_locked(conn, learner_id, existing[2])
+            session=conn.execute('SELECT status,lesson_id,lesson_version FROM study_sessions WHERE session_id=? AND learner_id=?',
+                                 (existing[2],learner_id)).fetchone()
             result=dict(reserved=False,request_id=request_id,lesson_id=lesson_id,lesson_version=lesson_version,
                         session_id=existing[2],handoff_id=existing[3],explanation_id=existing[4],
                         created_at=existing[5],status=session[0])
@@ -62,3 +68,78 @@ def reserve_session_start(conn, learner_id, request_id, lesson_id, lesson_versio
     except BaseException:
         conn.rollback()
         raise
+
+
+# Protocol policy for migration-009 reservations. Keep this fixed for existing
+# claims: changing the duration requires a versioned/persisted policy.
+SESSION_START_WINDOW_SECONDS = 120
+
+
+def check_session_start_deadline_locked(conn, learner_id, session_id, *, now=None):
+    """Caller owns a write transaction; reconcile before dispatch/result save.
+
+    The immutable reservation timestamp defines the deadline. Once a first-round
+    quality operation exists it owns expiry instead. Never releases a claim.
+    """
+    if not conn.in_transaction:
+        raise StartRequestRejected('Deadline checks require a write transaction.')
+    timestamp = time.time() if now is None else now
+    if type(timestamp) not in (int, float) or not math.isfinite(timestamp):
+        raise StartRequestRejected('A finite deadline timestamp is required.')
+    row = conn.execute(
+        'SELECT r.created_at,s.status FROM session_start_requests r JOIN study_sessions s '
+        'ON s.session_id=r.session_id AND s.learner_id=r.learner_id '
+        'AND s.lesson_id=r.lesson_id AND s.lesson_version=r.lesson_version '
+        'WHERE r.session_id=? AND r.learner_id=?', (session_id, learner_id)).fetchone()
+    if not row:
+        raise StartRequestRejected('Reserved session is unavailable.')
+    if row[1] != 'teaching' or conn.execute('SELECT 1 FROM quizzes WHERE session_id=?', (session_id,)).fetchone():
+        return False
+    if conn.execute("SELECT 1 FROM quiz_quality_operations WHERE session_id=? AND round='first'",
+                    (session_id,)).fetchone():
+        return False
+    try:
+        created = datetime.strptime(row[0], '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc).timestamp()
+    except (ValueError, TypeError):
+        raise StartRequestRejected('Reserved session timestamp is invalid.') from None
+    if timestamp >= created + SESSION_START_WINDOW_SECONDS:
+        conn.execute("UPDATE study_sessions SET status='failed', failure_reason='session_start_deadline' "
+                     "WHERE session_id=? AND learner_id=? AND status='teaching'", (session_id, learner_id))
+        return False
+    return True
+
+
+def sweep_expired_session_starts(conn, *, now=None, limit=100):
+    """Expire a bounded batch of abandoned starts, never redispatching Tutor.
+
+    Owns its write transaction. Quality operations own their own deadlines;
+    completed, published, legacy and other terminal sessions are untouched.
+    """
+    if conn.in_transaction:
+        raise StartRequestRejected('Start expiry requires no pending caller work.')
+    if type(limit) is not int or not 1 <= limit <= 1000:
+        raise StartRequestRejected('Sweep limit must be an integer from 1 to 1000.')
+    timestamp = time.time() if now is None else now
+    if type(timestamp) not in (int, float) or not math.isfinite(timestamp):
+        raise StartRequestRejected('A finite deadline timestamp is required.')
+    with conn:
+        conn.execute('UPDATE study_sessions SET status=status WHERE 0')
+        # Sample after acquiring the lock so lock waiting cannot extend a claim.
+        if now is None:
+            timestamp = time.time()
+        cutoff = datetime.fromtimestamp(timestamp - SESSION_START_WINDOW_SECONDS, timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        rows = conn.execute(
+            'SELECT r.learner_id,r.session_id FROM session_start_requests r '
+            'JOIN study_sessions s ON s.session_id=r.session_id AND s.learner_id=r.learner_id '
+            'AND s.lesson_id=r.lesson_id AND s.lesson_version=r.lesson_version '
+            "WHERE s.status='teaching' AND r.created_at<=? "
+            'AND NOT EXISTS (SELECT 1 FROM quizzes q WHERE q.session_id=r.session_id) '
+            "AND NOT EXISTS (SELECT 1 FROM quiz_quality_operations o WHERE o.session_id=r.session_id AND o.round='first') "
+            'ORDER BY r.created_at,r.session_id LIMIT ?', (cutoff, limit)).fetchall()
+        expired = 0
+        for learner_id, session_id in rows:
+            check_session_start_deadline_locked(conn, learner_id, session_id, now=timestamp)
+            expired += int(conn.execute(
+                "SELECT 1 FROM study_sessions WHERE session_id=? AND status='failed' AND failure_reason='session_start_deadline'",
+                (session_id,)).fetchone() is not None)
+        return dict(session_starts_checked=len(rows), session_starts_expired=expired)

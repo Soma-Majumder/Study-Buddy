@@ -277,3 +277,15 @@ CREATE TABLE session_start_requests (
   PRIMARY KEY (learner_id, request_id),
   FOREIGN KEY (lesson_id, lesson_version) REFERENCES lessons(lesson_id, version)
 );
+
+-- Durable windows for feedback and reserved reteaching; no provider dispatch here.
+CREATE TABLE feedback_operation_deadlines (
+  attempt_id TEXT PRIMARY KEY NOT NULL REFERENCES feedback_operations(attempt_id),
+  started_at INTEGER NOT NULL CHECK(typeof(started_at) = 'integer' AND started_at >= 0),
+  deadline_at INTEGER NOT NULL CHECK(typeof(deadline_at) = 'integer' AND deadline_at = started_at + 180)
+);
+CREATE TABLE reteaching_operation_deadlines (
+  attempt_id TEXT PRIMARY KEY NOT NULL REFERENCES session_routes(attempt_id),
+  started_at INTEGER NOT NULL CHECK(typeof(started_at) = 'integer' AND started_at >= 0),
+  deadline_at INTEGER NOT NULL CHECK(typeof(deadline_at) = 'integer' AND deadline_at = started_at + 120)
+);

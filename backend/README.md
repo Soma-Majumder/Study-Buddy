@@ -6,7 +6,7 @@ Current operation as of October 26, 2026, based on merged `dev` commit `8c53b0d`
 
 **Implemented in dev:** approved lesson loading; Tutor teaching/reteaching; Assessment quiz generation and result explanations; Reviewer dispatch, bounded content revision and exact-candidate publication; deterministic grading; one learning retry; saved attempts/feedback/weak concepts and final summaries; learner-scoped ownership; duplicate-submission replay; paid-call opt-in; crash expiry; maintenance worker; migration tracking/baselining/execution. This is backend functionality, not a production deployment.
 
-**Under review:** [PR #48](https://github.com/Soma-Majumder/Study-Buddy/pull/48) adds opt-in session-start request reservations (migration 009). Do not assume they exist on `dev` until merged.
+**Under review:** [PR #49](https://github.com/Soma-Majumder/Study-Buddy/pull/49) adds feedback/reteaching deadlines (migration 010), expiry sweeps for abandoned starts and agent operations, next-action guidance and an offline controller lab. Do not assume they exist on `dev` until merged.
 
 **Local prototype, not merged:** `codex/lesson-picker` provides a terminal fixture demo. It does not run live agents or save progress. Keep it distinct from backend integration and the planned web interface.
 
@@ -109,6 +109,12 @@ The repeating worker retries only SQLite BUSY/LOCKED codes, including extended c
 
 Exit codes: 0 clean shutdown; 1 runtime/database failure; 2 invalid operator configuration; 75 temporary-lock retries exhausted. Sweep `ValueError` failures are runtime errors, not mislabeled configuration. Output includes `cycle_completed`, `lock_retry`, and `worker_stopped` with counts or delays only. Production still needs a chosen host, supervisor/restart policy and monitoring. This repository installs no OS service or scheduler.
 
+
+### Local follow-up: abandoned session-start expiry
+
+The maintenance cycle now runs both quality-operation expiry and reserved-start expiry. `--limit` bounds each sweep separately (at most twice that many records per cycle). Reservations with no first-round quality operation or quiz expire 120 seconds after their saved creation timestamp while still teaching. The worker records `session_start_deadline`, preserves the request claim and all budgets, and never dispatches agents. Controller checks discard late Tutor results.
+
+Counts add `session_starts_checked` and `session_starts_expired`; `sessions_failed` includes both kinds. Each sweep owns a separate committed batch. Failure propagates even if the first batch already committed; the existing bounded lock retries safely repeat idempotent sweeps. Migration 009 must be installed before using this updated worker. No worker service or application database migration was installed as part of local testing.
 ## Read-only session status (PR #47, merged)
 
 `controller.get_session_status(conn, trusted_learner_id, session_id)` returns an owned-session snapshot using one SELECT: `session_id`, actual saved `status`, display `stage`, `learning_retry_count`, `quiz_available`, active `quiz_id` (or null), `summary_available`, and a fixed safe `message` (or null). Ownership failures and unknown IDs use the same `SessionStatusRejected` message. The caller supplies authenticated identity; this helper does not implement authentication or a public HTTP endpoint.
@@ -128,9 +134,113 @@ Reads share a SQLite snapshot via a nested savepoint; this supports read-only co
 
 A missing, malformed, inconsistent or non-completed summary raises the same `SummaryRetrievalRejected` message as an unavailable/wrong-owner session. Database errors propagate. All reads share a snapshot via a nested savepoint, support a read-only connection and preserve pending caller work. This is a controller callable, not authentication or a public HTTP endpoint. Summary retrieval and the persisted reconnect integration tests are included in PR #47 alongside status and current-quiz retrieval as one reconnect capability.
 
+
+## Combined controller package (PR #49)
+
+### Combined controller verification
+
+`codex/controller-integration` combines the proposed summary recovery (PR #45), reconnect reads (PR #47), session-start reservations (PR #48), and local deadline/maintenance follow-up. This is a local verification branch, not a merge into dev or main and not a replacement review request.
+
+Run `python -B -m unittest tests.test_controller_integration -v` from the repository root with development dependencies installed. Five offline integration scenarios create disposable file-backed databases, verify baseline 008, apply migration 009, and exercise reservation replays, duplicate answers, read-only reconnect, the 8/10 passing threshold, one focused retry, summary-save recovery, and abandoned-start expiry. Every reconnect checks owner isolation and approved response fields; fixture counters verify that reads and replays do not restart agents. Maintenance is tested alongside successful/retrying/completed sessions as well as abandoned starts. Fixtures prove controller behavior, not generated educational content quality.
+
+Validation on 2026-10-27: 457 Python tests and 95 JavaScript adapter/harness tests passed. Python tests emit existing SQLite ResourceWarnings; the suite has no failing tests. No paid calls, application database migrations, deployed worker, pushes or PR updates were performed for this integration step. Review/merge of pending PRs, deployed identity/API wiring, process supervision and a separately authorized live-agent check remain outside this local verification.
+
+
+### Offline controller scenario menu (local)
+
+From the repository root, run:
+
+```sh
+python3 -B scripts/offline_controller_demo.py
+```
+
+Choose 1–5 for pass (8/10), practice (6/10 then one 10/10 retry), failed summary save and recovery, abandoned-start expiry, or duplicate Start/answer submissions. Choose `a` to run all or `q` to quit. For a noninteractive rehearsal use `python3 -B scripts/offline_controller_demo.py --scenario all`; individual names are `pass`, `practice`, `recovery`, `crash`, and `duplicates`. Python development dependencies from requirements-dev.txt must be installed; the demo needs no Node runtime or API key and does not load .env.
+
+Each scenario uses a new temporary database, the current full schema and approved lesson fixture. Agents are explicit deterministic callbacks from scripts/offline_controller_fixtures.py; simulated learner answers use fixture keys internally without displaying them. The tool exercises real controller grading, routing, persistence, recovery, read-only reconnect and maintenance. It prints agent activity, the saved controller trace, final status, record counts and fixture-call counts, and removes the database on completion or failure. There is deliberately no application database path argument.
+
+The Reviewer report is synthetic and retry questions may repeat fixture questions to fill ten slots; this demonstrates controller mechanics, not educational quality or live provider behavior. Crash expiry is demonstrated by backdating only the disposable reservation. The duplicate scenario checks an in-progress and completed Start replay, original-attempt reuse and changed-answer rejection. The crash scenario intentionally ends failed and counts as a successful demonstration when that failure is saved correctly. Ordinary tests forbid provider processes and network connections while exercising all scenarios, including when paid-call opt-in is set. No prompt, shared schema, production database, or PR is changed by running the demo.
+
+
+### Local browser controller lab
+
+Run `python3 -B scripts/offline_controller_ui.py` from the repository root, then open http://127.0.0.1:8765. Use `--port 8766` if that port is occupied. Ctrl+C stops the server. The page shows the agent flow, five scenario buttons, a run-all action, scores, fixture-call counts, saved record counts, a controller trace and a run checklist. Each click executes the same offline scenario runner described above; the API reports success only after its state assertions and temporary database cleanup complete. An intentionally expired session displays “Failed safely” with a verified scenario badge.
+
+This is a developer testing interface on the local integration branch, not the learner application or its public API/authentication implementation. The Python standard-library server binds only 127.0.0.1, serves three allowlisted assets, requires the local Host and a page-provided token for scenario POSTs, rejects foreign origins, and accepts only a scenario name. There is no database path, prompt, credential or paid-call option. Responses do not include private keys or raw exceptions. All fonts/assets are local. A fresh database is created and removed per request; results are displayed in browser memory and disappear on refresh. The server handles scenarios serially, and the page disables actions while a run is active. No service is installed or deployed.
+
+Verification: all five scenarios passed through the actual browser interface, plus 468 Python tests passed including HTTP/API, invalid input, local origin/host/token checks and safe failure responses. The interface remains local; no pending PR was updated.
+
+
+### Local follow-up: session-status next-action guidance
+
+`get_session_status` adds `next_action` to its existing allowlisted response, derived from the same read-only snapshot:
+
+| Saved state | Advisory next_action |
+| --- | --- |
+| started, teaching, grading, reteaching | read_session_status |
+| awaiting_answers with available published quiz | get_current_quiz |
+| awaiting_answers without available quiz | contact_support |
+| pending_save | resume_summary |
+| completed with saved summary | get_saved_summary |
+| completed without summary | contact_support |
+| failed | start_new_session |
+
+These strings are guidance, not automatic dispatch or new endpoints. Retrieval helpers still verify ownership and saved evidence; availability metadata does not validate all quiz/summary contents. Resume must use the existing trusted learner/session identity and recheck readiness; a deliberate new session needs a fresh request ID. Checking status does not retry a provider call, sweep deadlines, retry a save, create a session, or read raw failure reasons/private content. Waiting-state guidance does not provide a polling interval or promise recovery for abandoned work. `contact_support` is an interface fallback, not an implemented support service. Local follow-up only; PR #47 and other pending reviews are unchanged. The offline browser UI displays this field as described below.
+
+
+### Local interface: controller recommendations
+
+The offline runner returns `next_action` from the final read-only `get_session_status` response, plus a small `guidance_history` of actual status responses at quiz readiness, failed-summary saving (recovery scenario), and final reconnect. Each checkpoint projects only its label, saved status and advisory action. The page displays “Controller recommends” with plain-language text and the action identifier; “Recommendations during this run” explains intermediate guidance, including `resume_summary` before recovery completes. Unknown actions use an unavailable-guidance fallback.
+
+Recommendations are display-only. The temporary session database has already been removed when the browser receives the result, so no recommendation button attempts to operate on it. A new scenario run creates a new disposable session. All five API scenarios check the final recommendation; the recovery scenario verifies the sequence `get_current_quiz`, `resume_summary`, `get_saved_summary`. Browser verification confirmed the recovery history and final recommendation. 469 Python tests passed; no paid calls or PR updates.
+
+
+### Local migration 010: feedback and reteaching timing
+
+`010_agent_operation_deadlines.sql` adds two timing tables linked to existing feedback operations and retry routes. New feedback claims persist integer UTC epoch `started_at` and `deadline_at` in the claim transaction; their fixed window is 180 seconds for generation plus at most one technical repair. Reteaching timing starts when the controller reserves the learning retry, before Tutor dispatch, with a 120-second window. Both timing inserts are atomic with their claims. Timing-save failure rolls back the claim and any learning-retry reservation. Replays, feedback repairs and delayed dispatch never renew a deadline. Timing remains backend-only and does not enter agent prompts or handoff schemas.
+
+Migration 010 gives legacy active feedback (`running` while grading) and reteaching routes (`reserved`/`dispatched` while reteaching) one adoption window starting at migration execution. Their original start time is unavailable: the backfill timestamp means adoption, not historical provider dispatch. It neither resets budgets nor resends calls. Completed/failed feedback and sessions are not backfilled. The migration and its history commit or roll back together.
+
+Migration 001–009 bytes remain unchanged. Historical complete schema 009 is frozen at `db/baselines/009_schema.sql`, alongside 008; the baseline tool now explicitly supports 008, 009 and fresh schema 010. Tracked 009 databases apply pending 010 after backup and maintenance review. Untracked verified 009 databases adopt baseline 009, then apply 010; freshly initialized current databases adopt baseline 010. Existing 008 databases apply pending 009 and 010 after their verified baseline. Never run 010 over a fresh schema that already contains these tables.
+
+Timing is enforced on controller activity by the local follow-up below. Periodic maintenance expiry is now wired as described below. No deployed database was migrated. This is local work on `codex/controller-integration`, with no push or existing PR update.
+
+Verification for the timing change: 479 Python tests passed, including reopened-database durability, repair/replay invariance, atomic claim rollback, timing constraints, historical baseline compatibility, legacy active-work adoption, and migration-history rollback. Tests use offline fixtures only.
+
+
+### Local follow-up: enforce feedback and reteaching deadlines
+
+Controller entries reconcile existing running claims against the saved migration-010 deadline. At or after expiry, feedback records `feedback_deadline` and reteaching records `reteaching_deadline`, atomically failing the active operation and matching session. Saved grading evidence, learning-retry count, timing and existing repair reservations are preserved. Replays never grant another dispatch.
+
+Checks run under a write lock before dispatch and result persistence; feedback also checks before reserving its single repair and before invoking that repair. Late valid output, invalid output and provider exceptions cannot revive expired work or replace its deadline failure. Feedback expiry leaves the deterministic grading feedback in results intact; it does not save the late generated explanation. Reteaching expiry saves no new explanation or Tutor handoff and leaves the learning retry consumed. Already ready feedback and saved reteaching handoffs are preserved; retry quiz preparation has its own quality-operation deadline. Missing timing blocks work rather than inventing a new window.
+
+No transaction spans an injected agent callback. Existing provider adapter timeouts remain in place; this change rejects late output and does not cancel an in-flight provider request or dynamically shorten its timeout. Maintenance scanning for abandoned feedback/reteaching is now wired as described below. No agent prompts, shared handoff schemas, paid calls, application database migrations, pushes or PR updates are involved.
+
+
+### Local follow-up: maintenance expiry for feedback and reteaching
+
+`run_maintenance_cycle` now sweeps four categories in order: quiz-quality operations, session starts, feedback operations and reteaching reservations/dispatches. The operator's `limit` applies independently to each category, so a cycle handles at most four times that many selected records. Each category owns an atomic transaction; earlier committed categories remain durable if a later one fails. Errors propagate and repeating the cycle is safe. No call is resent and no timing, grading evidence, repair reservation or learning-retry budget is reset.
+
+New counts are `feedback_operations_checked`, `feedback_operations_expired`, `reteaching_operations_checked` and `reteaching_operations_expired`; `sessions_failed` totals failures across all four categories. Overdue running feedback is eligible only while its matching latest attempt is grading. Reteaching is eligible only for the latest attempt with a consumed retry, no saved Tutor handoff and no retry quality operation taking over expiry. Ready, superseded, published and terminal work stays untouched. Missing timing on otherwise eligible active work is an explicit maintenance error, not permission to create a new deadline or dispatch a provider. Migration 010 is required; the worker does not install migrations.
+
+The existing foreground worker and one-shot expiry command both use this cycle. No service or scheduler is installed automatically. Tests use disposable databases and verify exact boundaries, batch limits, replay, unchanged results/budgets, atomic rollback, all-category counts, and a worker sweep completing while feedback/Tutor callbacks are paused. Late callbacks cannot revive expired work. This change remains local; no paid calls, application database changes, pushes or PR updates.
+
+### Combined controller review package
+
+The `codex/controller-integration` branch packages the integrated controller for one review into `dev`. It includes the commits already proposed in PR #45 (summary resumption), PR #47 (read-only reconnect) and PR #48 (session-start reservation/migration 009), plus the follow-ups documented above. Earlier sections marked local describe their implementation history; this section describes the combined review scope. Those PRs overlap this branch and must not be treated as four independent implementations. Review this combined branch for the final behavior; the earlier PRs remain open as references until the team chooses the merge path. No merge into dev/main or deployment is performed by publishing this package.
+
+Suggested review order:
+
+1. Migrations 009/010, frozen baseline references 008/009, and atomic timing/claim persistence. Migration 001–009 bytes remain unchanged by the 010 follow-up. Legacy active feedback/reteaching receives an explicitly documented migration-time adoption window.
+2. Session-start reservation/deadline checks; feedback/reteaching expiry and result-save fencing. Confirm no replay grants another uncertain paid call, and score/repair/learning budgets remain preserved.
+3. Four bounded maintenance sweeps, per-category counts and limits, atomic batches and partial-cycle retry behavior.
+4. Summary resumption, ownership/publication/summary retrieval checks and advisory next_action projection.
+5. Offline CLI/browser lab and cross-feature regression scenarios. Demo actions use deterministic fixtures and a disposable database, not production routes or semantic quality judgments.
+
+Validation: 500 Python tests passed on the integrated branch. Tests include first-round pass, exactly one learning retry, summary recovery, ownership isolation, duplicate starts/answers, migration adoption/rollback, deadline boundaries, and real concurrent late-result rejection. No live agents, production migrations or deployed workers were used. Paid end-to-end agent verification, learner-facing authentication/API integration and supervised deployment remain separate release work.
+
 ## Session-start request reservations (migration 009, PR #48)
 
-PR #48 adds `009_session_start_requests.sql` and the same table to the fresh `db/schema.sql`. It is not a deployed schema change until merged and migrated. Migration files 001–008 retain their exact contents. The previous complete schema is frozen in `db/baselines/008_schema.sql` so the baseline tool can explicitly verify either historical 008 or current 009, without assuming the new table already exists.
+PR #48 (merged) adds `009_session_start_requests.sql` and the same table to the fresh `db/schema.sql`. It is merged into `dev` but is not a deployed schema change until migrated. Migration files 001–008 retain their exact contents. The previous complete schema is frozen in `db/baselines/008_schema.sql` so the baseline tool can explicitly verify either historical 008 or current 009, without assuming the new table already exists.
 
 For an untracked original full-schema database, preview/adopt `--through-version 8` against the frozen reference, then obtain the pending fingerprint and execute 009 with a new backup. Already tracked 008 databases skip adoption and execute only pending 009. For a new database created from current `db/schema.sql`, preview/adopt `--through-version 9`; never rerun 009 over that table. Baseline 008 must record only migrations 001–008 even though 009 is now discoverable. Incorrect version/schema pairs are rejected. After deployment review, use the same explicit maintenance commands described above, keeping writes paused and backups recoverable. No application database was changed by the offline tests.
 

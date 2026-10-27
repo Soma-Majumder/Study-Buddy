@@ -6,6 +6,8 @@ import math
 from threading import Event
 
 from study_buddy.quality_expiry import sweep_expired_quality_operations
+from study_buddy.session_start_requests import sweep_expired_session_starts
+from study_buddy.operation_deadlines import sweep_expired_agent_operations
 
 
 class WorkerConfigurationError(ValueError):
@@ -23,7 +25,7 @@ def _temporary_lock(error):
 
 
 def run_maintenance_cycle(database, *, limit=100):
-    """Expire one batch and return counts only; failures propagate to the caller.
+    """Expire up to limit records per kind (quality, starts, feedback, reteaching); return counts only; failures propagate to the caller.
 
     Opens an existing database without creating one, owns/closes its connection,
     and bounds SQLite lock waiting to five seconds. No agent dispatch, retry loop,
@@ -35,7 +37,15 @@ def run_maintenance_cycle(database, *, limit=100):
     uri = Path(database).resolve().as_uri() + '?mode=rw'
     with closing(sqlite3.connect(uri, uri=True, timeout=5)) as conn:
         conn.execute('PRAGMA foreign_keys=ON')
-        return sweep_expired_quality_operations(conn, limit=limit)
+        # Each sweep commits its own bounded batch. If the later sweep fails,
+        # the earlier batch is durable; retries are safe because both are idempotent.
+        totals = sweep_expired_quality_operations(conn, limit=limit)
+        starts = sweep_expired_session_starts(conn, limit=limit)
+        totals['sessions_failed'] += starts['session_starts_expired']
+        feedback = sweep_expired_agent_operations(conn, 'feedback', limit=limit)
+        reteaching = sweep_expired_agent_operations(conn, 'reteaching', limit=limit)
+        totals['sessions_failed'] += feedback['feedback_operations_expired'] + reteaching['reteaching_operations_expired']
+        return dict(totals, **starts, **feedback, **reteaching)
 
 
 def run_maintenance_worker(database, *, limit=100, interval_seconds=30,

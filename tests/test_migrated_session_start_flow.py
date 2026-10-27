@@ -34,9 +34,9 @@ def exercise_migrated_flow(case, path):
             expected_manifest_sha256=baseline['manifest_sha256'],
             recorded_by='offline integration test', reason='Disposable migration rehearsal')
         plan = plan_migrations(conn)
-        case.assertEqual([m['version'] for m in plan['pending']], [9])
+        case.assertEqual([m['version'] for m in plan['pending']], [9, 10])
         run_pending_migrations(conn, expected_pending_sha256=plan['pending_sha256'])
-        case.assertEqual(len(plan_migrations(conn)['applied']), 9)
+        case.assertEqual(len(plan_migrations(conn)['applied']), 10)
 
     helper = fixtures.SessionFlowTests()
     helper.setUp()
@@ -123,7 +123,7 @@ def exercise_migrated_flow(case, path):
             case.assertEqual(conn.execute('SELECT SUM(repair_count) FROM handoff_repairs').fetchone()[0], 0)
             case.assertEqual(conn.execute('SELECT learning_retry_count FROM study_sessions').fetchone()[0], 0)
             case.assertEqual(conn.execute('PRAGMA foreign_key_check').fetchall(), [])
-        return dict(result='pass', agents='offline fixtures', migration=9, requests=3,
+        return dict(result='pass', agents='offline fixtures', migration=10, requests=3,
                     session_id=done['session_id'], duplicate_statuses=[during['status'], after['status']],
                     calls=counts, rows=rows, score=10, paid_calls=0)
     finally:

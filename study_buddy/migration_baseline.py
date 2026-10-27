@@ -1,8 +1,8 @@
 """Baseline preview and explicit atomic adoption for the complete SQLite schema.
 
 The preview never creates tracking records and never applies migrations.
-Only reviewed full schemas through 008 and 009 are supported. Historical 008
-is frozen separately; adoption is never inferred from table names.
+Only reviewed full schemas through 008, 009 and 010 are supported. Historical schemas
+are frozen separately; adoption is never inferred from table names.
 """
 from contextlib import closing
 import hashlib
@@ -15,8 +15,8 @@ from study_buddy.migrations import (discover_migrations, initialize_migration_tr
                                    record_applied_migration, MigrationTrackingRejected)
 
 ROOT = Path(__file__).resolve().parent.parent
-BASELINE_VERSION = 9
-BASELINE_REFERENCES = {8: ROOT/'db/baselines/008_schema.sql', 9: ROOT/'db/schema.sql'}
+BASELINE_VERSION = 10
+BASELINE_REFERENCES = {8: ROOT/'db/baselines/008_schema.sql', 9: ROOT/'db/baselines/009_schema.sql', 10: ROOT/'db/schema.sql'}
 # Tokenize quotes before interpreting their contents as comments/whitespace.
 # Preserve quoted strings/identifiers exactly; normalize unquoted case/spacing.
 TOKENS = re.compile(r"--[^\n]*|/\*[\s\S]*?\*/|'(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"|`(?:``|[^`])*`|\[[^\]]*\]|[A-Za-z_][A-Za-z_0-9]*|\s+|.")
@@ -45,7 +45,7 @@ def plan_baseline(conn, *, through_version):
     files = discover_migrations()
     if (type(through_version) is not int or through_version not in BASELINE_REFERENCES or
             not files or files[-1]['version'] != BASELINE_VERSION):
-        raise MigrationTrackingRejected('Only the reviewed complete schemas through migration 008 or 009 can be baselined.')
+        raise MigrationTrackingRejected('Only the reviewed complete schemas through migration 008, 009 or 010 can be baselined.')
     files = [migration for migration in files if migration['version'] <= through_version]
     tracking = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migrations'").fetchone()
     if tracking and list_applied_migrations(conn):
