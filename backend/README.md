@@ -667,3 +667,17 @@ No transaction spans an injected agent callback. Existing provider adapter timeo
 New counts are `feedback_operations_checked`, `feedback_operations_expired`, `reteaching_operations_checked` and `reteaching_operations_expired`; `sessions_failed` totals failures across all four categories. Overdue running feedback is eligible only while its matching latest attempt is grading. Reteaching is eligible only for the latest attempt with a consumed retry, no saved Tutor handoff and no retry quality operation taking over expiry. Ready, superseded, published and terminal work stays untouched. Missing timing on otherwise eligible active work is an explicit maintenance error, not permission to create a new deadline or dispatch a provider. Migration 010 is required; the worker does not install migrations.
 
 The existing foreground worker and one-shot expiry command both use this cycle. No service or scheduler is installed automatically. Tests use disposable databases and verify exact boundaries, batch limits, replay, unchanged results/budgets, atomic rollback, all-category counts, and a worker sweep completing while feedback/Tutor callbacks are paused. Late callbacks cannot revive expired work. This change remains local; no paid calls, application database changes, pushes or PR updates.
+
+### Combined controller review package
+
+The `codex/controller-integration` branch packages the integrated controller for one review into `dev`. It includes the commits already proposed in PR #45 (summary resumption), PR #47 (read-only reconnect) and PR #48 (session-start reservation/migration 009), plus the follow-ups documented above. Earlier sections marked local describe their implementation history; this section describes the combined review scope. Those PRs overlap this branch and must not be treated as four independent implementations. Review this combined branch for the final behavior; the earlier PRs remain open as references until the team chooses the merge path. No merge into dev/main or deployment is performed by publishing this package.
+
+Suggested review order:
+
+1. Migrations 009/010, frozen baseline references 008/009, and atomic timing/claim persistence. Migration 001–009 bytes remain unchanged by the 010 follow-up. Legacy active feedback/reteaching receives an explicitly documented migration-time adoption window.
+2. Session-start reservation/deadline checks; feedback/reteaching expiry and result-save fencing. Confirm no replay grants another uncertain paid call, and score/repair/learning budgets remain preserved.
+3. Four bounded maintenance sweeps, per-category counts and limits, atomic batches and partial-cycle retry behavior.
+4. Summary resumption, ownership/publication/summary retrieval checks and advisory next_action projection.
+5. Offline CLI/browser lab and cross-feature regression scenarios. Demo actions use deterministic fixtures and a disposable database, not production routes or semantic quality judgments.
+
+Validation: 500 Python tests passed on the integrated branch. Tests include first-round pass, exactly one learning retry, summary recovery, ownership isolation, duplicate starts/answers, migration adoption/rollback, deadline boundaries, and real concurrent late-result rejection. No live agents, production migrations or deployed workers were used. Paid end-to-end agent verification, learner-facing authentication/API integration and supervised deployment remain separate release work.
