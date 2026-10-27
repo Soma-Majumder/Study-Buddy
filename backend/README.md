@@ -8,6 +8,8 @@ Current operation as of October 26, 2026, based on merged `dev` commit `8c53b0d`
 
 **Under review:** [PR #49](https://github.com/Soma-Majumder/Study-Buddy/pull/49) adds feedback/reteaching deadlines (migration 010), expiry sweeps for abandoned starts and agent operations, next-action guidance and an offline controller lab. Do not assume they exist on `dev` until merged.
 
+[PR #50](https://github.com/Soma-Majumder/Study-Buddy/pull/50), based on #49, adds prompt-only Assessment and Reviewer quality guidance, a dedicated revision prompt and opt-in token-usage capture. Live quality is not yet proven.
+
 **Local prototype, not merged:** `codex/lesson-picker` provides a terminal fixture demo. It does not run live agents or save progress. Keep it distinct from backend integration and the planned web interface.
 
 **Planned / not yet verified:** authenticated web routes/UI, returning-learner experience, additional pilot lessons, P1 confidence/misconception/spaced-review features, production supervision/hosting and independent live Reviewer validation. P0/P1/P2 in the PRD indicate priority, not shipped state. No student-pilot target is claimed as achieved.
@@ -237,6 +239,29 @@ Suggested review order:
 5. Offline CLI/browser lab and cross-feature regression scenarios. Demo actions use deterministic fixtures and a disposable database, not production routes or semantic quality judgments.
 
 Validation: 500 Python tests passed on the integrated branch. Tests include first-round pass, exactly one learning retry, summary recovery, ownership isolation, duplicate starts/answers, migration adoption/rollback, deadline boundaries, and real concurrent late-result rejection. No live agents, production migrations or deployed workers were used. Paid end-to-end agent verification, learner-facing authentication/API integration and supervised deployment remain separate release work.
+
+## Assessment and Reviewer quality follow-up (PR #50)
+
+### Local Assessment quality follow-up (after combined controller PR)
+
+`codex/assessment-understanding` strengthens Assessment generation guidance after the live run produced nine recall questions and one cause_effect question. The system prompt/reference now specify an internal ten-target plan, a six-understanding-question goal when supported, concrete abstract task patterns, necessary case information, distinct taught relationships, and a final demand/duplication audit. Grounding and exact retry scope take precedence over filling a reasoning quota. Recall must never be relabeled as reasoning or padded with a decorative story.
+
+The existing builders share these instructions with generation, technical repair and content revision. No output schema, provider effort/budget, Reviewer rubric, controller publication policy or handoff contract changes are included. Warnings remain warnings; the prompt goal does not silently become a new blocking rule. The revised prompt has only offline verification so far; semantic improvement needs a separately authorized paid evaluation. See backend/evals/assessment-quality-rubric.md for the comparison checklist. This follow-up stays local and does not update PR #49 or Soma's existing review branches.
+
+### Local Reviewer concision and usage diagnostics
+
+The Assessment quality follow-up branch also narrows Reviewer report verbosity: shortest sufficient literal quotes, normally one per grounded item, concise actionable issues/uncertainty, and no commentary on passing checks. Required judgments, controller bindings and honest uncertainty are unchanged; the output allowance remains 8192 at low effort.
+
+The gated controller evaluator adds an explicit `--capture-token-usage` mode that records aggregate metadata even when the transport rejects a truncated response. It labels generation, repair, review, revision and revised-review phases and does not record response text or private reasoning. See backend/evals/README.md for privacy, missing-metadata semantics and the difference between fixture and fixed-live-explanation comparisons. 503 Python tests and 95 JavaScript tests passed offline. Changes stay local; PR #49 is unchanged. A paid evaluation is still needed to assess truncation improvement.
+
+
+### Local Assessment revision focus
+
+Content revision now loads a dedicated `backend/prompts/assessment-revision-system.md` rather than inheriting the full generation planning prompt and quality reference. It directs Assessment to preserve sound items and their keys, prioritize concrete failed criteria, fix answer cues locally, and replace only redundant targets when a distinct supported alternative exists. Unflagged changes need a concrete correctness/scope or linked-key reason. Full-quiz checks remain mandatory, but do not call for a new ten-target design pass. Warnings do not silently become blocking policy or justify inventing content.
+
+The adapter still validates original candidate/report bindings before a call and still returns the complete ten-question quiz plus private keys in the same result envelope. Grounding, focus limits, one correct answer, short rationales, insufficient-content failure, untrusted-data separation and controller-owned budgets remain explicit. No model, output limit (8192), low-effort setting, timeout, schema, publication policy or repair allowance changes are included. Generation and its technical repair continue using the existing generation/reference guidance; content revision and its technical correction use the new focused prompt.
+
+This is local on `codex/assessment-understanding`; no paid evaluation or PR update is included. Offline adapter/contract tests do not establish that the model preserves sound items or avoids truncation. A separately authorized fixed-explanation evaluation with usage capture is needed to assess those outcomes.
 
 ## Session-start request reservations (migration 009, PR #48)
 

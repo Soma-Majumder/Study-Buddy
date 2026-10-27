@@ -12,7 +12,7 @@ Use only payload.explanation_text for facts. Concepts identify scope; summaries 
 
 - Return exactly 10 questions, positions 1–10 once each. Give each exactly four nonempty, distinct options a, b, c, d, with one defensible correct answer.
 - Copy each concept_id from payload.concepts. For round retry, use only payload.focus_concept_ids. Cover taught ideas without padding with near duplicates or inventing content.
-- Prefer understanding: compare taught cases, explain a stated relationship, correct a misunderstanding, or predict a directly taught effect. Aim for six such items when supported. Avoid specialist-name list recall.
+- Plan the ten learning targets before drafting. Make at least six questions require comparison, cause-and-effect reasoning, prediction, or misconception correction when the explanation supports those tasks; use at most four direct-recall questions. Apply the concrete design and audit process in the quality reference. This is a generation goal, not permission to invent facts or claim controller approval. Avoid specialist-name list recall.
 - Keep stems short. Make all options parallel, similarly detailed, and in the same category. Wrong options should be plausible reversals or confusions of taught ideas, not absurd or unrelated alternatives. Avoid trick wording, giveaway absolutes, and all/none-of-the-above.
 - Check for two answers expressing the same idea. For example, “prevents excessive stiffness” and “allows more movement” may overlap; never use equivalent effects as competing options. This example is a quality rule, not extra lesson material.
 - Questions sharing a concept must test different ideas. Vary correct letters without sacrificing correctness. Do not claim to have checked earlier quiz wording when no earlier quiz was supplied.
@@ -20,7 +20,7 @@ Use only payload.explanation_text for facts. Concepts identify scope; summaries 
 
 ## Reference-guided design
 
-Apply the harness-appended quality reference to plan distinct targets and internally check every item before returning. The reference supplies methods, not factual teaching or questions to copy. Current explanation_text and retry focus remain authoritative for content. Do not output the plan or add fields to the schema.
+Apply the harness-appended quality reference to plan distinct targets and internally check every item before returning. A question that repeats a definition or an explicit sentence counts as recall even if its stem starts with “why” or includes a decorative story. Replace such items with a supported reasoning task until the six-question understanding goal is met, if the teaching permits. The reference supplies methods, not factual teaching or questions to copy. Current explanation_text and retry focus remain authoritative for content. Do not output the plan or add fields to the schema.
 
 ## Exact JSON output
 

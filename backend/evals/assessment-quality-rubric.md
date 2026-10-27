@@ -76,3 +76,20 @@ For the next evaluation, check genuine target diversity rather than counting dif
 The harness now loads a separate topic-neutral reference distilled from the manual revision. Traceability: manual Q3 informs same-variable cause/effect choices; Q4 informs applying a definition to two cases; Q6 informs checking both conditions; Q7 informs comparing representations; Q9 informs preserving qualifiers; Q5/Q8 inform distinguishing explicit teaching from unsupported detail. Q1/Q2/Q10 inform balanced role/property choices but are not treated as proof of deeper reasoning.
 
 The complete revised quiz is not sent to the model. During the next live review, compare outputs with these design principles and check target variety, plausible distractors, one defensible answer, and factual scope. Do not count evidence-boundary questions repeatedly as a substitute for understanding the subject. Input/transport tests cannot establish these semantic qualities.
+
+## October 27 live follow-up: understanding-focused generation
+
+The latest first-round live integration published ten questions, while Reviewer classified nine as recall and one as cause_effect. It flagged `insufficient_understanding` and `repeated_target`. Those are warnings under the current controller policy; publication did not establish that the quiz met the six-understanding-question goal.
+
+The local prompt follow-up asks Assessment to plan distinct taught claims before drafting, choose at least six supported understanding tasks, make case information necessary to answering, and audit the actual demand before returning. A decorative scenario or the word “why” does not count. Rewording the same relationship does not make a distinct target. Generation, technical repair and content revision use the same reference; Reviewer and publication policy are unchanged.
+
+For the next separately authorized paid evaluation:
+
+- Confirm the supplied explanation contains enough distinct relationships for the goal; never reward invented teaching or expanded retry scope.
+- Label each question by what the learner must do. Count comparison, cause_effect, prediction and misconception_correction; exclude recall and evidence_boundary.
+- Look for at least six grounded understanding questions, at most four recall items, a mix of supported tasks and no repeated relationship disguised by new names.
+- Verify all ten for a single defensible answer, useful parallel distractors, unchanged concept scope and rationales of at most 25 words.
+- Record content warnings independently from the controller publication decision. A published quiz can still miss this generation goal.
+- To attribute a difference to the prompt, compare against the same Tutor explanation; different live Tutor explanations introduce a confound. Check a focused retry separately before claiming readiness for both rounds.
+
+Offline harness/contract tests establish that the revised guidance reaches the existing paths without changing the output contract. They cannot establish that Claude follows it or that question quality improved. No new live generation is included in this prompt follow-up.

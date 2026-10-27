@@ -103,6 +103,17 @@ class QualityReviewTests(unittest.TestCase):
         result = validate_review(self.report, self.context)
         self.assertEqual((result['decision'], result['reasons']), ('needs_revision', ['answer_cue']))
 
+    def test_repetition_warning_does_not_hide_genuine_content_uncertainty(self):
+        self.report['quiz_review'].update(target_diversity='fail', issues=[dict(
+            code='repeated_target', detail='Items repeat a target.', related_positions=[1, 2])])
+        self.assertEqual(validate_review(self.report, self.context)['decision'], 'pass')
+        self.report['questions'][0].update(grounding='uncertain',
+            uncertainty_notes=['Cannot determine whether the explanation supports this claim.'])
+        result = validate_review(self.report, self.context)
+        self.assertEqual(result['decision'], 'blocked')
+        self.assertIn('review_uncertainty', result['reasons'])
+        self.assertIn('repeated_target', result['warnings'])
+
     def test_uncertain_target_diversity_still_blocks(self):
         self.report['quiz_review'].update(target_diversity='uncertain', uncertainty_notes=['Cannot tell.'])
         self.assertEqual(validate_review(self.report, self.context)['decision'], 'blocked')

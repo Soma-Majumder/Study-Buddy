@@ -75,3 +75,60 @@ console.log(await readFile(process.env.STUDY_BUDDY_EVAL_CAPTURE_PATH, 'utf8'));
         self.assertIsNone(module.usage_totals([dict(token_usage=dict(output_tokens=5)), {}])['output_tokens'])
         self.assertIsNone(module.usage_totals([])['input_tokens'])
         self.assertIsNone(module.usage_totals([dict(token_usage=dict(output_tokens=5, thinking_tokens=6))])['thinking_share_of_output'])
+
+    def test_usage_only_capture_survives_real_transport_truncation_without_private_text(self):
+        script = r'''import {readFile, stat} from 'node:fs/promises';
+const body = {stop_reason:'max_tokens', content:[
+  {type:'thinking', thinking:'private-reasoning-sentinel'},
+  {type:'text', text:'private-quiz-output-sentinel'}],
+  usage:{input_tokens:500,output_tokens:8192,cache_read_input_tokens:-1,
+    output_tokens_details:{thinking_tokens:6100,private_reasoning:'private-reasoning-sentinel'}}};
+globalThis.fetch = async () => new Response(JSON.stringify(body), {status:200});
+await import('./backend/evals/capture-usage.mjs');
+const {callClaude} = await import('./backend/claude.mjs');
+let code;
+try {await callClaude({system:'private-prompt-sentinel',user:'private-input-sentinel'},
+  {apiKey:'fake-secret',allowPaidCalls:true});}
+catch (error) {code=error.code;}
+const row=JSON.parse(await readFile(process.env.STUDY_BUDDY_EVAL_CAPTURE_PATH,'utf8'));
+console.log(JSON.stringify({code,row,mode:(await stat(process.env.STUDY_BUDDY_EVAL_CAPTURE_PATH)).mode & 0o777}));
+'''
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'usage.jsonl'
+            env = dict(os.environ, STUDY_BUDDY_EVAL_CAPTURE_PATH=str(path), STUDY_BUDDY_EVAL_PHASE='review_revision')
+            result = subprocess.run([os.environ.get('STUDY_BUDDY_NODE','node'),'--input-type=module','-e',script],
+                cwd=ROOT,env=env,capture_output=True,text=True,check=True,timeout=10)
+            output=json.loads(result.stdout)
+            self.assertEqual(output['code'],'output_truncated')
+            self.assertEqual(output['mode'],0o600)
+            self.assertEqual(output['row'],dict(phase='review_revision',usage=dict(input_tokens=500,output_tokens=8192,thinking_tokens=6100),
+                text_characters=len('private-quiz-output-sentinel'),stop_reason='max_tokens'))
+            for forbidden in ('private-reasoning-sentinel','private-quiz-output-sentinel','private-prompt-sentinel','private-input-sentinel','fake-secret'):
+                self.assertNotIn(forbidden,result.stdout)
+
+    def test_usage_only_capture_ignores_http_errors_and_keeps_absent_usage_unknown(self):
+        script = r'''import {readFile} from 'node:fs/promises';
+let calls=0;
+globalThis.fetch=async()=>++calls===1 ? {ok:false,clone:()=>{throw new Error('Do not read error body');}} :
+ {ok:true,clone:()=>({json:async()=>({stop_reason:'end_turn',content:[{type:'text',text:'private-result'}]})})};
+await import('./backend/evals/capture-usage.mjs');
+await fetch('https://example.invalid',{headers:{'x-api-key':'fake-secret'}});
+await fetch('https://example.invalid');
+console.log(await readFile(process.env.STUDY_BUDDY_EVAL_CAPTURE_PATH,'utf8'));
+'''
+        with tempfile.TemporaryDirectory() as folder:
+            env=dict(os.environ,STUDY_BUDDY_EVAL_CAPTURE_PATH=str(Path(folder)/'usage.jsonl'),STUDY_BUDDY_EVAL_PHASE='untrusted-phase')
+            result=subprocess.run([os.environ.get('STUDY_BUDDY_NODE','node'),'--input-type=module','-e',script],
+                cwd=ROOT,env=env,capture_output=True,text=True,check=True,timeout=10)
+            row=json.loads(result.stdout)
+            self.assertEqual(row,dict(phase='unknown',usage={},text_characters=14,stop_reason='end_turn'))
+            self.assertNotIn('private-result',result.stdout)
+
+    def test_eval_usage_capture_still_requires_paid_authorization_and_exclusive_capture_mode(self):
+        command=[__import__('sys').executable,'-B',str(ROOT/'backend/evals/assessment_controller.py')]
+        missing=subprocess.run(command+['--capture-token-usage'],capture_output=True,text=True,timeout=10)
+        self.assertNotEqual(missing.returncode,0)
+        self.assertIn('--live --quality-gate are required',missing.stderr)
+        both=subprocess.run(command+['--capture-token-usage','--capture-response-text'],capture_output=True,text=True,timeout=10)
+        self.assertNotEqual(both.returncode,0)
+        self.assertIn('not allowed with argument',both.stderr)

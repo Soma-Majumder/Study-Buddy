@@ -1,0 +1,169 @@
+{
+  "first_review": {
+    "mode": "one_reviewer_check_manual_corrected_candidate",
+    "candidate_hash": "8612d83118f18a516ec63b1259ee94152e66ae7c9d3b993933bb5f821f4c4640",
+    "review_validation": {
+      "decision": "pass",
+      "candidate_hash": "8612d83118f18a516ec63b1259ee94152e66ae7c9d3b993933bb5f821f4c4640",
+      "understanding_count": 5,
+      "reasons": [],
+      "warnings": [
+        "insufficient_understanding",
+        "repeated_target"
+      ]
+    },
+    "result": "pass",
+    "published": false,
+    "usage_records": [
+      {
+        "phase": "review_revision",
+        "usage": {
+          "input_tokens": 8102,
+          "output_tokens": 4982,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "thinking_tokens": 3017
+        },
+        "text_characters": 4684,
+        "stop_reason": "end_turn"
+      }
+    ],
+    "elapsed_seconds": 18.71
+  },
+  "retry_review": {
+    "mode": "one_reviewer_check_manual_corrected_retry",
+    "candidate_hash": "e212348353ef73a27eaa555c0530ec92b5038b9af4c1a42826be663de3c02b13",
+    "review_validation": {
+      "decision": "pass",
+      "candidate_hash": "e212348353ef73a27eaa555c0530ec92b5038b9af4c1a42826be663de3c02b13",
+      "understanding_count": 8,
+      "reasons": [],
+      "warnings": [
+        "repeated_target"
+      ]
+    },
+    "result": "pass",
+    "published": false,
+    "usage_records": [
+      {
+        "phase": "review_revision",
+        "usage": {
+          "input_tokens": 7849,
+          "output_tokens": 5733,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "thinking_tokens": 3688
+        },
+        "text_characters": 4798,
+        "stop_reason": "end_turn"
+      }
+    ],
+    "elapsed_seconds": 21.53
+  },
+  "completion": {
+    "mode": "saved_approved_retry_live_feedback_and_summary",
+    "result": {
+      "status": "completed",
+      "steps": [
+        {
+          "step": "quiz",
+          "round": "first",
+          "status": "awaiting_answers",
+          "error": null
+        },
+        {
+          "step": "grade",
+          "round": "first",
+          "status": "grading",
+          "error": null,
+          "score": 7
+        },
+        {
+          "step": "feedback",
+          "round": "first",
+          "status": "grading",
+          "error": null
+        },
+        {
+          "step": "route",
+          "round": "first",
+          "status": "reteaching",
+          "next_step": "reteach"
+        },
+        {
+          "step": "reteach",
+          "round": "first",
+          "status": "reteaching",
+          "error": null
+        },
+        {
+          "step": "quiz",
+          "round": "retry",
+          "status": "awaiting_answers",
+          "error": null
+        },
+        {
+          "step": "grade",
+          "round": "retry",
+          "status": "grading",
+          "error": null,
+          "score": 10
+        },
+        {
+          "step": "feedback",
+          "round": "retry",
+          "status": "grading",
+          "error": null
+        },
+        {
+          "step": "route",
+          "round": "retry",
+          "status": "pending_save",
+          "next_step": "summary"
+        },
+        {
+          "step": "summary",
+          "round": "retry",
+          "status": "completed",
+          "error": null
+        }
+      ],
+      "scores": [
+        7,
+        10
+      ],
+      "error": null
+    },
+    "paid_adapter_invocations": 1,
+    "summary_saved": true,
+    "summary_reopened_and_verified": true,
+    "row_counts": {
+      "quizzes": 2,
+      "attempts": 2,
+      "results": 2,
+      "session_summaries": 1
+    },
+    "session_state": [
+      {
+        "status": "completed",
+        "learning_retry_count": 1
+      }
+    ],
+    "foreign_key_violations": 0,
+    "usage_records": [
+      {
+        "phase": "unknown",
+        "usage": {
+          "input_tokens": 3073,
+          "output_tokens": 757,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "thinking_tokens": 0
+        },
+        "text_characters": 2026,
+        "stop_reason": "end_turn"
+      }
+    ],
+    "elapsed_seconds": 4.85
+  }
+}

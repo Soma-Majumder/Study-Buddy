@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0",
+  "handoff_id": "handoff_nnim5m8avsp0",
+  "explanation_id": "expl_zml86uzf90ar",
+  "round": "first",
+  "quiz": {
+    "questions": [
+      {
+        "position": 1,
+        "concept_id": "c_amphipathic_phospholipids",
+        "prompt": "In water, why do phospholipids form a bilayer instead of a single layer?",
+        "options": {
+          "a": "Heads face the water on both sides and tails hide in the middle",
+          "b": "Tails face the water and heads hide in the middle",
+          "c": "Heads clump together in the center of the membrane",
+          "d": "Tails dissolve in water and form a single sheet"
+        }
+      },
+      {
+        "position": 2,
+        "concept_id": "c_fatty_acid_saturation",
+        "prompt": "Two membranes differ only in their fatty acid tails: one has saturated tails and one has unsaturated tails. Which is more fluid, and why?",
+        "options": {
+          "a": "Saturated, because its tails pack more tightly",
+          "b": "Unsaturated, because double bends stop the tails from packing tightly",
+          "c": "Saturated, because it has more double bonds",
+          "d": "Both are equally fluid, because both have fatty acid tails"
+        }
+      },
+      {
+        "position": 3,
+        "concept_id": "c_fluidity_factors",
+        "prompt": "Considering only the tail-packing effect described, which change explains membrane parts moving more freely?",
+        "options": {
+          "a": "More saturated tails, which pack closely and allow less movement.",
+          "b": "More saturated tails, which pack loosely and allow more movement.",
+          "c": "More unsaturated tails, which pack closely and allow less movement.",
+          "d": "More unsaturated tails, which pack loosely and allow more movement."
+        }
+      },
+      {
+        "position": 4,
+        "concept_id": "c_cholesterol_buffer",
+        "prompt": "A student says cholesterol always makes a membrane more fluid. Which correction fits the explanation?",
+        "options": {
+          "a": "It limits movement in a very fluid membrane and promotes stiffening in the cold.",
+          "b": "It increases movement in a very fluid membrane and prevents stiffening in the cold.",
+          "c": "It limits movement in a very fluid membrane and prevents stiffening in the cold.",
+          "d": "It increases movement in a very fluid membrane and promotes stiffening in the cold."
+        }
+      },
+      {
+        "position": 5,
+        "concept_id": "c_fluid_mosaic_model",
+        "prompt": "A protein is seen moving sideways within a membrane made of lipids, cholesterol, and proteins. Which model describes this?",
+        "options": {
+          "a": "Bilayer model, which describes phospholipid heads facing water on both sides",
+          "b": "Fluid mosaic model, which describes components that move within the membrane",
+          "c": "Cholesterol buffer, which describes limiting movement when the membrane is too fluid",
+          "d": "Glycocalyx, which describes a sugar coating that helps cells recognize each other"
+        }
+      },
+      {
+        "position": 6,
+        "concept_id": "c_membrane_asymmetry",
+        "prompt": "Lipids rarely switch leaflets on their own. Which best explains lipids that do switch leaflets with help?",
+        "options": {
+          "a": "Special proteins such as flippases and scramblases help move them",
+          "b": "Cholesterol pulls lipids across the membrane",
+          "c": "Sugar chains on the outer surface carry lipids across",
+          "d": "Lipids switch when their tails become saturated"
+        }
+      },
+      {
+        "position": 7,
+        "concept_id": "c_glycocalyx_recognition",
+        "prompt": "A student says the glycocalyx is inside the cell and mainly sets membrane fluidity. Which correction fits?",
+        "options": {
+          "a": "Inner surface, where it mainly sets membrane fluidity",
+          "b": "Outer surface, where it mainly limits lipids flipping between leaflets",
+          "c": "Outer surface, where it is a sugar coating that aids cell recognition",
+          "d": "Inner surface, where it is made of phospholipid heads that stiffen membranes"
+        }
+      },
+      {
+        "position": 8,
+        "concept_id": "c_fluidity_factors",
+        "prompt": "A student says fatty acid saturation is the only factor that affects membrane fluidity. Which correction fits?",
+        "options": {
+          "a": "Yes, saturation is the only factor affecting fluidity",
+          "b": "No, chain length, temperature, and cholesterol also affect fluidity",
+          "c": "No, fluidity depends only on the number of phospholipid heads",
+          "d": "Yes, cholesterol alone determines all membrane fluidity"
+        }
+      },
+      {
+        "position": 9,
+        "concept_id": "c_fatty_acid_saturation",
+        "prompt": "A fatty acid tail has a double bond between two carbon atoms. What structure results?",
+        "options": {
+          "a": "A bend that stops the tail from packing tightly",
+          "b": "A straight tail that packs tightly with its neighbors",
+          "c": "A water-loving head that faces outward",
+          "d": "A tail that is water-loving like a head"
+        }
+      },
+      {
+        "position": 10,
+        "concept_id": "c_membrane_asymmetry",
+        "prompt": "Which statement about the two leaflets of a membrane is correct?",
+        "options": {
+          "a": "They have identical mixtures of molecules",
+          "b": "Lipids often switch leaflets alone without help",
+          "c": "Only proteins differ between the leaflets",
+          "d": "They contain different mixtures of molecules"
+        }
+      }
+    ]
+  },
+  "answer_key": [
+    {
+      "position": 1,
+      "correct_option": "a",
+      "rationale": "Water-loving heads face water on both sides while water-avoiding tails hide in the middle, forming the bilayer."
+    },
+    {
+      "position": 2,
+      "correct_option": "b",
+      "rationale": "Double bonds in unsaturated tails create bends that prevent tight packing, so those membranes are more fluid."
+    },
+    {
+      "position": 3,
+      "correct_option": "d",
+      "rationale": "Unsaturated tails with double-bond bends pack loosely, letting membrane parts move more and increasing fluidity."
+    },
+    {
+      "position": 4,
+      "correct_option": "c",
+      "rationale": "Cholesterol buffers fluidity: it limits movement when the membrane is too fluid and helps prevent stiffening when cold."
+    },
+    {
+      "position": 5,
+      "correct_option": "b",
+      "rationale": "The fluid mosaic model describes a membrane mixing lipids, cholesterol, and proteins whose components can move sideways."
+    },
+    {
+      "position": 6,
+      "correct_option": "a",
+      "rationale": "Flippases, floppases, and scramblases help lipids move between leaflets, since lipids rarely switch on their own."
+    },
+    {
+      "position": 7,
+      "correct_option": "c",
+      "rationale": "The glycocalyx is a sugar coating from carbohydrate chains on the outer surface that aids cell recognition."
+    },
+    {
+      "position": 8,
+      "correct_option": "b",
+      "rationale": "Fluidity is affected by fatty acid saturation, chain length, temperature, and cholesterol, not saturation alone."
+    },
+    {
+      "position": 9,
+      "correct_option": "a",
+      "rationale": "A double bond creates a bend in an unsaturated tail, which stops the tails from packing tightly."
+    },
+    {
+      "position": 10,
+      "correct_option": "d",
+      "rationale": "The two leaflets contain different mixtures of molecules, and lipids rarely switch leaflets without special protein help."
+    }
+  ]
+}

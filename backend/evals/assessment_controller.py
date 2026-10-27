@@ -38,7 +38,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--live', action='store_true', help='Authorize paid model calls')
     parser.add_argument('--quality-gate', action='store_true', help='Authorize the full gated flow, at most five Assessment/Reviewer calls')
-    parser.add_argument('--capture-response-text', action='store_true', help='Save private model text in a local evaluation artifact')
+    capture_flags = parser.add_mutually_exclusive_group()
+    capture_flags.add_argument('--capture-response-text', action='store_true', help='Save private model text in a local evaluation artifact')
+    capture_flags.add_argument('--capture-token-usage', action='store_true', help='Save usage/stop reason/text length only, including truncated responses')
     args = parser.parse_args()
     if not args.live or not args.quality_gate:
         parser.error('--live --quality-gate are required; the full flow can make up to five paid requests')
@@ -49,12 +51,15 @@ def main():
                   quality_reference_sha256=hashlib.sha256((ROOT / 'backend/prompts/assessment-quality-reference.md').read_bytes()).hexdigest(),
                   generations=[], review='pending', assessment_structured_output=True, assessment_effort='low', assessment_max_tokens=8192, assessment_timeout_ms=60000, bridge_timeout_seconds=70)
 
-    if args.capture_response_text:
+    capture_enabled = args.capture_response_text or args.capture_token_usage
+    if capture_enabled:
         capture = ROOT / 'backend/evals/results' / (report['date'].replace(':', '-').replace('.', '-') + '-assessment-response-text.jsonl')
         capture.parent.mkdir(parents=True, exist_ok=True)
         capture.touch(mode=0o600, exist_ok=False)
-        report['response_text_file'] = capture.name
-        preload = str(ROOT / 'backend/evals/capture-response.mjs')
+        if args.capture_token_usage:
+            capture = capture.rename(capture.with_name(capture.name.replace('response-text', 'token-usage')))
+        report['response_text_file' if args.capture_response_text else 'token_usage_file'] = capture.name
+        preload = str(ROOT / 'backend/evals' / ('capture-response.mjs' if args.capture_response_text else 'capture-usage.mjs'))
         os.environ['NODE_OPTIONS'] = (os.environ.get('NODE_OPTIONS', '') + ' --import=' + json.dumps(preload)).strip()
         os.environ['STUDY_BUDDY_EVAL_CAPTURE_PATH'] = str(capture)
 
@@ -66,12 +71,32 @@ def main():
         report['handoff'] = handoff
         return dict(handoff=handoff, repairCount=0)
 
+    def tagged_call(phase, runner, *inputs, **kwargs):
+        previous = os.environ.get('STUDY_BUDDY_EVAL_PHASE')
+        os.environ['STUDY_BUDDY_EVAL_PHASE'] = phase
+        try:
+            return runner(*inputs, **kwargs)
+        finally:
+            if previous is None:
+                os.environ.pop('STUDY_BUDDY_EVAL_PHASE', None)
+            else:
+                os.environ['STUDY_BUDDY_EVAL_PHASE'] = previous
+
+    def reviewer(context, **kwargs):
+        from study_buddy.reviewer import run_reviewer
+        phase = 'review_revision' if context['controller_context']['candidate_version'] else 'review'
+        return tagged_call(phase, run_reviewer, context, **kwargs)
+
+    def revision(context, **kwargs):
+        from study_buddy.assessment import run_assessment_revision
+        return tagged_call('revision', run_assessment_revision, context, **kwargs)
+
     def assessment(handoff, *, repair_request=None, **timeouts):
         row = dict(repair_requested=repair_request is not None)
         report['generations'].append(row)
         started = time.monotonic()
         try:
-            output = run_assessment(handoff, repair_request=repair_request, **timeouts)
+            output = tagged_call('assessment_repair' if repair_request else 'assessment_generation', run_assessment, handoff, repair_request=repair_request, **timeouts)
             row['output'] = output
             row['validation_errors'] = check(output, handoff)
             return output
@@ -83,9 +108,11 @@ def main():
             raise
         finally:
             row['latency_ms'] = round((time.monotonic() - started) * 1000)
-            if args.capture_response_text:
+            if capture_enabled:
                 try:
                     records = [json.loads(line) for line in capture.read_text().splitlines()]
+                    if args.capture_token_usage:
+                        records = [r for r in records if r.get('phase') in ('assessment_generation', 'assessment_repair')]
                     index = len(report['generations']) - 1
                     if index < len(records):
                         row['token_usage'] = records[index].get('usage', {})
@@ -98,7 +125,7 @@ def main():
         learner = 'learner_a1b2c3d4e5f6'
         conn.execute('INSERT INTO learners VALUES (?)', (learner,))
         conn.commit()
-        result = start_quiz_session(conn, learner, 'lesson_cell_membranes', tutor=tutor, assessment=assessment)
+        result = start_quiz_session(conn, learner, 'lesson_cell_membranes', tutor=tutor, assessment=assessment, reviewer=reviewer, revision_assessment=revision)
         report['controller_result'] = result
         report['saved_counts'] = {table: conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
                                   for table in ('quizzes', 'questions', 'answer_keys', 'attempts', 'results')}
@@ -123,13 +150,19 @@ def main():
     conn.close()
     report['generation_token_usage_totals'] = usage_totals(report['generations'])
     report['token_usage_totals'] = None
-    if args.capture_response_text:
+    if capture_enabled:
         records = [json.loads(line) for line in capture.read_text().splitlines()]
         report['captured_response_count'] = len(records)
+        if args.capture_token_usage:
+            report['token_usage_records'] = records
+            report['token_usage_by_phase'] = {phase: usage_totals([dict(token_usage=r.get('usage', {})) for r in records if r.get('phase') == phase])
+                for phase in sorted({r.get('phase', 'unknown') for r in records})}
         report['token_usage_totals'] = usage_totals([dict(token_usage=r.get('usage', {})) for r in records])
         report['usage_scope'] = 'Captured successful HTTP responses across all phases; failed HTTP calls may have no usage metadata.'
     path = ROOT / 'backend/evals/results' / (report['date'].replace(':', '-').replace('.', '-') + '-assessment-controller.json')
-    path.write_text(json.dumps(report, indent=2) + '\n')
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, 'w') as handle:
+        handle.write(json.dumps(report, indent=2) + '\n')
     print(json.dumps(dict(report=str(path), status=result['status'], generations=len(report['generations']),
                           repair_count=report['repair_count'], gates=report['gates'])))
 
