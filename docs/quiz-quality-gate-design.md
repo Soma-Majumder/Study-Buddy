@@ -1,6 +1,6 @@
 # Bounded quiz content review design
 
-Proposed workflow for Study Buddy, October 26, 2026. A quiz must pass structural validation and a separate content review before it becomes available to a learner. This design adds a bounded reviewer task and at most one content revision. It does not change the 10-question quiz, 8/10 passing threshold, deterministic grading, or one student learning retry. It is not implemented yet and does not edit the finalized PRD.
+Implemented backend workflow in merged dev as of October 26, 2026; independent live Reviewer validation remains pending. A quiz must pass structural validation and a separate content review before it becomes available to a learner. This design adds a bounded reviewer task and at most one content revision. It does not change the 10-question quiz, 8/10 passing threshold, deterministic grading, or one student learning retry. The synchronized Google PRD and repository PDF now describe this additional Reviewer role; see their dated delivery status.
 
 ## Roles and placement
 
@@ -63,17 +63,17 @@ Reviewer to Controller returns a strict report containing:
 
 The controller validates the report schema, matching IDs/hash/version, complete unique positions, option references, and that support quotes actually occur in the supplied explanation. Literal quote matching proves provenance, not that the inference is correct. The controller derives pass/fail from the validated fields; it does not trust a free-text overall approval. For a pass, each report must mark all required criteria pass and identify exactly the saved keyed option as defensible. Any uncertainty blocks approval.
 
-Quality policy (Soma's decision): six genuinely different understanding items is the generation goal. A shortfall, repeated targets, and an answer cue when no individual question criterion failed are warnings only (SOFT_CODES and CONDITIONAL_SOFT_CODES in study_buddy/quality_review.py): the quiz is published and the warning is returned. Wrong, ambiguous, ungrounded, cued, weak-distractor and uncertain items still block. Evidence-boundary and simple recall items do not count toward the goal. Not a new PRD requirement. Reviewer quality claims remain model judgments that require evaluation.
+Quality policy (Soma's decision): six genuinely different understanding items is the generation goal. A shortfall, repeated targets, and an answer cue when no individual question criterion failed are warnings only (SOFT_CODES and CONDITIONAL_SOFT_CODES in study_buddy/quality_review.py): the quiz is published and the warning is returned. Wrong, ambiguous, ungrounded, cued, weak-distractor and uncertain items still block. Evidence-boundary and simple recall items do not count toward the goal. Current implementation policy; distinct from planned P1 diagnostic features. Reviewer quality claims remain model judgments that require evaluation.
 
 Controller to Assessment for the one revision includes the original validated handoff, the exact candidate, the validated issue list, and the unchanged source/focus scope. Assessment returns a FULL replacement quiz, not a patch. It must preserve handoff/explanation IDs and round, ten positions, and private-key separation. Every changed or unchanged item is checked again; a revision can introduce new errors. Raw malformed provider output is never recycled into correction instructions.
 
 ## Shared state and publication
 
-Add a quality operation unique on session_id and round, tied to the outgoing handoff and learner. Proposed fields: operation ID, learner/session/lesson/version/round, handoff ID, stage, revision_count (0–1), review_count (0–2), candidate version/hash, rubric and prompt versions, start/deadline timestamps, final quiz ID if published, and safe failure code. Keep the existing handoff repair count authoritative; do not duplicate or reset it in this table.
+Add a quality operation unique on session_id and round, tied to the outgoing handoff and learner. Persisted fields: operation ID, learner/session/lesson/version/round, handoff ID, stage, revision_count (0–1), review_count (0–2), candidate version/hash, rubric and prompt versions, start/deadline timestamps, final quiz ID if published, and safe failure code. Keep the existing handoff repair count authoritative; do not duplicate or reset it in this table.
 
 Persist candidate question data in backend-only staging records. Store candidate keys/rationales separately in private staging records keyed by operation/version/position. Store validated reviewer reports with the exact candidate hash. Never put draft keys into learner-readable session payloads or Tutor context. Keep normal operational logs to IDs, stage, code, latency, and numeric usage; raw provider text remains an explicit developer-evaluation option.
 
-Stages: generating → reviewing → (revising → reviewing_revision) → approved → published, with failed terminal from any stage. Reserve each provider invocation in a short transaction before dispatch. Concurrent or repeated calls for the same operation return its running/saved/failed state, without another provider call. A crashed reserved/running operation is not automatically restarted with a fresh budget; reconciliation is separate work. This does not solve duplicate NEW-session creation at the outer API boundary.
+Stages: generating → reviewing → (revising → reviewing_revision) → approved → published, with failed terminal from any stage. Reserve each provider invocation in a short transaction before dispatch. Concurrent or repeated calls for the same operation return its running/saved/failed state, without another provider call. A crashed reserved/running operation is not automatically restarted with a fresh budget; request-time expiry and the maintenance worker reconcile its terminal state. This does not solve duplicate NEW-session creation at the outer API boundary.
 
 Publication is one database transaction: verify operation ownership, approved candidate hash/version, no existing published quiz, and active session; insert quiz/questions/private keys; record published operation/final quiz ID; set session awaiting_answers. Return get_client_quiz only after commit. A save failure rolls back partial publication and records an accurate failure status. Existing approved grading from a first attempt remains intact if retry-quiz publication fails. No draft or failed candidate is eligible for submit_answers.
 
@@ -93,29 +93,8 @@ Learner-facing failure text: “We could not prepare a reliable quiz for this le
 10. Focused retry goes through the same gate without expanded scope, keys sent to Tutor, or another learning retry.
 11. Reviewer benchmark: the saved bad live quizzes must trigger their known issues; manually revised quiz is a proposed reference requiring partner review, not automatically a gold label. Include good cases so the reviewer is also tested for unnecessary rejection.
 
-## Small implementation steps
+## Current implementation and remaining validation
 
-First define the reviewer report schema and offline fixtures for a clear pass, ambiguous options, inaccurate rationale, stale hash, and uncertainty. Then add persisted operation/call reservations and tests; then implement the reviewer harness; then wire the shared gate into first/retry creation; finally run a bounded live evaluation. Keep semantic evaluation separate from transport and database tests.
+The schema, persisted operation/call reservations, private staging, Reviewer input/provider harness, controller dispatch, one content revision, exact-candidate publication and first/retry route integration are implemented in dev. Crash expiry reconciles abandoned work through request-time checks and the repeating maintenance worker. See [the backend guide](../backend/README.md) for current commands and lock-retry/shutdown behavior.
 
-This design needs role/budget agreement with Soma before being treated as the new locked architecture. No paid calls, migrations, model adapters, or runtime gate were added by this design step.
-
-
-## Contract milestone completed
-
-The response schema now lives at `schemas/v1/quiz_quality_review.schema.json`. `study_buddy/quality_review.py` provides pure hash/binding validation and a derived decision; `tests/fixtures/quiz_quality` contains synthetic contract cases. Operation IDs use proposed `quality_<12 lowercase letters/digits>` values. Candidate versions are 0/1, rubric version is 1.0, and hash version is private_quiz_v1.
-
-A well-formed report can lead to pass, needs_revision, or blocked for uncertainty. Invalid/stale/inconsistent reports raise ReviewRejected and must fail the future operation without repair. The helper currently performs no database or model work and is not wired into first/retry publication. Synthetic pass judgments are not independent approval of the manually authored quiz. Next milestone: persist operation and call reservations before adding the Reviewer harness.
-
-
-## State reservation milestone completed
-
-Migration 005 and the fresh schema now include quality operation and call reservation tables. `study_buddy/quality_state.py` enforces unique operation/call identities, a fixed elapsed deadline, one content revision, two reviews, and the existing single shared technical correction. State approval is bound to a candidate version/hash and is not publication. The trusted caller must validate reviewer reports before recording their derived decision.
-
-Candidate/private-key payload staging, validated report persistence, model dispatch, and atomic publication are not wired yet. The helpers leave existing session statuses and learning retries unchanged; the future controller integration must propagate failed operations to accurate session status and enforce the gate. No automatic resume is offered after a reserved call crashes. This milestone passed offline tests without paid calls.
-
-
-## Private staging milestone completed
-
-Migration 006 and quality_storage now persist immutable candidate question data, separate private keys, teaching snapshots, and validated reports. Storage composes with call completion in one transaction. Full candidate hashes are reconstructed on private reads; review decisions are derived against the saved candidate rather than caller-supplied verdicts. Initial/revised versions and failing/uncertain reports remain auditable.
-
-The gate still has no model harness or publication integration. Rejected malformed reports require the future dispatcher to record a terminal failure; storage itself does not dispatch or retry. New orchestration should use the storage helpers rather than the earlier low-level hash-only completion path. Existing first/retry generation routes remain unchanged.
+The reviewer remains a model judgment. Offline contract/benchmark fixtures and transport tests are not a substitute for an independent live evaluation with known good and bad cases. Production supervision, deployment ownership and live content-quality evidence remain open. The student pilot is not complete. Historical intermediate milestones are retained in [the archived backend build log](archive/backend-development-notes-2026-10-26.md).
