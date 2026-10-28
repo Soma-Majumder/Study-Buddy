@@ -1,0 +1,161 @@
+{
+  "date": "2026-10-28T13:27:46.963570+00:00",
+  "elapsed_seconds": 170.4,
+  "status": "completed",
+  "error": null,
+  "scores": [
+    7,
+    10
+  ],
+  "steps": [
+    {
+      "step": "quiz",
+      "round": "first",
+      "status": "awaiting_answers",
+      "error": null
+    },
+    {
+      "step": "grade",
+      "round": "first",
+      "status": "grading",
+      "error": null,
+      "score": 7
+    },
+    {
+      "step": "feedback",
+      "round": "first",
+      "status": "grading",
+      "error": null
+    },
+    {
+      "step": "route",
+      "round": "first",
+      "status": "reteaching",
+      "next_step": "reteach"
+    },
+    {
+      "step": "reteach",
+      "round": "first",
+      "status": "reteaching",
+      "error": null
+    },
+    {
+      "step": "quiz",
+      "round": "retry",
+      "status": "awaiting_answers",
+      "error": null
+    },
+    {
+      "step": "grade",
+      "round": "retry",
+      "status": "grading",
+      "error": null,
+      "score": 10
+    },
+    {
+      "step": "feedback",
+      "round": "retry",
+      "status": "grading",
+      "error": null
+    },
+    {
+      "step": "route",
+      "round": "retry",
+      "status": "pending_save",
+      "next_step": "summary"
+    },
+    {
+      "step": "summary",
+      "round": "retry",
+      "status": "completed",
+      "error": null
+    }
+  ],
+  "session": {
+    "status": "completed",
+    "learning_retry_count": 1,
+    "failure_reason": null
+  },
+  "row_counts": {
+    "quizzes": 2,
+    "attempts": 2,
+    "results": 2,
+    "quiz_quality_calls": 6,
+    "quiz_quality_publications": 2
+  },
+  "quality_calls_by_kind": {
+    "generation": 2,
+    "review": 2,
+    "review_revision": 1,
+    "revision": 1
+  },
+  "foreign_key_violations": 0,
+  "summary_saved": true,
+  "reviews": [
+    {
+      "candidate_version": 0,
+      "decision": "needs_revision",
+      "non_pass_by_criterion": {
+        "grounding": {
+          "fail": [
+            4
+          ]
+        }
+      },
+      "issue_codes": [
+        "repeated_target",
+        "unsupported_claim"
+      ],
+      "quiz_level": {
+        "concept_coverage": "pass",
+        "target_diversity": "fail"
+      },
+      "demands": {
+        "comparison": 1,
+        "prediction": 2,
+        "recall": 2,
+        "cause_effect": 2,
+        "misconception_correction": 3
+      }
+    },
+    {
+      "candidate_version": 1,
+      "decision": "pass",
+      "non_pass_by_criterion": {},
+      "issue_codes": [
+        "repeated_target"
+      ],
+      "quiz_level": {
+        "concept_coverage": "pass",
+        "target_diversity": "fail"
+      },
+      "demands": {
+        "comparison": 1,
+        "prediction": 2,
+        "recall": 3,
+        "misconception_correction": 3,
+        "cause_effect": 1
+      }
+    },
+    {
+      "candidate_version": 0,
+      "decision": "pass",
+      "non_pass_by_criterion": {},
+      "issue_codes": [
+        "repeated_target"
+      ],
+      "quiz_level": {
+        "concept_coverage": "pass",
+        "target_diversity": "fail"
+      },
+      "demands": {
+        "comparison": 2,
+        "prediction": 1,
+        "cause_effect": 1,
+        "misconception_correction": 2,
+        "recall": 4
+      }
+    }
+  ],
+  "review_errors": []
+}
