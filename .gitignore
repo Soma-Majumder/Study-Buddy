@@ -7,3 +7,6 @@ __pycache__/
 
 # Generated evaluation output; may contain private quiz keys and raw model text
 backend/evals/results/
+
+# Generated local backend check reports
+.local-checks/

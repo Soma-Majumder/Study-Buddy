@@ -1,0 +1,163 @@
+{
+  "date": "2026-10-28",
+  "scope": "Local assignment backend review, not production certification.",
+  "base_main": "a17415b",
+  "completed_local_work": [
+    {
+      "area": "Backend reproducibility",
+      "status": "Completed for prior local snapshot",
+      "detail": "Backend-only frozen checkpoint 38f918e and archive preserve source, hashed Python dependency pins and offline dependency material. A separate backend working copy keeps frontend changes apart.",
+      "limit": "Latest factual fixes are newer than that frozen checkpoint. No independent fresh-machine or cross-platform validation."
+    },
+    {
+      "area": "Automated offline checks",
+      "status": "Completed locally",
+      "detail": "One local command checks selected credential patterns, installed dependency versions/health, Python and JavaScript tests, and pass/retry/blocked scenarios. Latest recorded result: 554 Python, 98 JavaScript, 3/3 scenario groups; all seven gate checks pass.",
+      "limit": "Manual command, not installed hooks or GitHub CI. Does not prove semantic accuracy, security or learning gains."
+    },
+    {
+      "area": "F1: weak-concept note grounding",
+      "status": "Local safeguard implemented",
+      "detail": "New optional notes quote approved version-matched source passages; omit notes without evidence. Provider objects and historical saved feedback are preserved.",
+      "limit": "Optional notes only; not a general semantic validator."
+    },
+    {
+      "area": "F2: helps prevent qualifier",
+      "status": "Narrow local guard implemented",
+      "detail": "Updated prompt plus known-wording guard uses the existing single repair for unqualified cholesterol/prevents-stiffening feedback, then rejects repeated overstatement while preserving grading.",
+      "limit": "Known lexical formulations only. Prompt changes have no new live validation."
+    },
+    {
+      "area": "F3: observable answer summary",
+      "status": "Local deterministic summary implemented",
+      "detail": "Controller summary states verified answer count and missed positions for this attempt, without inferring reasoning or lasting mastery. Per-question explanations remain Assessment-owned.",
+      "limit": "Historical feedback is intentionally not rewritten."
+    },
+    {
+      "area": "F4: membrane comparison",
+      "status": "Manual copy corrected; NOT Reviewer-approved or published",
+      "detail": "Separate corrected Q10 stem and rationale explicitly hold all other fluidity factors equal and preserve helps prevent. Other nine items, options and correct letters are unchanged. Prompts request explicit comparison assumptions.",
+      "limit": "Schema-checked manual correction, not agent-generation success or semantic review approval. Prior approval of an original candidate does not transfer."
+    }
+  ],
+  "remaining_local_tasks": [
+    {
+      "task": "Freeze the updated backend snapshot",
+      "reason": "The frozen local archive predates factual fixes; this review branch packages source but is not a refreshed offline archive.",
+      "status": "Not done"
+    },
+    {
+      "task": "Broaden offline credential-history scanning",
+      "reason": "Current selected-pattern source scan and .env filename checks do not cover all committed history or every secret form. Report locations/codes without exposing values.",
+      "status": "Not done"
+    },
+    {
+      "task": "Walk through the actual backend call path",
+      "reason": "Explain controller and agent responsibilities one small block at a time, including the new controller-owned notes/summary and existing repair budget.",
+      "status": "Still needed"
+    },
+    {
+      "task": "Reconcile remaining delivery and architecture documentation",
+      "reason": "Reconcile any remaining PRD/PDF/diagram/README statuses and agree final architecture with Soma; this PR updates only the portable audit and local-check instructions.",
+      "status": "Partial; local document inventory possible, team agreement pending"
+    }
+  ],
+  "deferred_limitations": [
+    {
+      "area": "Reviewer approval/publication of corrected quiz",
+      "status": "Deferred under no-paid-call constraint",
+      "detail": "No Reviewer call was made. Corrected candidate is NOT Reviewer-approved and NOT published."
+    },
+    {
+      "area": "Live validation of current snapshot",
+      "status": "Deferred under no-paid-call constraint",
+      "detail": "Earlier live run does not validate newer Tutor bridge/required-ID changes, feedback guards, deterministic summary or current prompt wording."
+    },
+    {
+      "area": "Agent necessity and team scope",
+      "status": "Needs discussion with Soma; no architecture change",
+      "detail": "Runtime has Tutor, Assessment and Reviewer; no controlled evidence proves three agents outperform two. Six-understanding-question advisory policy is already agreed and is a separate question."
+    },
+    {
+      "area": "Independent factual and educational evaluation",
+      "status": "Not established",
+      "detail": "Saved-content audit is assistant analyst review, not an independent gold standard, semantic accuracy percentage, student pilot or learning-gain study. Three Tutor wording advisories remain advisory."
+    },
+    {
+      "area": "Shared automation enforcement",
+      "status": "Deferred; optional team tooling",
+      "detail": "No GitHub CI or installed secret-scanning commit hook was added. Local gate is usable without remote changes."
+    },
+    {
+      "area": "Production readiness, scale, costs and telemetry",
+      "status": "Outside local assignment scope / limited evidence",
+      "detail": "No real account authentication, public deployment, production load test, p95 latency, matched cost baseline or centralized monitoring. Historical advisory lookups were point-in-time, not renewed by this update."
+    }
+  ],
+  "factual_fixes": [
+    {
+      "id": "F1",
+      "status": "local safeguard implemented; historical output unchanged",
+      "change": "For new feedback, supplied optional weak-concept notes quote the approved, version-matched concept passage; omit the note if evidence is unavailable. Provider output is copied before changes.",
+      "tests": [
+        "test_routing_note_quotes_approved_evidence_without_mutating_provider_output",
+        "test_note_is_omitted_when_approved_passage_is_unavailable",
+        "test_historical_saved_feedback_is_not_rewritten"
+      ],
+      "limitation": "Applies to optional routing notes; not a general scientific-accuracy guarantee."
+    },
+    {
+      "id": "F2",
+      "status": "narrow local guard implemented; historical output unchanged",
+      "change": "Prompt preserves helps prevent. A cholesterol feedback entry using the known unqualified prevents stiffening / prevents cold-induced stiffening wording consumes the existing single repair; repeated overstatement fails without changing the verified score.",
+      "tests": [
+        "test_cholesterol_qualifier_uses_existing_single_repair",
+        "test_qualified_cholesterol_feedback_needs_no_repair",
+        "test_repeated_cholesterol_overstatement_is_not_saved"
+      ],
+      "limitation": "Lexical regression guard for this known formulation, not a semantic validator for all paraphrases; changed prompt has not been live-tested."
+    },
+    {
+      "id": "F3",
+      "status": "deterministic local summary implemented; historical output unchanged",
+      "change": "Controller builds the saved short feedback summary from verified correct-answer count and missed question positions. It describes this attempt and does not infer reasoning or lasting mastery. Assessment still writes question explanations.",
+      "tests": [
+        "test_summary_reports_answers_without_claiming_reasoning",
+        "test_perfect_and_zero_answer_summaries_stay_attempt_specific",
+        "test_historical_saved_feedback_is_not_rewritten"
+      ],
+      "limitation": "New feedback summaries only; no historical records rewritten."
+    },
+    {
+      "id": "F4",
+      "status": "manual corrected copy created; NOT Reviewer-approved or published",
+      "change": "New candidate copy changes only Q10 stem and rationale to state all other fluidity factors are the same, retains helps prevent, and uses an expected rather than guaranteed comparison. Generation/revision prompts require explicit comparison conditions; feedback prompt preserves supplied conditions and avoids definite rankings if absent.",
+      "tests": [
+        "Offline quiz-output schema validation passed",
+        "Other nine questions and keys unchanged; Q10 options/correct letter and historical bindings unchanged",
+        "Corrected rationale is 25 words; original file bytes unchanged; original and corrected SHA256 recorded"
+      ],
+      "limitation": "Manual correction is not an agent-generation success. No Reviewer call or publication approval. Prompt wording does not mechanically guarantee future comparisons are sound.",
+      "corrected_feedback_example": "With all other fluidity factors the same, membrane P is expected to remain more flexible because cholesterol helps prevent stiffening when cold."
+    }
+  ],
+  "prior_backend_only_results": {
+    "python_passed": 554,
+    "javascript_passed": 98,
+    "scenario_groups_passed": 3,
+    "note": "Backend export omitted browser-interface tests; this PR retains five existing main HTTP/interface tests and reports its results separately."
+  },
+  "pr_checkout_results": {
+    "python_passed": 559,
+    "javascript_passed": 98,
+    "scenario_groups_passed": 3,
+    "gate_passed": true,
+    "skipped": 0,
+    "paid_calls": 0,
+    "environment_note": "macOS arm64 / CPython 3.13 / Node 24; loopback permission needed for five existing HTTP tests. Dependency runtime reused from verified local checkpoint."
+  },
+  "paid_calls": 0,
+  "corrected_quiz_reviewer_approved": false,
+  "corrected_quiz_published": false,
+  "original_evidence": "Original private traces and saved outputs remain unchanged and are excluded from this PR. Historical live evidence does not validate these newer changes."
+}

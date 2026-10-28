@@ -101,3 +101,8 @@ Synchronization is manual. On a scope change or PR merge, update the Google PRD'
 ## Educational source
 
 The current lesson is adapted from *Cell & Molecular Biology*, section 2.1, by Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University: https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-1/. Content is adapted under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/); preserve source attribution, the lesson's adaptation notice and applicable license conditions. No source figures are included. Future sources, including OpenStax, require per-lesson review before approval.
+
+
+## Backend audit closeout — October 28
+
+The backend review adds durable Tutor repair authorization, offline checks, and four focused factual safeguards/corrections. Read the [audit closeout](docs/evals/backend-audit-closeout-2026-10-28.html) and [local check instructions](LOCAL_CHECKS.md) for validation and remaining limits. The manual corrected retry candidate is not Reviewer-approved or published; no new live-generation success is claimed.

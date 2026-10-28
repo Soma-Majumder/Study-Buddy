@@ -5,6 +5,7 @@ its one repair, and saved operation state. It does not dispatch reteaching.
 """
 import copy
 import json
+import re
 from pathlib import Path
 import sqlite3
 
@@ -23,6 +24,35 @@ VALIDATOR = jsonschema.Draft202012Validator(SCHEMA)
 
 class FeedbackRejected(ValueError):
     pass
+
+
+def _cholesterol_qualifier_issues(output, graded, approved_passage):
+    """Narrow regression guard, not a general factual-accuracy classifier."""
+    if 'helps prevent' not in approved_passage.lower():
+        return []
+    positions = {item['position'] for item in graded['items']
+                 if item['concept_id'] == 'c_cholesterol_buffer'}
+    issues = []
+    for item in output['feedback']:
+        text = ' '.join(item['explanation'].lower().split())
+        if item['position'] in positions and re.search(
+                r'\bprevents? (?:cold-induced )?stiffening\b', text):
+            # "helps prevent" retains the qualifier; an additional unqualified
+            # occurrence must still be rejected.
+            remainder = re.sub(r'\bhelps? prevent (?:cold-induced )?stiffening\b', '', text)
+            if re.search(r'\bprevents? (?:cold-induced )?stiffening\b', remainder):
+                issues.append(item['position'])
+    return issues
+
+
+def _answer_summary(graded):
+    """Describe saved selections only; no reasoning trace was collected."""
+    total = len(graded['items'])
+    summary = f"You answered {graded['score']} of {total} questions correctly in this attempt."
+    missed = [str(item['position']) for item in graded['items'] if not item['is_correct']]
+    if missed:
+        return summary + ' Review the feedback for questions ' + ', '.join(missed) + ' and revisit those lesson concepts.'
+    return summary + ' Revisit the lesson to reinforce these ideas.'
 
 
 def explain_results(conn, learner_id, attempt_id, *, assessment=run_feedback):
@@ -118,6 +148,13 @@ def explain_results(conn, learner_id, attempt_id, *, assessment=run_feedback):
         return dict(session_id=session_id, attempt_id=attempt_id, operation_status='failed',
                     status='failed', score=score, passed=bool(passed), next_step=None, feedback=None, error=message)
 
+    evidence = conn.execute(
+        'SELECT c.source_passage FROM concepts c JOIN lessons l '
+        'ON l.lesson_id=c.lesson_id AND l.version=c.lesson_version '
+        'WHERE c.concept_id=? AND c.lesson_id=? AND c.lesson_version=? AND l.approved=1',
+        ('c_cholesterol_buffer', lesson_id, version),
+    ).fetchone()
+    cholesterol_passage = evidence[0] if evidence else ''
     repair_request = None
     while True:
         with conn:
@@ -128,12 +165,16 @@ def explain_results(conn, learner_id, attempt_id, *, assessment=run_feedback):
             output = assessment(copy.deepcopy(context), repair_request=repair_request)
         except Exception:
             return fail('Assessment could not explain the saved result. The verified score is preserved.')
+        qualifier_issues = []
         try:
             VALIDATOR.validate(output)
             valid = (output['quiz_id'] == quiz_id and output['attempt_id'] == attempt_id and
                      output['summary'].strip() and all(f['explanation'].strip() for f in output['feedback']) and
                      len({w['concept_id'] for w in output['weak_concepts']}) == len(output['weak_concepts']) and
                      not check(output, graded))
+            if valid:
+                qualifier_issues = _cholesterol_qualifier_issues(output, graded, cholesterol_passage)
+                valid = not qualifier_issues
         except Exception:
             valid = False
         if valid:
@@ -152,6 +193,30 @@ def explain_results(conn, learner_id, attempt_id, *, assessment=run_feedback):
                           'Provide ten nonempty feedback entries, one per question position, and exactly the '
                           'verified weak concepts and missed counts. Do not add a score field or extra fields. '
                           'This is the single repair; explain the saved grading without changing it.')
+        if qualifier_issues:
+            repair_request += (' For cholesterol feedback at positions ' +
+                               ', '.join(map(str, qualifier_issues)) +
+                               ', preserve the approved qualifier: cholesterol helps prevent '
+                               'cold-induced stiffening; do not say it prevents stiffening outright.')
+    # Optional routing notes quote approved evidence instead of model paraphrases.
+    # Work on a copy: preserve the provider's original output for callers/logging.
+    output = copy.deepcopy(output)
+    # The controller observes selected answers, not the student's reasoning.
+    output['summary'] = _answer_summary(graded)
+    for concept in output['weak_concepts']:
+        if 'note' not in concept:
+            continue
+        evidence = conn.execute(
+            'SELECT c.source_passage FROM concepts c JOIN lessons l '
+            'ON l.lesson_id=c.lesson_id AND l.version=c.lesson_version '
+            'WHERE c.concept_id=? AND c.lesson_id=? AND c.lesson_version=? AND l.approved=1',
+            (concept['concept_id'], lesson_id, version),
+        ).fetchone()
+        if evidence and evidence[0].strip():
+            concept['note'] = 'Review this approved lesson passage: ' + evidence[0].strip()
+        else:
+            # The note is optional. Do not invent a replacement without evidence.
+            concept.pop('note')
     try:
         with conn:
             allowed = active_locked()
