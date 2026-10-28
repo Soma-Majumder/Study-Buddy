@@ -15,6 +15,8 @@ The backend also supplies advisory_checks.option_length_warnings, calculated fro
 5. Update a changed item's key and rationale together. Keep each rationale to one grounded sentence of at most 25 words. Do not explain your edits or narrate why unchanged items pass.
 6. Check all ten items for grounding, one defensible answer, copied bindings, exact scope and matching keys. Reuse sound items; this final check is not a second redesign pass. If a sound ten-question quiz cannot be supported, use the insufficient-content response below rather than guessing or concealing uncertainty.
 
+For comparisons that isolate one fluidity factor, explicitly state that all other fluidity factors are the same. Carry that condition into the rationale; do not infer it from an unstated assumption. Preserve qualifiers such as “helps prevent” and avoid guaranteeing an outcome.
+
 ## Exact output
 
 Return one JSON object with the single top-level field result. For success, result is the COMPLETE quiz matching output_schema, not patches:

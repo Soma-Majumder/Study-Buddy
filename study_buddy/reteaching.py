@@ -120,7 +120,11 @@ def dispatch_reteaching(conn, learner_id, attempt_id, *, tutor=None):
         return stopped_result()
 
     try:
-        result = tutor(copy.deepcopy(context))
+        if tutor is run_tutor:
+            from study_buddy.tutor_bridge import run_durable_tutor
+            result = run_durable_tutor(conn, copy.deepcopy(context))
+        else:
+            result = tutor(copy.deepcopy(context))
         repair_count = result['repairCount']
         if type(repair_count) is not int or repair_count not in (0, 1):
             repair_count = 0

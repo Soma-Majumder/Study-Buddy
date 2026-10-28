@@ -30,7 +30,8 @@ class PaidCallOptInTests(unittest.TestCase):
                      handoffId='handoff_a1b2c3d4e5f6',explanationId='expl_a1b2c3d4e5f6')
         with self.assertRaises(TutorFailure) as raised:run_tutor(context)
         self.assertEqual(raised.exception.code,'live_calls_disabled')
-        result=start_quiz_session(self.helper.conn,LEARNER,'lesson_cell_membranes')
+        result=start_quiz_session(self.helper.conn,LEARNER,'lesson_cell_membranes',
+                                  request_id='paid_opt_in_test',lesson_version=2)
         self.assertEqual(result['status'],'failed');self.assertIn('calls are disabled',result['error']);self.assertFalse(self.log.exists())
         self.assertEqual(self.helper.conn.execute('SELECT COUNT(*) FROM quizzes').fetchone()[0],0)
 

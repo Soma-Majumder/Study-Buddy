@@ -17,6 +17,7 @@ from pathlib import Path
 import sqlite3
 import sys
 import time
+from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -81,7 +82,9 @@ def main():
             raise
 
     started = time.time()
-    result = run_study_session(conn, LEARNER, 'lesson_cell_membranes', answer, reviewer=traced_reviewer)
+    version = conn.execute("SELECT MAX(version) FROM lessons WHERE lesson_id=? AND approved=1", ('lesson_cell_membranes',)).fetchone()[0]
+    result = run_study_session(conn, LEARNER, 'lesson_cell_membranes', answer, reviewer=traced_reviewer,
+                               request_id='live_' + uuid4().hex, lesson_version=version)
     elapsed = round(time.time() - started, 1)
     counts = {t: conn.execute(f'SELECT COUNT(*) FROM {t}').fetchone()[0] for t in
               ('quizzes', 'attempts', 'results', 'quiz_quality_calls', 'quiz_quality_publications')}

@@ -150,3 +150,17 @@ test('adds actual per-call token counts, including cache usage', async () => {
     input_tokens: 260, output_tokens: 120, cache_read_input_tokens: 50,
   });
 });
+
+test('controller must authorize repair before the second provider request', async () => {
+  const fake = fakeClaude(1); let reservations = 0;
+  const state = {count:0, reserve:async()=>{assert.equal(fake.count(),1); reservations++; return true;}};
+  const result = await runTutor(context,fake.options,state);
+  assert.equal(reservations,1); assert.equal(fake.count(),2); assert.equal(result.repairCount,1);
+});
+test('denied or failed durable reservation prevents the repair provider call', async () => {
+  for (const reserve of [async()=>false, async()=>{throw new Error('database unavailable');}]) {
+    const fake = fakeClaude(1);
+    await assert.rejects(runTutor(context,fake.options,{count:0,reserve}),TutorRunError);
+    assert.equal(fake.count(),1);
+  }
+});

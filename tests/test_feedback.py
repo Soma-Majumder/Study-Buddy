@@ -61,6 +61,130 @@ class FeedbackTests(unittest.TestCase):
         self.assertEqual(json.loads(stored[2]), result['feedback'])
         self.assertEqual(self.conn.execute('SELECT learning_retry_count FROM study_sessions').fetchone()[0], 0)
 
+    def test_routing_note_quotes_approved_evidence_without_mutating_provider_output(self):
+        original = []
+        def with_notes(context, **kwargs):
+            out = self.feedback(context, **kwargs)
+            for weak in out['weak_concepts']:
+                weak['note'] = 'Review how cholesterol limits fluidity when warm and prevents stiffening when cold.'
+            original.append(copy.deepcopy(out))
+            self.provider_output = out
+            return out
+        result = self.explain(with_notes)
+        self.assertEqual(self.provider_output, original[0])
+        self.assertEqual(result['feedback']['feedback'], original[0]['feedback'])
+        self.assertEqual(result['feedback']['summary'],
+                         'You answered 6 of 10 questions correctly in this attempt. '
+                         'Review the feedback for questions 3, 4, 6, 7 and revisit those lesson concepts.')
+        for weak in result['feedback']['weak_concepts']:
+            passage = self.conn.execute('SELECT source_passage FROM concepts WHERE concept_id=?',
+                                        (weak['concept_id'],)).fetchone()[0]
+            self.assertEqual(weak['note'], 'Review this approved lesson passage: ' + passage.strip())
+        from study_buddy.routing import decide_next_step
+        route = decide_next_step(self.conn, LEARNER, self.attempt_id)
+        self.assertEqual(route['return_handoff']['payload']['weak_concepts'], result['feedback']['weak_concepts'])
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(result['score'], 6)
+
+    def test_note_is_omitted_when_approved_passage_is_unavailable(self):
+        self.conn.execute("UPDATE concepts SET source_passage=''")
+        self.conn.commit()
+        def with_notes(context, **kwargs):
+            out = self.feedback(context, **kwargs)
+            for weak in out['weak_concepts']:
+                weak['note'] = 'Unsupported condition.'
+            return out
+        result = self.explain(with_notes)
+        self.assertTrue(all('note' not in weak for weak in result['feedback']['weak_concepts']))
+
+    def test_historical_saved_feedback_is_not_rewritten(self):
+        first = self.explain()
+        saved = copy.deepcopy(first['feedback'])
+        saved['weak_concepts'][0]['note'] = 'Historical original wording.'
+        saved['summary'] = 'Your reasoning was consistent throughout.'
+        self.conn.execute('UPDATE results SET feedback=?', (json.dumps(saved),))
+        self.conn.commit()
+        replay = self.explain()
+        self.assertEqual(replay['feedback'], saved)
+        self.assertEqual(len(self.calls), 1)
+
+    def test_cholesterol_qualifier_uses_existing_single_repair(self):
+        originals = []
+        def overstated(context, *, repair_request=None, **kwargs):
+            out = self.feedback(context, repair_request=repair_request)
+            position = next(i['position'] for i in context['graded']['items']
+                            if i['concept_id'] == 'c_cholesterol_buffer')
+            out['feedback'][position - 1]['explanation'] = (
+                'Cholesterol helps prevent stiffening in the cold.' if repair_request else
+                'Correct. Cholesterol limits excess fluidity and prevents stiffening in the cold.')
+            originals.append(copy.deepcopy(out))
+            return out
+        result = self.explain(overstated)
+        self.assertEqual(result['operation_status'], 'ready')
+        self.assertEqual(len(self.calls), 2)
+        self.assertIn('helps prevent', self.calls[1][1])
+        self.assertTrue(any('prevents stiffening' in i['explanation'] for i in originals[0]['feedback']))
+        self.assertFalse(any('prevents stiffening' in i['explanation'] for i in result['feedback']['feedback']))
+        self.assertEqual(result['score'], 6)
+        self.assertEqual(self.conn.execute("SELECT repair_count FROM handoff_repairs WHERE direction='assessment_to_tutor'").fetchone()[0], 1)
+
+    def test_qualified_cholesterol_feedback_needs_no_repair(self):
+        def qualified(context, **kwargs):
+            out = self.feedback(context, **kwargs)
+            position = next(i['position'] for i in context['graded']['items']
+                            if i['concept_id'] == 'c_cholesterol_buffer')
+            out['feedback'][position - 1]['explanation'] = 'Cholesterol helps prevent cold-induced stiffening.'
+            return out
+        result = self.explain(qualified)
+        self.assertEqual(result['operation_status'], 'ready')
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.conn.execute("SELECT repair_count FROM handoff_repairs WHERE direction='assessment_to_tutor'").fetchone()[0], 0)
+
+    def test_repeated_cholesterol_overstatement_is_not_saved(self):
+        def overstated(context, **kwargs):
+            out = self.feedback(context, **kwargs)
+            position = next(i['position'] for i in context['graded']['items']
+                            if i['concept_id'] == 'c_cholesterol_buffer')
+            out['feedback'][position - 1]['explanation'] = 'Cholesterol prevents cold-induced stiffening.'
+            return out
+        result = self.explain(overstated)
+        self.assertEqual(result['operation_status'], 'failed')
+        self.assertEqual(len(self.calls), 2)
+        self.assertIsNone(result['feedback'])
+        self.assertEqual(result['score'], 6)
+
+    def test_summary_reports_answers_without_claiming_reasoning(self):
+        originals = []
+        def inferred_reasoning(context, **kwargs):
+            out = self.feedback(context, **kwargs)
+            out['summary'] = 'Your reasoning across factors, cholesterol, and carbohydrate chains was consistent throughout.'
+            originals.append(copy.deepcopy(out))
+            self.provider_output = out
+            return out
+        result = self.explain(inferred_reasoning)
+        expected = ('You answered 6 of 10 questions correctly in this attempt. '
+                    'Review the feedback for questions 3, 4, 6, 7 and revisit those lesson concepts.')
+        self.assertEqual(result['feedback']['summary'], expected)
+        self.assertEqual(self.provider_output, originals[0])
+        self.assertEqual(result['feedback']['feedback'], originals[0]['feedback'])
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(result['score'], 6)
+        self.assertEqual(self.conn.execute("SELECT repair_count FROM handoff_repairs WHERE direction='assessment_to_tutor'").fetchone()[0], 0)
+        self.assertEqual(self.explain()['feedback']['summary'], expected)
+        self.assertEqual(len(self.calls), 1)
+
+    def test_perfect_and_zero_answer_summaries_stay_attempt_specific(self):
+        from study_buddy.feedback import _answer_summary
+        for score in (0, 10):
+            with self.subTest(score=score):
+                graded = dict(score=score, items=[dict(position=i, is_correct=score == 10) for i in range(1, 11)])
+                summary = _answer_summary(graded)
+                self.assertIn(f'You answered {score} of 10 questions correctly in this attempt.', summary)
+                if score == 10:
+                    self.assertEqual(summary, 'You answered 10 of 10 questions correctly in this attempt. Revisit the lesson to reinforce these ideas.')
+                else:
+                    self.assertIn('questions 1, 2, 3, 4, 5, 6, 7, 8, 9, 10', summary)
+
     def test_completed_feedback_is_reused_without_new_agent_call(self):
         first = self.explain()
         second = self.explain()

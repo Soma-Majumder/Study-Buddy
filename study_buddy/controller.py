@@ -97,10 +97,12 @@ def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor, request_id=No
     The real Tutor harness owns generation validation and its one repair.
     Controller validation is a final boundary check; it never restarts the
     harness or grants another repair. Repair outcomes are saved on return;
-    crash-safe repair reservation during the JS call remains future work.
-    Supplying request_id and lesson_version enables the local reservation path;
-    only its winner calls Tutor. Calls without an ID retain legacy behavior.
+    the default bridge reserves each repair durably before authorizing the JS call.
+    Real Tutor starts require request_id and lesson_version for the reservation path;
+    only its winner calls Tutor. Injected offline runners retain the legacy no-ID fixture path.
     """
+    if tutor is run_tutor and (request_id is None or lesson_version is None):
+        raise StartRequestRejected('Live Tutor starts require a stable request ID and explicit lesson version.')
     if not isinstance(learner_id, str) or not re.fullmatch(r'learner_[a-z0-9]{12}', learner_id):
         raise ValueError('A controller-owned learner ID is required.')
     if not conn.execute('SELECT 1 FROM learners WHERE learner_id = ?', (learner_id,)).fetchone():
@@ -152,7 +154,11 @@ def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor, request_id=No
             return dict(session_id=session_id, status='failed', next_step=None, handoff=None,
                         error='Reserved session is no longer available for Tutor.')
     try:
-        result = tutor(context)
+        if tutor is run_tutor:
+            from study_buddy.tutor_bridge import run_durable_tutor
+            result = run_durable_tutor(conn, context)
+        else:
+            result = tutor(context)
         repair_count = result['repairCount']
         if type(repair_count) is not int or repair_count not in (0, 1):
             raise ValueError('Invalid repair count.')

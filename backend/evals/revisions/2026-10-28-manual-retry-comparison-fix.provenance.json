@@ -1,0 +1,22 @@
+{
+  "finding": 4,
+  "kind": "manual_correction",
+  "status": "offline_schema_checked_not_reviewer_approved_not_published",
+  "original_filename": "2026-10-27-manual-retry-q1-fix.json",
+  "original_sha256": "86ece3981bbb55793021f68ffe030f5e7ce0053b801f52ce4bb22b37e5a9284e",
+  "corrected_filename": "2026-10-28-manual-retry-comparison-fix.json",
+  "corrected_sha256": "1c51e13adef5793244ab6e8272bef3c75bea3c4e7eff66563f0bd304eeac3bef",
+  "changed_fields": [
+    "quiz.questions[position=10].prompt",
+    "answer_key[position=10].rationale"
+  ],
+  "corrected_feedback_example": "With all other fluidity factors the same, membrane P is expected to remain more flexible because cholesterol helps prevent stiffening when cold.",
+  "scope": "No historical attempts, scores, raw logs or published candidates were modified. Retained historical bindings are provenance only; this copy has no publication approval. No paid calls.",
+  "checks": {
+    "schema_valid": true,
+    "other_nine_questions_unchanged": true,
+    "other_nine_keys_unchanged": true,
+    "options_and_correct_letter_unchanged": true,
+    "rationale_words": 22
+  }
+}

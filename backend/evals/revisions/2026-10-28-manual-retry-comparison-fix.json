@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0",
+  "handoff_id": "handoff_q8ju3tq5f43m",
+  "explanation_id": "expl_tndh283lgdij",
+  "round": "retry",
+  "quiz": {
+    "questions": [
+      {
+        "position": 1,
+        "concept_id": "c_fluidity_factors",
+        "prompt": "Which list names factors the lesson says affect membrane fluidity?",
+        "options": {
+          "a": "Fatty acid saturation, fatty acid chain length, temperature, and cholesterol",
+          "b": "Carbohydrate chains, the glycocalyx, self recognition, and non-self recognition",
+          "c": "Cholesterol only, because it is the only membrane component mentioned",
+          "d": "Fatty acid saturation, fatty acid chain length, temperature, and glycocalyx"
+        }
+      },
+      {
+        "position": 2,
+        "concept_id": "c_fluidity_factors",
+        "prompt": "Which statement best reflects that fluidity depends on more than one factor?",
+        "options": {
+          "a": "Temperature affects membrane fluidity; saturation and chain length do not.",
+          "b": "Saturation affects membrane fluidity; temperature and chain length do not.",
+          "c": "Temperature, saturation and chain length can each affect membrane fluidity.",
+          "d": "Chain length affects membrane fluidity; temperature and saturation do not."
+        }
+      },
+      {
+        "position": 3,
+        "concept_id": "c_cholesterol_buffer",
+        "prompt": "A student says cholesterol always makes membranes stiffer. Which correction fits the lesson?",
+        "options": {
+          "a": "It increases movement when very fluid and prevents stiffening when cold.",
+          "b": "It restrains movement when very fluid and prevents stiffening when cold.",
+          "c": "It restrains movement when very fluid and promotes stiffening when cold.",
+          "d": "It increases movement when very fluid and promotes stiffening when cold."
+        }
+      },
+      {
+        "position": 4,
+        "concept_id": "c_cholesterol_buffer",
+        "prompt": "A membrane becomes very fluid. What is cholesterol's likely effect?",
+        "options": {
+          "a": "It increases the movement of membrane components",
+          "b": "It stops all movement of membrane components",
+          "c": "It makes the membrane stiffen further",
+          "d": "It restrains excessive movement of membrane components"
+        }
+      },
+      {
+        "position": 5,
+        "concept_id": "c_cholesterol_buffer",
+        "prompt": "Membranes with cholesterol stay usably flexible across a wider temperature range. Which explains this?",
+        "options": {
+          "a": "It restrains movement when very fluid and prevents stiffening when cold.",
+          "b": "It increases movement when very fluid and prevents stiffening when cold.",
+          "c": "It restrains movement when very fluid and promotes stiffening when cold.",
+          "d": "It increases movement when very fluid and promotes stiffening when cold."
+        }
+      },
+      {
+        "position": 6,
+        "concept_id": "c_glycocalyx_recognition",
+        "prompt": "Cell 1 has intact carbohydrate chains on its outer surface, while cell 2 lacks them. Which prediction fits the lesson?",
+        "options": {
+          "a": "Cell 2 is better equipped to recognize other cells",
+          "b": "Both cells are equally able to recognize other cells",
+          "c": "Cell 1 is better equipped to recognize other cells",
+          "d": "Neither cell is able to recognize other cells"
+        }
+      },
+      {
+        "position": 7,
+        "concept_id": "c_glycocalyx_recognition",
+        "prompt": "A student says the glycocalyx is inside the cell and controls fluidity. Which correction fits the lesson?",
+        "options": {
+          "a": "It is a sugar coating on the inner surface that helps cells recognize each other.",
+          "b": "It is a sugar coating on the outer surface that helps cells recognize each other.",
+          "c": "It is a sugar coating on the outer surface that controls how membrane components move.",
+          "d": "It is a sugar coating on the inner surface that controls how membrane components move."
+        }
+      },
+      {
+        "position": 8,
+        "concept_id": "c_glycocalyx_recognition",
+        "prompt": "Two cells meet. Which description connects the glycocalyx’s location with its role in that encounter?",
+        "options": {
+          "a": "Sugar chains on their outer surfaces help control membrane movement.",
+          "b": "Sugar chains on their inner surfaces help them recognize each other.",
+          "c": "Sugar chains on their inner surfaces help control membrane movement.",
+          "d": "Sugar chains on their outer surfaces help them recognize each other."
+        }
+      },
+      {
+        "position": 9,
+        "concept_id": "c_fluidity_factors",
+        "prompt": "Two membranes have identical cholesterol but different fatty acid chain lengths. Does this alone guarantee equal fluidity?",
+        "options": {
+          "a": "Yes, because cholesterol alone sets fluidity",
+          "b": "No, because chain length is a listed factor that can change fluidity",
+          "c": "Yes, because chain length has no effect on fluidity",
+          "d": "No, because only temperature can change fluidity"
+        }
+      },
+      {
+        "position": 10,
+        "concept_id": "c_cholesterol_buffer",
+        "prompt": "Membrane P has cholesterol, and membrane Q lacks it. Both are cold, and all other fluidity factors are the same. Which is expected to remain more flexible?",
+        "options": {
+          "a": "Membrane Q, because cholesterol makes cold membranes stiffer",
+          "b": "Both equally, because cholesterol matters only when warm",
+          "c": "Membrane Q, because cholesterol restrains movement in cold membranes",
+          "d": "Membrane P, because cholesterol helps prevent stiffening when cold"
+        }
+      }
+    ]
+  },
+  "answer_key": [
+    {
+      "position": 1,
+      "correct_option": "a",
+      "rationale": "The lesson lists saturation, chain length, temperature, and cholesterol as factors affecting fluidity."
+    },
+    {
+      "position": 2,
+      "correct_option": "c",
+      "rationale": "The lesson says fluidity depends on more than one factor, including saturation and chain length."
+    },
+    {
+      "position": 3,
+      "correct_option": "b",
+      "rationale": "Cholesterol restrains movement when very fluid and helps prevent stiffening when cold, per the lesson."
+    },
+    {
+      "position": 4,
+      "correct_option": "d",
+      "rationale": "The lesson says cholesterol restrains excessive movement when the membrane is very fluid."
+    },
+    {
+      "position": 5,
+      "correct_option": "a",
+      "rationale": "Cholesterol restrains excessive movement in a very fluid membrane and helps prevent stiffening in the cold."
+    },
+    {
+      "position": 6,
+      "correct_option": "c",
+      "rationale": "The sugar coating helps cells recognize each other and tell self from non-self, so intact chains favor cell 1."
+    },
+    {
+      "position": 7,
+      "correct_option": "b",
+      "rationale": "The glycocalyx is a sugar coating on the outer surface that helps cells recognize each other."
+    },
+    {
+      "position": 8,
+      "correct_option": "d",
+      "rationale": "The glycocalyx consists of carbohydrate chains on the outer surface and helps cells recognize each other."
+    },
+    {
+      "position": 9,
+      "correct_option": "b",
+      "rationale": "Chain length is a listed factor affecting fluidity, so identical cholesterol alone does not guarantee equal fluidity."
+    },
+    {
+      "position": 10,
+      "correct_option": "d",
+      "rationale": "With all other fluidity factors the same, membrane P is expected to remain more flexible because cholesterol helps prevent stiffening when cold."
+    }
+  ]
+}

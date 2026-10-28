@@ -13,8 +13,8 @@ export class TutorRunError extends Error {
 }
 
 // This is technical repair, NOT the student's reteaching/quiz retry.
-// The caller owns this state per handoff. It is in-memory for now; the
-// controller must persist/reserve it before allowing repairs across restarts.
+// The controller bridge supplies an asynchronous durable reservation callback.
+// Standalone harness tests may use an in-memory budget.
 export async function runTutor(context, claudeOptions = {}, repairState = {count: 0}) {
   if (!repairState || ![0, 1].includes(repairState.count)) {
     throw new TutorRunError('repair budget validation');
@@ -46,6 +46,11 @@ export async function runTutor(context, claudeOptions = {}, repairState = {count
 
         // Reserve the only repair before calling Claude again. If the call
         // fails, that reservation remains consumed; there is no third call.
+        if (repairState.reserve !== undefined) {
+          if (typeof repairState.reserve !== 'function' || await repairState.reserve() !== true) {
+            throw new Error('Controller did not authorize a technical repair.');
+          }
+        }
         repairState.count = 1;
         // Do not echo arbitrary model text or schema paths into instructions.
         const reason = error.message.startsWith('Tutor handoff does not match v1 schema:')
