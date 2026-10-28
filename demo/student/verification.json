@@ -1,0 +1,63 @@
+{
+  "scope": "Local workbook with explicit offline and real-Claude adapter modes; live mode enabled only for user-initiated paid actions.",
+  "branch": "codex/student-interface",
+  "backend_base": "0422ec0 (PR #56 unchanged)",
+  "url": "http://127.0.0.1:8778/student/",
+  "server_command": "python3 -B scripts/student_workbook.py --port 8778",
+  "api_tests": 16,
+  "latest_offline_gate": {
+    "python_passed": 575,
+    "javascript_passed": 98,
+    "scenario_groups_passed": 3,
+    "paid_calls_by_checks": 0
+  },
+  "browser_checks": {
+    "start_persisted_controller_session": "pass",
+    "selected_answer_focus_preserved": "pass",
+    "answer_and_session_survive_refresh": "pass",
+    "first_ten_answers_sent_to_server": "pass",
+    "server_grade_and_feedback": "pass (simulated all-A answers, 3/10)",
+    "missed_concept_reteaching_and_one_focused_retry": "pass",
+    "retry_grade": "pass (simulated all-A answers, 3/10)",
+    "summary_saved_after_one_retry_despite_low_score": "pass",
+    "summary_survives_refresh": "pass",
+    "database_recheck": {
+      "sessions_completed": 1,
+      "learning_retries": 1,
+      "attempt_scores": [
+        3,
+        3
+      ],
+      "saved_summaries": 1,
+      "foreign_key_issues": 0
+    }
+  },
+  "limitations": [
+    "Previous browser-completed session used offline fixtures; it is not live-model evidence.",
+    "Live adapter wiring and HTTP tests use stubs; no fresh paid end-to-end run was initiated by the assistant.",
+    "Reviewer may block a live candidate; failed review never falls back to fixture content.",
+    "One trusted local profile, not public account authentication.",
+    "Paid start, feedback, and focused-retry actions can take minutes; visible waiting state does not claim granular progress.",
+    "Provider key stays in server environment; trusted env loader cannot grant paid consent or execute shell settings."
+  ],
+  "privacy": "New local workbook DB ignored by Git; original traces and saved quiz candidates unchanged; keys absent from unanswered API quizzes; raw logs excluded.",
+  "live_connection": {
+    "mode": "real_controller_live_agents",
+    "paid_opt_in": "Explicit user approval for sessions they deliberately start or continue",
+    "browser_verified": "REAL AGENTS \u00b7 PAID CLAUDE; Begin chapter with Claude button; no start clicked by assistant",
+    "adapters": [
+      "existing Tutor via durable bridge",
+      "Assessment generation",
+      "Assessment bounded content revision",
+      "Reviewer",
+      "Assessment feedback"
+    ],
+    "no_fixture_fallback": true,
+    "live_database": "ignored .student-local/workbook-live.sqlite",
+    "original_fixture_database": "preserved .student-local/workbook.sqlite",
+    "browser_drafts": "namespaced by mode",
+    "actual_tutor_text": "rendered from saved explanation.text; source passages are not substituted",
+    "full_paid_session_test": "Not run by assistant; user will initiate",
+    "tests": "16 HTTP/wiring tests including paid guards, direct adapter identity, private-key exclusion, full controller flow with stubbed boundaries, exact saved Tutor text, separate profile checks and safe trusted env loading"
+  }
+}
