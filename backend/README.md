@@ -59,7 +59,7 @@ Live evaluation commands have their own explicit `--live` gates and can spend AP
 
 ## Database initialization and migrations
 
-`db/schema.sql` is the full current application schema. Numbered migrations 001–008 are incremental additions and do not bootstrap the original base tables. Initialize a new database with the full schema, enable foreign keys, load approved lessons, and explicitly adopt a verified baseline before using migration tracking. Existing partially upgraded or customized schemas require manual review; do not guess adoption from table names.
+`db/schema.sql` is the full current application schema. Numbered migrations are incremental additions and do not bootstrap the original base tables. Create a new database with `python -B scripts/init_database.py /absolute/path/to/new-study-buddy.db` (new path only, owner-only permissions, full current schema, foreign keys verified), then load approved lessons and explicitly adopt a verified baseline before using migration tracking. Existing partially upgraded or customized schemas require manual review; do not guess adoption from table names.
 
 Read-only status commands, from the repository root:
 
@@ -89,7 +89,7 @@ python -B scripts/migrate_database.py /absolute/path/to/study-buddy.db \
   --backup /absolute/path/to/new-migration-backup.db
 ```
 
-Commands open existing databases only and refuse backup overwrite. Backups use SQLite's backup API and owner-only permissions. Execution rechecks history/files under `BEGIN IMMEDIATE`, executes statements individually, records exact fingerprints and commits the batch together. Failures roll back SQL and history. Unsupported transaction controls, PRAGMAs, attached databases, temporary objects/triggers, extensions or metadata modifications are rejected. This is trusted migration tooling, not an arbitrary-SQL sandbox. Keep backups on failure; no application database was migrated as part of documenting these commands.
+Commands open existing databases only and refuse backup overwrite. Backups use SQLite's backup API and owner-only permissions. The backup is written after the plan or preview is re-verified and while the write lock is held, so it contains every committed write and a rejected plan creates no file; a backup that itself fails is removed so the path can be reused. A backup kept after a failed migration is intentional. Execution rechecks history/files under `BEGIN IMMEDIATE`, executes statements individually, records exact fingerprints and commits the batch together. Failures roll back SQL and history. Unsupported transaction controls, PRAGMAs, attached databases, temporary objects/triggers, extensions or metadata modifications are rejected. This is trusted migration tooling, not an arbitrary-SQL sandbox. Keep backups on failure; no application database was migrated as part of documenting these commands.
 
 ## Crash cleanup and maintenance worker
 
@@ -324,3 +324,9 @@ One authorized paid session completed in 170.4 seconds using live Tutor, Assessm
 Aggregate evidence: [live backend check](../docs/evals/backend-live-check-2026-10-28.json). The simulation uses private answer keys to choose test answers; scores do not measure a real learner. This is one successful run, not a reliability estimate or evidence that the option-length hint caused the improvement. Repeated-target warnings remain advisory. The proposed six-understanding-question goal still needs Soma's agreement before becoming product policy. Historical October 27 results remain unchanged.
 
 The bounded Assessment revision now derives private option-length hints from its validated candidate. They are advisory, add no calls, do not authorize extra revisions, and never bypass Reviewer. No frontend changes or private raw logs are included. Offline checks passed locally: 512 Python tests, 96 JavaScript tests, and all three backend report scenarios.
+
+### Migration limits and baseline maintenance
+
+Migrations cannot use `PRAGMA` or `CREATE TRIGGER`, so SQLite's documented table-rebuild recipe (it needs `PRAGMA foreign_keys=OFF`) and trigger migrations do not run here; this is deliberate. Prefer `CREATE TABLE`/`CREATE INDEX`, `ALTER TABLE ... ADD COLUMN`, `RENAME COLUMN` and `DROP COLUMN`. A change that needs a table rebuild or a trigger is a separate, reviewed maintenance procedure with its own backup, not an exception to this runner. A migration that renames a table onto a protected `schema_migrations`/`schema_baselines` name is rolled back.
+
+When adding migration NNN, first copy the current `db/schema.sql` to `db/baselines/<NNN-1>_schema.sql` (frozen, never edited), then update `db/schema.sql`. Baselining supports every frozen snapshot plus the newest migration against `db/schema.sql`; no code change or version constant is involved. A missing snapshot is rejected, never guessed.
