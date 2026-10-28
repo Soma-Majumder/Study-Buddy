@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {runAssessmentRevision} from './assessment-revision.mjs';
+import {runAssessmentRevision, optionLengthWarnings} from './assessment-revision.mjs';
 const load = async name => JSON.parse(await readFile(new URL(`../tests/fixtures/quiz_quality/${name}.json`, import.meta.url), 'utf8'));
 const fixture = await load('context');
 const report = (await load('pass')).report;
@@ -26,6 +26,7 @@ test('revision sends bound original/report and requests a complete replacement o
     calls++; const body=JSON.parse(request.body); const data=JSON.parse(body.messages[0].content);
     assert.match(body.system,/single content revision/); assert.match(body.system,/untrusted data/);
     assert.deepEqual(data.candidate,c.original.candidate); assert.deepEqual(data.review_report,c.review_report);
+    assert.deepEqual(data.advisory_checks.option_length_warnings, optionLengthWarnings(c.original.candidate));
     assert.equal(data.repair_request,undefined); assert.equal(data.candidate_canonical_json,undefined);
     assert.equal(body.max_tokens,8192); assert.equal(body.output_config.effort,'low');
     assert.ok(body.output_config.format.schema.properties.result);
@@ -56,4 +57,15 @@ test('provider failures stop once without leaking raw text',async()=>{
 test('revision stops on disabled live calls without invoking transport',async()=>{
   await assert.rejects(runAssessmentRevision(context(),{claudeOptions:{...options(()=>assert.fail('No provider call')),allowPaidCalls:false}}),
     error=>error.code==='live_calls_disabled');
+});
+
+test('private length hints respect the boundary, omit key/text, and leave the candidate unchanged', () => {
+  const candidate = {quiz:{questions:[{position:1, options:{a:'x'.repeat(13), b:'x'.repeat(10), c:'x'.repeat(10), d:'x'.repeat(10)}}]}, answer_key:[{position:1, correct_option:'a'}]};
+  assert.deepEqual(optionLengthWarnings(candidate), []);
+  candidate.quiz.questions[0].options.a += 'x';
+  const before = structuredClone(candidate);
+  assert.deepEqual(optionLengthWarnings(candidate), [{position:1,code:'option_length_flag',ratio:1.4}]);
+  assert.deepEqual(candidate,before);
+  candidate.quiz.questions[0].options = {a:'😀'.repeat(13), b:'😀'.repeat(10), c:'😀'.repeat(10), d:'😀'.repeat(10)};
+  assert.deepEqual(optionLengthWarnings(candidate), []);
 });

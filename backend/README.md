@@ -274,3 +274,53 @@ For an untracked original full-schema database, preview/adopt `--through-version
 Update the Google PRD delivery status, export `docs/Study-Buddy-PRD.pdf`, and update both READMEs together when scope or merged status changes. The PDF is a snapshot, not automatic synchronization. Review PR state against `dev`, not an unmerged local branch. Preserve P1 requirements as planned until implemented and evaluated.
 
 The old chronological build log is preserved in [archived development notes](../docs/archive/backend-development-notes-2026-10-26.md); earlier “future step” statements there are historical, not current limitations.
+
+
+## Offline assignment verification
+
+### One-command offline backend check
+
+From the repository root, run:
+
+```sh
+python3 -B scripts/check_backend_offline.py
+```
+
+Use the project's Python environment with `jsonschema` installed. This command reuses four existing tests: first-round 8/10 pass and persisted reconnect, 6/10 then one 10-question retry and summary, retry exhaustion even at a low retry score, and an uncertain review that prevents publication/answer submission. It disables paid-call opt-in for its process and uses fixture agents and isolated SQLite databases. No Node runtime, API key, frontend or application database is required. Exit status is zero only if all three scenarios pass; failures, errors or skipped checks are not reported as success. This verifies coordination/persistence, not live educational quality.
+
+The offline check also reads the actual controller-saved summary before test database cleanup and prints the first/retry scores, retry count, final concepts to revisit, and saved completion status. The blocked case explicitly reports no summary. These are simulated practice results, not mastery claims.
+
+
+### Fixture evaluation scores
+
+Run `python3 -B scripts/score_backend_fixtures.py` from the repository root. This runs the private canonical quiz/key character-length check at a strict ratio above 1.3, validates the existing quality fixtures and reuses four existing session scenario tests. Scores are saved with mode 0600 under ignored `backend/evals/results/`; no API key, frontend or paid calls are used.
+
+The session denominator includes the intentionally blocked case: 3/4 completed sessions is distinct from 4/4 expected safeguard/scenario tests passing. Handoff counts measure fixture contract acceptance at Assessment→Reviewer and Reviewer→controller; a valid content rejection still counts as a successful report handoff, while stale reports do not. Other routes and real delivery are not measured. Per-agent revision contribution remains unmeasured because no paired agent revision is run. Cases can share candidate hashes, so their balance flags are not independent quiz samples.
+
+`study_buddy/option_balance.py` is an offline diagnostic only: no flags means only that this length heuristic found nothing. Flags do not prove weak distractors or answer clues. The runtime quality gate, Reviewer judgment and existing revision budget are unchanged; feeding flags into a future revision is not implemented by this command. No answer letters, option text or rationales are logged in the score report.
+
+
+### Assessment contribution from saved runs
+
+Run `python3 -B scripts/score_assessment_revisions.py /absolute/path/to/private-run.json ...` with saved original agent-run reports. No providers are called. Supported evidence includes original/revised first-round runs, the targeted saved-agent-candidate revision test and the saved-first-quiz/live-retry run. Manual-review reports are not accepted as agent revision evidence. The command validates each complete pair against its unchanged Tutor handoff, candidate hashes, bindings and rubric version. Logs under ignored `backend/evals/results/` contain position/code metrics, not quiz keys or option text.
+
+First historical sample: 0 recovered out of 6 attempted agent revisions; 4 complete reviewed pairs and 2 incomplete attempts (revision truncated or final review unavailable). None of the 4 complete pairs passed. The data spans changing prompts and includes correlated/reused original candidates; it is not an independent benchmark, randomized ablation, or estimate of future reliability. Manual first/retry fixes and their subsequent passing Reviewer checks are excluded.
+
+Complete pairs report understanding count, changed positions, length flags, and blocking position/code findings no longer reported, still reported and newly reported. A newly reported issue is not proof that revision caused it. Revision usage is retained only when captured; empty metadata is unknown, not zero. No extra revision calls, runtime policy or paid tuning is enabled.
+
+
+### Saved handoff observations
+
+Run `python3 -B scripts/score_saved_handoffs.py /absolute/path/to/private-run.json ...` to inspect recorded Tutor/Assessment callbacks and feedback/reteaching routes. First sample: live Tutor→Assessment 5/5 accepted (all recorded repairs zero), live feedback→Tutor 1/1 accepted (repair count unknown). Replayed content is separate: 7/7 Tutor→Assessment and 1/1 feedback→Tutor. Live/replay labels apply to the boundary, not the whole parent session. No model calls are made.
+
+Scores use observed downstream callbacks and saved routing steps. Available Tutor output schemas and feedback/reteaching concept-set agreement are checked, but original trusted inputs and complete return envelopes are missing from some logs; this is not independent reconstruction of every validation. Unknown repair counts are not zero. Quiz-only runs with no feedback routing contribute no return-handoff attempt. Historical sample sizes are small and correlated; downstream content rejection does not undo a valid handoff. Local mode-0600 logs live under ignored `backend/evals/results/`.
+
+Assignment report and graph: [Study Buddy evaluation report](../docs/evals/Study-Buddy-Evaluation-Report-2026-10-27.html). Download/open this self-contained HTML in a browser; Print → Save as PDF if needed. Historical saved-run scoring requires your own private input reports; those reports and databases are intentionally not distributed in this PR. No paid calls are made by these tools.
+
+### Backend closeout check — October 28, 2026
+
+One authorized paid session completed in 170.4 seconds using live Tutor, Assessment, Reviewer and feedback calls. The first quiz needed one content revision for an unsupported claim, then passed review. A simulated learner scored 7/10, received reteaching, and scored 10/10 on a retry quiz that passed its initial review. Both approved quizzes were published, one learning retry was used, the final summary was saved, and SQLite reported no foreign-key violations.
+
+Aggregate evidence: [live backend check](../docs/evals/backend-live-check-2026-10-28.json). The simulation uses private answer keys to choose test answers; scores do not measure a real learner. This is one successful run, not a reliability estimate or evidence that the option-length hint caused the improvement. Repeated-target warnings remain advisory. The proposed six-understanding-question goal still needs Soma's agreement before becoming product policy. Historical October 27 results remain unchanged.
+
+The bounded Assessment revision now derives private option-length hints from its validated candidate. They are advisory, add no calls, do not authorize extra revisions, and never bypass Reviewer. No frontend changes or private raw logs are included. Offline checks passed locally: 512 Python tests, 96 JavaScript tests, and all three backend report scenarios.

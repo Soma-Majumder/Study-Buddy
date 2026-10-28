@@ -7,6 +7,18 @@ import {callClaude, ClaudeCallError} from './claude.mjs';
 
 const system = await readFile(new URL('./prompts/assessment-revision-system.md', import.meta.url), 'utf8');
 
+// Private advisory only: computed from the validated candidate, never a verdict.
+export function optionLengthWarnings(candidate) {
+  const keys = new Map(candidate.answer_key.map(k => [k.position, k.correct_option]));
+  return candidate.quiz.questions.flatMap(q => {
+    const correct = keys.get(q.position);
+    const lengths = Object.entries(q.options).map(([letter, text]) => [letter, Array.from(text.trim()).length]);
+    const meanOther = lengths.filter(([letter]) => letter !== correct).reduce((sum, [, n]) => sum + n, 0) / 3;
+    const ratio = lengths.find(([letter]) => letter === correct)[1] / meanOther;
+    return ratio > 1.3 ? [{position:q.position, code:'option_length_flag', ratio:Math.round(ratio * 1000) / 1000}] : [];
+  });
+}
+
 export async function runAssessmentRevision(context, {technicalRepair = false, claudeOptions = {}} = {}) {
   let stage = 'input preparation';
   try {
@@ -19,6 +31,7 @@ export async function runAssessmentRevision(context, {technicalRepair = false, c
       throw new Error('Revision requires a bound review report.');
     }
     const input = {system, user: JSON.stringify({...original, review_report: report,
+      advisory_checks: {option_length_warnings: optionLengthWarnings(original.candidate)},
       output_schema: JSON.parse(await readFile(new URL('../schemas/v1/quiz_output.schema.json', import.meta.url), 'utf8')),
       ...(technicalRepair ? {repair_request: 'Regenerate the complete content revision with valid quiz structure and unchanged IDs/scope. This consumes the existing shared technical repair; it grants no additional content revision.'} : {})})};
     stage = 'model call';
