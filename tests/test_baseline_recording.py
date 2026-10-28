@@ -95,8 +95,8 @@ class BaselineRecordingTests(unittest.TestCase):
         import study_buddy.migration_baseline as module
         original=module.discover_migrations
         calls=[]
-        def changed():
-            files=original();calls.append(1)
+        def changed(*args):
+            files=original(*args);calls.append(1)
             if len(calls)==2:files[0]['sha256']='0'*64
             return files
         with patch.object(module,'discover_migrations',side_effect=changed):

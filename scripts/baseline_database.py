@@ -7,6 +7,7 @@ import sqlite3
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from study_buddy.migration_backup import write_backup
 from study_buddy.migration_baseline import record_verified_baseline
 from study_buddy.migrations import MigrationTrackingRejected
 
@@ -26,14 +27,13 @@ def main():
         parser.error('--record-baseline is required; use baseline_status.py for a read-only preview')
     try:
         with closing(sqlite3.connect(args.database.resolve().as_uri()+'?mode=rw', uri=True)) as conn:
-            # Exclusive file creation refuses existing paths, including symlinks.
-            with args.backup.open('xb') as destination:
-                args.backup.chmod(0o600)
-            with closing(sqlite3.connect(args.backup)) as backup:
-                conn.backup(backup)
+            if args.backup.exists() or args.backup.is_symlink():
+                raise FileExistsError(f'Backup path already exists: {args.backup}')
+            # The backup is written under the write lock, after the preview is re-verified.
             result = record_verified_baseline(conn, through_version=args.through_version,
                 expected_schema_sha256=args.schema_sha256, expected_manifest_sha256=args.manifest_sha256,
-                recorded_by=args.recorded_by, reason=args.reason)
+                recorded_by=args.recorded_by, reason=args.reason,
+                before_record=lambda locked: write_backup(locked, args.backup))
             result['backup'] = str(args.backup.resolve())
             print(json.dumps(result, indent=2))
     except (MigrationTrackingRejected, sqlite3.Error, OSError) as error:

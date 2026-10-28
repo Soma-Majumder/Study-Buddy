@@ -7,6 +7,7 @@ import sqlite3
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from study_buddy.migration_backup import write_backup
 from study_buddy.migration_runner import run_pending_migrations, MigrationExecutionFailed
 from study_buddy.migrations import DEFAULT_MIGRATIONS, MigrationTrackingRejected
 
@@ -24,12 +25,13 @@ def main():
     try:
         with closing(sqlite3.connect(args.database.resolve().as_uri()+'?mode=rw', uri=True)) as conn:
             conn.execute('PRAGMA foreign_keys=ON')
-            with args.backup.open('xb'):
-                args.backup.chmod(0o600)
-            with closing(sqlite3.connect(args.backup)) as backup:
-                conn.backup(backup)
-            result = run_pending_migrations(conn, expected_pending_sha256=args.pending_sha256, directory=args.migrations_dir)
-            result['backup'] = str(args.backup.resolve())
+            if args.backup.exists() or args.backup.is_symlink():
+                raise FileExistsError(f'Backup path already exists: {args.backup}')
+            # The backup is written under the write lock, after the plan is verified.
+            result = run_pending_migrations(conn, expected_pending_sha256=args.pending_sha256, directory=args.migrations_dir,
+                                            before_apply=lambda locked: write_backup(locked, args.backup))
+            if args.backup.exists():
+                result['backup'] = str(args.backup.resolve())
             print(json.dumps(result, indent=2))
     except (MigrationTrackingRejected, MigrationExecutionFailed, sqlite3.Error, OSError) as error:
         parser.exit(1, f'Migration execution failed: {error}\n')

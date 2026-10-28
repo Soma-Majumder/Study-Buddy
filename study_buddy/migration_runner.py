@@ -55,11 +55,20 @@ def _migration_authorizer(action, first, second, database, source):
     return sqlite3.SQLITE_OK
 
 
-def run_pending_migrations(conn, *, expected_pending_sha256, directory=DEFAULT_MIGRATIONS):
+def _metadata_schema(conn):
+    # ALTER TABLE x RENAME TO <metadata name> is not reported to the authorizer
+    # for the new name, so compare the protected objects' definitions instead.
+    marks = ','.join('?' * len(METADATA))
+    return conn.execute(f'SELECT type,name,tbl_name,sql FROM sqlite_master WHERE name IN ({marks}) '
+                        f'OR tbl_name IN ({marks}) ORDER BY type,name', (*sorted(METADATA), *sorted(METADATA))).fetchall()
+
+
+def run_pending_migrations(conn, *, expected_pending_sha256, directory=DEFAULT_MIGRATIONS, before_apply=None):
     """Dedicated maintenance connection only; execute exactly the reviewed plan.
 
     No pending caller transaction or custom authorizer belongs on this connection.
-    The CLI takes a backup first. Nonempty untracked databases must be baselined;
+    before_apply(conn), if given, runs under the write lock after the plan and
+    integrity checks pass and before any change (the CLI backs up there). Nonempty untracked databases must be baselined;
     the project's incremental migrations do not bootstrap its original base tables.
     """
     if conn.in_transaction:
@@ -90,15 +99,23 @@ def run_pending_migrations(conn, *, expected_pending_sha256, directory=DEFAULT_M
         stage = 'preflight integrity checks'
         if conn.execute('PRAGMA foreign_key_check').fetchone() is not None or conn.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
             raise MigrationTrackingRejected('Database integrity checks failed before migration execution.')
+        if before_apply is not None:
+            stage = 'backup'
+            before_apply(conn)
+            stage = 'preflight integrity checks'
         initialize_migration_tracking(conn)
         for migration in pending:
             filename, stage = migration['filename'], 'SQL execution'
+            protected = _metadata_schema(conn)
             try:
                 conn.set_authorizer(_migration_authorizer)
                 for statement_number, statement in enumerate(_statements(migration['sql_bytes'].decode('utf-8')), 1):
                     conn.execute(statement)  # Never executescript: it can commit the outer transaction.
             finally:
                 conn.set_authorizer(None)
+            stage = 'metadata protection'
+            if _metadata_schema(conn) != protected:
+                raise MigrationExecutionFailed(filename, stage)
             stage = 'integrity checks'
             if conn.execute('PRAGMA foreign_key_check').fetchone() is not None or conn.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
                 raise MigrationExecutionFailed(filename, stage)
