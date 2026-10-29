@@ -102,7 +102,7 @@ Offline and live modes use separate ignored databases (`.student-local/workbook.
 
 **After pulling Python/backend changes, stop and restart the workbook server.** Refreshing Safari alone reloads frontend assets and can leave the old backend running. Avoid interrupting an active paid operation; a call interrupted by shutdown cannot be assumed to resume. Expired operations are reconciled without another AI call, and saved explanations remain available.
 
-For the separate gateway-facing service, see [Local HTTP API and tunnel](docs/local-api-and-tunnel.md). Its setup, registered learners and bearer authentication are distinct from the local student workbook. Starting the workbook does not start that API or a public tunnel.
+For the separate gateway-facing service, see [Local HTTP API and tunnel](docs/local-api-and-tunnel.md). Its setup, registered learners and bearer authentication are distinct from the local student workbook. Starting the workbook does not start that API or a public tunnel. To show the live workbook on the Vercel site from your own computer, see [Public demo through a Cloudflare Tunnel](docs/public-demo-tunnel.md).
 
 ## Checks and evidence
 
