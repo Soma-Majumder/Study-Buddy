@@ -86,3 +86,16 @@ test('completed state cannot show the next-chapter dialog away from final summar
  for(const view of ['library','lessons','chapter'])h.run(`state.view='${view}';requestNewSession({title:'Next chapter'});`);
  assert.equal(h.run('dialogs'),0);assert.equal(h.run('direct'),3);
 });
+
+test('step navigation enables available content and keeps unavailable review disabled',()=>{
+ const h=harness();h.run("remote={explanation:{text:'Read'},quiz:{questions:[]},attempts:[]};globalThis.nav=steps(1);");
+ assert.equal(h.run('nav.children[0].children[0].disabled'),false);
+ assert.equal(h.run('nav.children[2].children[0].disabled'),true);
+ h.run('nav.children[0].children[0].onclick()');assert.equal(h.run('state.view'),'lesson');
+ h.run("remote.attempts=[{feedback:{summary:'Ready'}}];nav=steps(2);nav.children[2].children[0].onclick();");assert.equal(h.run('state.view'),'results');
+});
+
+test('quiz regeneration explains the recorded failure without inventing question details',()=>{
+ const h=harness();h.run("remote={failure:{code:'review_uncertainty'}}");assert.match(h.run('quizRegenerationReason()'),/could not confidently verify/);
+ h.run("remote.failure.code='content_revision_exhausted'");assert.match(h.run('quizRegenerationReason()'),/after its correction attempt/);
+});
