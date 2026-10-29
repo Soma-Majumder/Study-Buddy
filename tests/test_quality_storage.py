@@ -100,7 +100,7 @@ class QualityStorageTests(unittest.TestCase):
         review = self.prepare_review(); r = self.report(); q = r['questions'][0]
         q['grounding'] = 'uncertain'; q['uncertainty_notes'] = ['Synthetic uncertainty.']
         result = store_review_report(self.conn, LEARNER, review['call_id'], r)
-        self.assertEqual(result['decision'], 'blocked'); self.assertEqual(result['operation']['stage'], 'failed')
+        self.assertEqual(result['decision'], 'blocked'); self.assertEqual(result['operation']['stage'], 'needs_revision')
         self.assertEqual(self.conn.execute('SELECT decision FROM quiz_quality_reports').fetchone()[0], 'blocked')
 
     def test_stale_and_malformed_reports_cannot_advance_state(self):

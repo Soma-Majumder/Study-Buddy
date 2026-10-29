@@ -9,6 +9,7 @@ from pathlib import Path
 import selectors
 import subprocess
 import time
+from study_buddy.cancellation import check_agent_work, track_agent_process, untrack_agent_process
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -50,8 +51,10 @@ def run_durable_tutor(conn, context, *, command=None, timeout_seconds=75):
         raise TutorFailure('repair budget validation', spent())
     process = None
     try:
+        check_agent_work()
         process = subprocess.Popen(command or [os.environ.get('STUDY_BUDDY_NODE','node'), str(ROOT/'backend/tutor-command.mjs')],
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, cwd=ROOT)
+        track_agent_process(process)
         process.stdin.write((json.dumps(dict(protocol='durable-tutor-v1',context=context))+'\n').encode())
         process.stdin.flush()
         deadline = time.monotonic()+timeout_seconds
@@ -60,10 +63,12 @@ def run_durable_tutor(conn, context, *, command=None, timeout_seconds=75):
         with selectors.DefaultSelector() as selector:
             selector.register(process.stdout, selectors.EVENT_READ)
             while True:
+                check_agent_work()
                 remaining = deadline-time.monotonic()
                 if remaining <= 0 or not selector.select(remaining):
                     raise TimeoutError()
                 chunk = os.read(process.stdout.fileno(),65536)
+                check_agent_work()
                 if not chunk:
                     raise ValueError('Missing Tutor result.')
                 buffer += chunk
@@ -96,12 +101,14 @@ def run_durable_tutor(conn, context, *, command=None, timeout_seconds=75):
     except TutorFailure:
         raise
     except Exception:
+        check_agent_work()
         raise TutorFailure('provider adapter',spent()) from None
     finally:
         if process is not None:
             if process.poll() is None:
                 process.kill()
             process.wait()
+            untrack_agent_process(process)
             for stream in (process.stdin,process.stdout):
                 if stream and not stream.closed:
                     stream.close()

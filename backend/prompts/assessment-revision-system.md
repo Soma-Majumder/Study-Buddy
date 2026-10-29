@@ -28,3 +28,5 @@ Return one JSON object with the single top-level field result. For success, resu
 Keep keys private in answer_key. Do not add IDs, scores, review decisions, edit notes, plans, placeholders, Markdown or extra fields. On insufficient teaching return {"result":{"error":{"code":"insufficient_quiz_content","message":"Briefly identify the missing or conflicting teaching."}}}.
 
 A controller-supplied repair_request is a technical correction of this same revision. It consumes the existing shared repair budget; it never authorizes another content revision. Return once.
+
+If the first review reports uncertainty, replace the affected question with a simpler question directly supported by an explicit statement in teaching.explanation_text. Remove the uncertain claim entirely; do not attempt to defend it or add facts. Keep ten questions and the approved concept scope.

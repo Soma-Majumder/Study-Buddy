@@ -31,6 +31,7 @@ from study_buddy.answer_keys import get_client_quiz
 from study_buddy.lessons import load_lessons
 from study_buddy.session_start_requests import StartRequestRejected
 from study_buddy.maintenance_worker import run_maintenance_cycle
+from study_buddy.cancellation import WorkRegistry, AgentWorkCancelled, check_agent_work
 
 LEARNER = 'learner_workbook0001'
 MODE = 'real_controller_offline_fixtures'
@@ -181,6 +182,7 @@ def _snapshot(conn, session_id, learner_id, mode):
     result['preparation'] = dict(stage=stage,message=messages.get(stage,'Preparing your quiz.'))
     reason = conn.execute('SELECT failure_reason FROM study_sessions WHERE session_id=? AND learner_id=?',(session_id,learner_id)).fetchone()[0]
     failures = {
+        'user_cancelled':'This session was stopped when you returned Home.',
         'generation_output_truncated':'The AI quiz response was cut short. No incomplete quiz was published.',
         'content_revision_exhausted':'The quiz still needed corrections after its allowed revision, so it was not published.',
         'generation_request_timeout':'Quiz generation timed out before a complete response was saved.',
@@ -233,6 +235,7 @@ class WorkbookServer(ThreadingHTTPServer):
         # Maintenance only expires records; it never dispatches or retries AI.
         run_maintenance_cycle(self.database)
         self.next_maintenance=time.monotonic()+5
+        self.work_registry=WorkRegistry()
         self.token=secrets.token_urlsafe(32)
         self.agents=LiveAgents() if agent_mode=='live' else WorkbookAgents(lambda line:None)
         super().__init__(('127.0.0.1',port),WorkbookHandler)
@@ -247,6 +250,41 @@ class WorkbookServer(ThreadingHTTPServer):
             # A subsequent cycle retries the idempotent bounded sweep.
             print('Workbook maintenance deferred: database busy.',file=sys.stderr,flush=True)
 
+    def work_key(self,path,payload):
+        field='request_id' if path=='/api/start' else 'session_id' if path in ('/api/submit','/api/continue') else None
+        if field is None:return None
+        value=payload.get(field)
+        if not isinstance(value,str) or not 1<=len(value)<=128:raise ValueError('Invalid work identity.')
+        return (field,value)
+
+    def cancel_work(self,conn,payload):
+        if set(payload)!={'session_id','request_id'}:raise ValueError('Invalid cancellation.')
+        sid,rid=payload['session_id'],payload['request_id']
+        if any(v is not None and (not isinstance(v,str) or not 1<=len(v)<=128) for v in (sid,rid)):
+            raise ValueError('Invalid cancellation.')
+        with conn:
+            # Serialize ownership and state checks against publication/completion.
+            conn.execute('UPDATE study_sessions SET status=status WHERE 0')
+            if sid and not conn.execute('SELECT 1 FROM study_sessions WHERE session_id=? AND learner_id=?',(sid,self.learner_id)).fetchone():
+                raise ValueError('Session unavailable.')
+            row=conn.execute('SELECT session_id FROM session_start_requests WHERE learner_id=? AND request_id=?',(self.learner_id,rid)).fetchone() if rid else None
+            if row and sid and row[0]!=sid:raise ValueError('Cancellation identities do not match.')
+            if row:sid=row[0]
+            if sid:
+                if not rid:
+                    row=conn.execute('SELECT request_id FROM session_start_requests WHERE session_id=? AND learner_id=?',(sid,self.learner_id)).fetchone()
+                    if row:rid=row[0]
+                changed=conn.execute("UPDATE study_sessions SET status='failed',failure_reason='user_cancelled' WHERE session_id=? AND learner_id=? AND status<>'completed'",(sid,self.learner_id)).rowcount
+                if changed:
+                    conn.execute("UPDATE quiz_quality_operations SET stage='failed',failure_code='user_cancelled' WHERE session_id=? AND NOT EXISTS (SELECT 1 FROM quiz_quality_publications p WHERE p.operation_id=quiz_quality_operations.operation_id)",(sid,))
+                    conn.execute("UPDATE quiz_quality_calls SET status='failed',outcome='cancelled',finished_at=? WHERE status='reserved' AND operation_id IN (SELECT operation_id FROM quiz_quality_operations WHERE session_id=?)",(time.time(),sid))
+                    conn.execute("UPDATE feedback_operations SET status='failed' WHERE status='running' AND attempt_id IN (SELECT a.attempt_id FROM attempts a JOIN quizzes q ON q.quiz_id=a.quiz_id WHERE q.session_id=?)",(sid,))
+                    conn.execute("UPDATE session_routes SET status='failed' WHERE session_id=? AND status IN ('reserved','dispatched','summary_pending')",(sid,))
+                    conn.execute("UPDATE retry_quiz_operations SET status='failed',error='user_cancelled' WHERE session_id=? AND status='running'",(sid,))
+        keys=[(field,value) for field,value in (('session_id',sid),('request_id',rid)) if value]
+        self.work_registry.cancel(keys)
+        return dict(cancelled=True)
+
     def live_ready(self):
         return (self.agent_mode=='live' and self.allow_paid_calls
                 and os.environ.get('STUDY_BUDDY_ALLOW_PAID_CLAUDE')=='true'
@@ -258,6 +296,7 @@ class WorkbookHandler(BaseHTTPRequestHandler):
         pass  # No answer payloads, tokens or learner/session IDs in HTTP logs.
 
     def reply(self, code, payload, kind='application/json; charset=utf-8'):
+        check_agent_work()
         body=payload if isinstance(payload,bytes) else json.dumps(payload).encode()
         self.send_response(code)
         for key,value in {'Content-Type':kind,'Content-Length':str(len(body)),'Cache-Control':'no-store',
@@ -289,7 +328,7 @@ class WorkbookHandler(BaseHTTPRequestHandler):
         if url.path in assets:
             name,kind=assets[url.path];return self.reply(200,(ROOT/'demo/student'/name).read_bytes(),kind+'; charset=utf-8')
         if url.path=='/api/config':
-            return self.reply(200,dict(api_version=2,capabilities=['preparation_progress','source_reading','safe_failures'],token=self.server.token,mode=self.server.mode,paid_calls_enabled=self.server.live_ready(),
+            return self.reply(200,dict(api_version=2,capabilities=['preparation_progress','source_reading','safe_failures','cancel_work'],token=self.server.token,mode=self.server.mode,paid_calls_enabled=self.server.live_ready(),
                 message=('Real Tutor, Assessment and Reviewer adapters. Paid calls run only after your workbook actions.'
                          if self.server.agent_mode=='live' else
                          'Connected to the real controller. Offline fixture agents; synthetic review, not live quality approval.')))
@@ -328,7 +367,8 @@ class WorkbookHandler(BaseHTTPRequestHandler):
             self.connection.settimeout(10)
             payload=json.loads(self.rfile.read(length))
             if not isinstance(payload,dict):raise ValueError('Object required.')
-            with closing(connect(self.server.database)) as conn:
+            with closing(connect(self.server.database)) as conn, self.server.work_registry.work(self.server.work_key(self.path,payload)):
+                if self.path=='/api/cancel':return self.reply(200,self.server.cancel_work(conn,payload))
                 agents=self.server.agents
                 if self.path=='/api/start':
                     if set(payload)!={'request_id','lesson_id','lesson_version'}:raise ValueError('Invalid start.')
@@ -376,6 +416,10 @@ class WorkbookHandler(BaseHTTPRequestHandler):
                         raise ValueError('Session cannot continue.')
                     return self.reply(200,snapshot(conn,payload['session_id'],self.server.learner_id,self.server.mode))
                 return self.reply(404,dict(error='Not found.'))
+        except AgentWorkCancelled:
+            with closing(connect(self.server.database)) as conn:
+                self.server.cancel_work(conn,dict(session_id=payload.get('session_id'),request_id=payload.get('request_id')))
+            return self.reply(409,dict(code='work_cancelled',error='This session was stopped when you returned Home.'))
         except StartRequestRejected as error:
             message = ('This start request belongs to a different lesson. Return to lesson selection and choose the chapter again.'
                 if str(error)=='This request ID was already used with different lesson inputs.' else

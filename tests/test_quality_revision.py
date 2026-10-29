@@ -46,6 +46,28 @@ class QualityRevisionTests(unittest.TestCase):
         return dispatch_quality_revision(self.conn, LEARNER, self.op, assessment=assessment or self.assessment,
                                          reviewer=reviewer or self.reviewer)
 
+    def test_uncertain_original_is_replaced_then_independently_reviewed(self):
+        # Restore the fixture to its first review and retain an honest blocked report.
+        self.conn.execute('DELETE FROM quiz_quality_reports')
+        self.conn.execute("DELETE FROM quiz_quality_calls WHERE kind='review'")
+        self.conn.execute("UPDATE quiz_quality_operations SET stage='reviewing', review_count=0")
+        self.conn.commit()
+        def uncertain(context, **kwargs):
+            report = self.helper.report()
+            report['questions'][0]['grounding'] = 'uncertain'
+            report['questions'][0]['uncertainty_notes'] = ['The explanation does not support this claim.']
+            return report
+        first = dispatch_quality_review(self.conn, LEARNER, self.op, reviewer=uncertain)
+        self.assertEqual(first['stage'], 'needs_revision')
+        def replace(context, **kwargs):
+            self.assertEqual(context['review_report']['questions'][0]['grounding'], 'uncertain')
+            return copy.deepcopy(self.revised)
+        result = self.dispatch(assessment=replace)
+        self.assertEqual(result['stage'], 'approved')
+        self.assertEqual(len(self.review_calls), 1)
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM quizzes').fetchone()[0], 0)
+        self.assertEqual(self.conn.execute("SELECT decision FROM quiz_quality_reports WHERE candidate_version=0").fetchone()[0], 'blocked')
+
     def test_one_revision_then_full_second_review_no_publication(self):
         result = self.dispatch()
         self.assertEqual(result['stage'], 'approved')
