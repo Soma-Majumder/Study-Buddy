@@ -17,6 +17,10 @@ UNDERSTANDING_GOAL = 6
 SOFT_CODES = {'insufficient_understanding', 'repeated_target'}
 # An answer cue only warns when no individual question criterion failed; otherwise it blocks.
 CONDITIONAL_SOFT_CODES = {'answer_cue'}
+# After the one allowed revision, distractor-quality and wording problems no longer stop publication:
+# the revised quiz is published with these as warnings. Content-correctness findings still block.
+FINAL_REVIEW_SOFT_CODES = {'weak_distractor', 'answer_cue'}
+FINAL_REVIEW_SOFT_CRITERIA = {'plausible_distractors', 'fair_wording'}
 
 
 class ReviewRejected(ValueError):
@@ -29,14 +33,15 @@ def candidate_hash(candidate):
     return hashlib.sha256(('study-buddy-private-quiz/v1\n' + payload).encode('utf-8')).hexdigest()
 
 
-def validate_review(report, context, *, minimum_understanding=UNDERSTANDING_GOAL):
+def validate_review(report, context, *, minimum_understanding=UNDERSTANDING_GOAL, final_revision=False):
     """Return pass/needs_revision/blocked, never permission to publish.
 
     context is backend-owned: operation_id, candidate_version, handoff, and
     candidate. The caller must authenticate ownership and load its snapshot.
     Fewer than UNDERSTANDING_GOAL understanding items and repeated targets are soft: they
     appear in `warnings` and never change the decision, as does an answer cue when no
-    question criterion failed. Not a PRD change.
+    question criterion failed. Not a PRD change. With final_revision (the review of the single
+    permitted revision), distractor-quality and wording failures also only warn.
     """
     if type(minimum_understanding) is not int or not 0 <= minimum_understanding <= 10:
         raise ValueError('Understanding target must be an integer from 0 to 10.')
@@ -95,6 +100,10 @@ def validate_review(report, context, *, minimum_understanding=UNDERSTANDING_GOAL
     if 'uncertain' in judgments or uncertainty:
         decision = 'blocked'
         reasons.append('review_uncertainty')
+    elif final_revision and not (set(reasons) - FINAL_REVIEW_SOFT_CODES) and not any(
+            q[c] == 'fail' for q in report['questions'] for c in CRITERIA if c not in FINAL_REVIEW_SOFT_CRITERIA):
+        warnings = sorted(set(warnings) | set(reasons) | {'revision_published_with_warnings'})
+        reasons, decision = [], 'pass'
     elif 'fail' in judgments or reasons:
         decision = 'needs_revision'
     else:

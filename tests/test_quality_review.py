@@ -127,6 +127,28 @@ class QualityReviewTests(unittest.TestCase):
         result = validate_review(self.report, self.context)
         self.assertEqual((result['decision'], result['reasons']), ('needs_revision', ['answer_cue']))
 
+    def test_final_revision_publishes_distractor_and_wording_failures_with_warnings(self):
+        cue = dict(code='answer_cue', detail='The keyed option is the longest.', related_positions=[3])
+        weak = dict(code='weak_distractor', detail='Wrong choices are easy to eliminate.', related_positions=[4])
+        self.report['questions'][2].update(fair_wording='fail', issues=[cue])
+        self.report['questions'][3].update(plausible_distractors='fail', issues=[weak])
+        self.assertEqual(validate_review(self.report, self.context)['decision'], 'needs_revision')
+        result = validate_review(self.report, self.context, final_revision=True)
+        self.assertEqual((result['decision'], result['reasons']), ('pass', []))
+        self.assertIn('revision_published_with_warnings', result['warnings'])
+        self.assertIn('weak_distractor', result['warnings'])
+
+    def test_final_revision_still_blocks_content_defects_and_uncertainty(self):
+        q = self.report['questions'][0]
+        q.update(exactly_one_answer='fail', defensible_options=['a', 'b'],
+                 issues=[dict(code='ambiguous_answer', detail='Two choices are supported.', related_positions=[1])])
+        self.assertEqual(validate_review(self.report, self.context, final_revision=True)['decision'], 'needs_revision')
+        report = json.loads((FIXTURES / 'pass.json').read_text())['report']
+        report['questions'][1].update(plausible_distractors='fail',
+                                      issues=[dict(code='inaccurate_rationale', detail='Reason is contradicted.', related_positions=[2])])
+        report['questions'][1]['rationale_quality'] = 'fail'
+        self.assertEqual(validate_review(report, self.context, final_revision=True)['decision'], 'needs_revision')
+
     def test_repetition_warning_does_not_hide_genuine_content_uncertainty(self):
         self.report['quiz_review'].update(target_diversity='fail', issues=[dict(
             code='repeated_target', detail='Items repeat a target.', related_positions=[1, 2])])
