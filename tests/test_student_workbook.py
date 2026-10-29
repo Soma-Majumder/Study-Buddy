@@ -1,5 +1,6 @@
 """Browser/API boundary exercises real controller persistence with fixture agents."""
 import http.client
+from contextlib import closing
 import json
 from pathlib import Path
 import sqlite3
@@ -50,6 +51,101 @@ class StudentWorkbookTests(unittest.TestCase):
         code,result=self.request('/api/submit',dict(session_id=snap['session_id'],quiz_id=snap['quiz']['quiz_id'],answers=self.answer(snap,wrong)))
         self.assertEqual(code,200,result);self.assertIsNotNone(result['attempts'][-1]['feedback'],result)
         return result
+
+    def test_start_progress_requires_owned_request_and_exposes_no_candidate(self):
+        snap=self.start('progress_owned_request')
+        code,body=self.request('/api/start-progress?request_id=progress_owned_request')
+        self.assertEqual(code,200)
+        self.assertEqual(body['session_id'],snap['session_id'])
+        self.assertEqual(body['preparation']['stage'],'approved')
+        self.assertNotIn('answer_key',json.dumps(body))
+        code,body=self.request('/api/start-progress?request_id=unknown_request')
+        self.assertEqual(body,dict(pending=True))
+        self.assertEqual(self.request('/api/start-progress?request_id=progress_owned_request',token=False)[0],403)
+
+    def test_saved_explanation_is_readable_before_quiz_publication(self):
+        from scripts.student_workbook import snapshot
+        with sqlite3.connect(self.path) as conn:
+            conn.execute("INSERT INTO study_sessions(session_id,learner_id,lesson_id,lesson_version,status,created_at) VALUES ('session_abcdefghijkl',?,'lesson_cell_membranes',2,'teaching','2026-10-29T00:00:00Z')",(LEARNER,))
+            conn.execute("INSERT INTO explanations VALUES ('expl_abcdefghijkl','session_abcdefghijkl','first','Saved Tutor explanation before quiz generation.')")
+            conn.commit()
+            saved=snapshot(conn,'session_abcdefghijkl')
+            self.assertEqual(saved['explanation']['text'],'Saved Tutor explanation before quiz generation.')
+            self.assertIsNone(saved['quiz'])
+            self.assertEqual(saved['preparation']['stage'],'teaching')
+
+    def test_config_declares_capabilities_without_dispatch(self):
+        before=dict(self.server.agents.calls)
+        code,body=self.request('/api/config',token=False)
+        self.assertEqual(code,200)
+        self.assertEqual(body['api_version'],2)
+        self.assertIn('preparation_progress',body['capabilities'])
+        self.assertEqual(before,self.server.agents.calls)
+
+    def abandoned_generation(self):
+        from scripts.student_workbook import connect,start_quiz_session
+        with closing(connect(self.path)) as conn, conn:
+            with self.assertRaises(KeyboardInterrupt):
+                start_quiz_session(conn,LEARNER,'lesson_cell_membranes',lesson_version=2,
+                    request_id='abandoned_workbook_request',tutor=self.server.agents.tutor,
+                    assessment=lambda *_args,**_kw: (_ for _ in ()).throw(KeyboardInterrupt()),
+                    reviewer=self.server.agents.reviewer)
+            row=conn.execute('SELECT session_id FROM study_sessions ORDER BY rowid DESC LIMIT 1').fetchone()
+            conn.execute('UPDATE quiz_quality_operations SET started_at=0,deadline_at=1 WHERE session_id=?',row)
+        return row[0]
+
+    def test_periodic_maintenance_ends_expired_preparation_without_agent_calls(self):
+        session=self.abandoned_generation()
+        before=dict(self.server.agents.calls)
+        self.server.next_maintenance=0
+        self.server.service_actions()
+        code,saved=self.request('/api/session?session_id='+session)
+        self.assertEqual(code,200)
+        self.assertEqual(saved['status'],'failed')
+        self.assertEqual(saved['failure']['code'],'quality_deadline')
+        self.assertIn('deadline',saved['failure']['message'])
+        self.assertIsNotNone(saved['explanation'])
+        self.assertIsNone(saved['quiz'])
+        self.assertEqual(before,self.server.agents.calls)
+
+    def test_restart_reconciles_abandoned_calls_before_serving(self):
+        session=self.abandoned_generation()
+        other=WorkbookServer(self.path,0)
+        try:
+            code,saved=self.request('/api/session?session_id='+session)
+            self.assertEqual(saved['status'],'failed')
+            self.assertEqual(saved['failure']['code'],'quality_deadline')
+        finally:other.server_close()
+
+    def test_summary_save_failure_recovers_same_session_without_agents(self):
+        snap=self.start();self.submit(snap)
+        with sqlite3.connect(self.path) as conn:
+            conn.execute("CREATE TRIGGER fail_summary BEFORE INSERT ON session_summaries BEGIN SELECT RAISE(ABORT, 'simulated failure'); END")
+        code,stopped=self.request('/api/continue',dict(session_id=snap['session_id']))
+        self.assertEqual(code,200)
+        self.assertEqual(stopped['status'],'pending_save')
+        self.assertEqual(stopped['preparation']['stage'],'pending_save')
+        with sqlite3.connect(self.path) as conn:conn.execute('DROP TRIGGER fail_summary')
+        before=dict(self.server.agents.calls)
+        code,done=self.request('/api/continue',dict(session_id=snap['session_id']))
+        self.assertEqual(done['session_id'],snap['session_id'])
+        self.assertEqual(done['status'],'completed')
+        self.assertEqual(before,self.server.agents.calls)
+        self.assertIsNotNone(done['summary'])
+
+    def test_truncated_quiz_is_not_published_and_has_safe_recovery_message(self):
+        from study_buddy.assessment import AssessmentFailure
+        with patch.object(self.server.agents,'assessment',side_effect=AssessmentFailure(code='output_truncated')):
+            code,stopped=self.request('/api/start',dict(request_id='truncated_request',lesson_id='lesson_cell_membranes',lesson_version=2))
+        self.assertEqual(code,200)
+        self.assertEqual(stopped['status'],'failed')
+        self.assertEqual(stopped['failure']['code'],'generation_output_truncated')
+        self.assertIn('cut short',stopped['message'])
+        self.assertIsNone(stopped['quiz'])
+        self.assertIsNotNone(stopped['explanation'])
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM quizzes').fetchone()[0],0)
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM attempts').fetchone()[0],0)
 
     def test_keyless_start_and_static_private_files_not_served(self):
         snap=self.start();raw=json.dumps(snap)
@@ -192,8 +288,20 @@ class LiveWorkbookWiringTests(unittest.TestCase):
             return dict(session_id='session_placeholder')
         with patch('scripts.student_workbook.start_quiz_session',side_effect=captured) as start, patch(
                 'scripts.student_workbook.snapshot',return_value=dict(mode=LIVE_MODE,status='awaiting_answers')):
-            code,body=self.request('/api/start',dict(request_id='live_wiring_test',lesson_id='lesson_cell_membranes',lesson_version=2))
-        self.assertEqual(code,200);start.assert_called_once()
+            code,catalog=self.request('/api/lessons')
+            self.assertEqual(code,200)
+            self.assertEqual(len(catalog['lessons']),4)
+            for item in catalog['lessons']:
+                self.assertTrue(item['source_url'].startswith('https://'))
+                self.assertTrue(item['source_text'])
+                self.assertTrue(item['adaptation_notice'])
+            for item in catalog['lessons']:
+                with self.subTest(lesson=item['lesson_id']):
+                    code,body=self.request('/api/start',dict(request_id='live_wiring_test',lesson_id=item['lesson_id'],lesson_version=item['version']))
+                    self.assertEqual(code,200)
+                    self.assertEqual(start.call_args.args[2],item['lesson_id'])
+                    self.assertEqual(start.call_args.kwargs['lesson_version'],item['version'])
+        self.assertEqual(start.call_count,4)
 
     def test_actual_saved_tutor_text_is_returned_not_replaced_by_source(self):
         marker='This is the actual saved Tutor explanation, distinct from a source excerpt.'

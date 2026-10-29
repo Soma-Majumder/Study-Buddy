@@ -26,6 +26,30 @@ class QualityReviewTests(unittest.TestCase):
                 else:
                     self.assertEqual(validate_review(case['report'], context)['decision'], case['expected_decision'])
 
+    def test_confirmed_ambiguity_and_bad_justification_reach_revision(self):
+        q = self.report['questions'][0]
+        q['exactly_one_answer'] = 'fail'
+        q['defensible_options'] = ['a', 'b']
+        q['issues'] = [dict(code='ambiguous_answer', detail='Two choices are supported; replace the competing true answer.', related_positions=[1])]
+        result = validate_review(self.report, self.context)
+        self.assertEqual(result['decision'], 'needs_revision')
+        other = self.report['questions'][1]
+        other['rationale_quality'] = 'fail'
+        other['issues'] = [dict(code='inaccurate_rationale', detail='A correct label is paired with a reason contradicted by the teaching.', related_positions=[2])]
+        self.assertEqual(validate_review(self.report, self.context)['decision'], 'needs_revision')
+
+    def test_a_known_question_defect_never_overrides_genuine_uncertainty(self):
+        q = self.report['questions'][0]
+        q['exactly_one_answer'] = 'fail'
+        q['defensible_options'] = ['a', 'b']
+        q['issues'] = [dict(code='ambiguous_answer', detail='Two answers are supported.', related_positions=[1])]
+        other = self.report['questions'][1]
+        other['grounding'] = 'uncertain'
+        other['uncertainty_notes'] = ['The explanation does not resolve whether the proposed justification is valid.']
+        result = validate_review(self.report, self.context)
+        self.assertEqual(result['decision'], 'blocked')
+        self.assertIn('review_uncertainty', result['reasons'])
+
     def test_duplicate_or_missing_question_position_is_rejected(self):
         self.report['questions'][1]['position'] = 1
         with self.assertRaises(ReviewRejected): validate_review(self.report, self.context)

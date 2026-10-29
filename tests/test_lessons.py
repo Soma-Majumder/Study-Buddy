@@ -19,8 +19,8 @@ def fresh_db():
 class LessonLoadTests(unittest.TestCase):
     def test_loads_every_concept_with_its_passage(self):
         conn = fresh_db()
-        self.assertEqual(load_lessons(conn), [("lesson_cell_membranes", LESSON["version"])])
-        rows = conn.execute("SELECT concept_id, source_passage FROM concepts").fetchall()
+        self.assertIn(("lesson_cell_membranes", LESSON["version"]), load_lessons(conn))
+        rows = conn.execute("SELECT concept_id, source_passage FROM concepts WHERE lesson_id='lesson_cell_membranes'").fetchall()
         self.assertEqual({r[0] for r in rows}, {c["concept_id"] for c in LESSON["concepts"]})
         for concept_id, passage in rows:
             self.assertEqual(passage, LESSON["source_passages"][concept_id])
@@ -29,7 +29,7 @@ class LessonLoadTests(unittest.TestCase):
         conn = fresh_db()
         load_lessons(conn)
         row = conn.execute(
-            "SELECT source_text, attribution, adaptation_notice, approval, approved FROM lessons"
+            "SELECT source_text, attribution, adaptation_notice, approval, approved FROM lessons WHERE lesson_id='lesson_cell_membranes'"
         ).fetchone()
         self.assertEqual(row[0], LESSON["source_text"])
         self.assertEqual(row[1], f"{LESSON['book']}, {LESSON['authors']}")
@@ -41,8 +41,8 @@ class LessonLoadTests(unittest.TestCase):
         conn = fresh_db()
         load_lessons(conn)
         load_lessons(conn)
-        self.assertEqual(conn.execute("SELECT COUNT(*) FROM lessons").fetchone()[0], 1)
-        self.assertEqual(conn.execute("SELECT COUNT(*) FROM concepts").fetchone()[0], len(LESSON["concepts"]))
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM lessons").fetchone()[0], 4)
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM concepts WHERE lesson_id='lesson_cell_membranes'").fetchone()[0], len(LESSON["concepts"]))
 
     def test_unapproved_lesson_is_not_loaded(self):
         with tempfile.TemporaryDirectory() as d:

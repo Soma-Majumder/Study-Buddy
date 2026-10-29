@@ -23,6 +23,7 @@ export async function callClaude(input, {
   maxTokens = 4096,
   effort,
   outputSchema,
+  fastStructuredOutput = false,
   allowPaidCalls = process.env.STUDY_BUDDY_ALLOW_PAID_CLAUDE === 'true',
 } = {}) {
   if (typeof apiKey !== 'string' || !apiKey.trim()) {
@@ -47,6 +48,10 @@ export async function callClaude(input, {
     throw new ClaudeCallError('invalid_output_schema', 'An output schema object is required.');
   }
 
+  if (typeof fastStructuredOutput !== 'boolean') {
+    throw new ClaudeCallError('invalid_input', 'Structured-output mode must be a trusted boolean.');
+  }
+
   // A credential or custom transport is not consent to spend API credits.
   // Only trusted backend configuration may grant permission, never model/user data.
   if (allowPaidCalls !== true) {
@@ -68,6 +73,11 @@ export async function callClaude(input, {
       body: JSON.stringify({
         model,
         max_tokens: maxTokens,
+        // Haiku 5.5 defaults to hidden adaptive thinking, which shares max_tokens.
+        // These are isolated JSON-only calls without tools. Keep other models'
+        // thinking defaults; disabled is not supported universally.
+        ...(fastStructuredOutput && /^claude-haiku-5-5(?:-|$)/.test(model) &&
+            ['low', 'medium', 'high'].includes(effort) ? {thinking: {type: 'disabled'}} : {}),
         ...((effort !== undefined || outputSchema !== undefined) ? {output_config: {
           ...(effort !== undefined ? {effort} : {}),
           ...(outputSchema !== undefined ? {format: {type: 'json_schema', schema: outputSchema}} : {}),

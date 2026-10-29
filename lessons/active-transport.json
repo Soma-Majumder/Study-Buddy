@@ -1,0 +1,50 @@
+{
+  "book": "Cell & Molecular Biology",
+  "authors": "Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University",
+  "license": "CC BY-NC-SA 4.0",
+  "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "lesson_id": "lesson_active_transport",
+  "version": 1,
+  "title": "Active Transport & Cellular Pumps",
+  "source_url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-3/",
+  "approved": true,
+  "license_notes": "Non-commercial educational adaptation; attribution and ShareAlike required. No source figures copied.",
+  "adaptation_notice": "Adapted from Cell & Molecular Biology, section 2-3, by Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University. CC BY-NC-SA 4.0. Changes: selected concepts paraphrased for beginners; no figures. This adaptation uses the same license.",
+  "source_text_approval": {
+    "approved_by": "Codex source check for local assignment",
+    "approved_on": "2026-10-29",
+    "changes": "Checked these selected introductory concepts against the cited textbook; no human approval or live-agent evaluation claimed."
+  },
+  "concepts": [
+    {
+      "concept_id": "c_active_transport_energy",
+      "name": "Energy-dependent transport",
+      "summary": "Energy-dependent transport."
+    },
+    {
+      "concept_id": "c_active_transport_primary",
+      "name": "Primary transport",
+      "summary": "Primary transport."
+    },
+    {
+      "concept_id": "c_active_transport_secondary",
+      "name": "Secondary transport",
+      "summary": "Secondary transport."
+    },
+    {
+      "concept_id": "c_active_transport_sodium_pump",
+      "name": "Sodium-potassium pump",
+      "summary": "Sodium-potassium pump."
+    }
+  ],
+  "source_passages": {
+    "c_active_transport_energy": "Active transport moves a substance against its gradient using energy. Not every active transporter uses ATP directly.",
+    "c_active_transport_primary": "Primary active transport uses ATP directly to power movement across the membrane and establish gradients.",
+    "c_active_transport_secondary": "Secondary active transport couples downhill movement of one substance to uphill movement of another, using energy stored in a gradient.",
+    "c_active_transport_sodium_pump": "Each sodium-potassium pump cycle uses ATP to export three sodium ions and import two potassium ions against their concentration gradients."
+  },
+  "not_covered": [
+    "Other topics in the full source chapter"
+  ],
+  "source_text": "Active transport moves a substance against its gradient using energy. Not every active transporter uses ATP directly.\n\nPrimary active transport uses ATP directly to power movement across the membrane and establish gradients.\n\nSecondary active transport couples downhill movement of one substance to uphill movement of another, using energy stored in a gradient.\n\nEach sodium-potassium pump cycle uses ATP to export three sodium ions and import two potassium ions against their concentration gradients."
+}
