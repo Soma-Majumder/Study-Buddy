@@ -57,15 +57,16 @@ class QualityDispatchTests(unittest.TestCase):
         self.assertFalse(self.dispatch()['dispatched']); self.assertEqual(len(self.calls), 1)
         self.assertEqual(self.conn.execute('SELECT learning_retry_count FROM study_sessions').fetchone()[0], 0)
 
-    def test_uncertainty_marks_operation_and_session_failed(self):
+    def test_initial_uncertainty_requests_revision_without_failing_session(self):
         def reviewer(context, **kwargs):
             r = self.reviewer(context, **kwargs)
             r['questions'][0]['grounding'] = 'uncertain'
             r['questions'][0]['uncertainty_notes'] = ['Cannot verify.']
             return r
         result = self.dispatch(reviewer=reviewer)
-        self.assertEqual(result['error'], 'review_uncertainty')
-        self.assertEqual(self.conn.execute('SELECT status FROM study_sessions').fetchone()[0], 'failed')
+        self.assertEqual(result['stage'], 'needs_revision')
+        self.assertIsNone(result['error'])
+        self.assertEqual(self.conn.execute('SELECT status FROM study_sessions').fetchone()[0], 'teaching')
         self.assertFalse(self.dispatch()['dispatched'])
 
     def test_provider_and_unexpected_errors_are_safe_terminal_failures(self):

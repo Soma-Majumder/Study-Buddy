@@ -4,6 +4,7 @@ import math
 import os
 from pathlib import Path
 import subprocess
+from study_buddy.cancellation import run_agent_process
 
 ROOT = Path(__file__).resolve().parent.parent
 STAGES = {'input preparation', 'model call', 'response validation', 'provider adapter'}
@@ -38,7 +39,7 @@ def run_reviewer(context, *, provider_timeout_ms=60_000, process_timeout_seconds
             not provider_timeout_ms / 1000 < process_timeout_seconds <= 70):
         raise ReviewerFailure(stage='input preparation', code='invalid_timeout')
     try:
-        process = subprocess.run(
+        process = run_agent_process(
             [os.environ.get('STUDY_BUDDY_NODE', 'node'), str(ROOT / 'backend/reviewer-command.mjs')],
             input=json.dumps(dict(context=context, provider_timeout_ms=provider_timeout_ms), allow_nan=False),
             text=True, capture_output=True, cwd=ROOT, timeout=process_timeout_seconds,

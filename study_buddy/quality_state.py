@@ -184,7 +184,10 @@ def complete_quality_call(conn, learner_id, call_id, *, outcome, candidate=None,
             _fail_deadline_locked(conn, op, now)
             return _snapshot(conn, learner_id, operation_id, applied=False)
         failure = None
-        if outcome in ('error', 'blocked'):
+        if outcome == 'blocked' and version == 0:
+            # Preserve the blocked verdict; allow replacement, never publication.
+            stage = 'needs_revision'
+        elif outcome in ('error', 'blocked'):
             stage, failure = 'failed', 'provider_failed' if outcome == 'error' else 'review_uncertainty'
         elif outcome == 'valid':
             stage = 'reviewing' if version == 0 else 'reviewing_revision'

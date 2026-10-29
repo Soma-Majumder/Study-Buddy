@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+from study_buddy.cancellation import run_agent_process
 import sqlite3
 
 import jsonschema
@@ -46,7 +47,7 @@ def run_tutor(context):
     """Invoke the existing JS harness. Credentials stay in the environment."""
     node = os.environ.get('STUDY_BUDDY_NODE', 'node')
     try:
-        process = subprocess.run(
+        process = run_agent_process(
             [node, str(ROOT / 'backend/tutor-command.mjs')],
             input=json.dumps(context), text=True, capture_output=True,
             cwd=ROOT, timeout=75,

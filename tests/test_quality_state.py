@@ -104,11 +104,15 @@ class QualityStateTests(unittest.TestCase):
         with self.assertRaises(QualityStateRejected): self.reserve('technical_repair')
         self.assertEqual(result['reserved_call_count'], 1)
 
-    def test_uncertain_review_and_provider_failure_stop_without_retry(self):
+    def test_uncertain_first_review_gets_one_revision_but_final_uncertainty_stops(self):
         self.candidate_ready()
         result = self.finish(self.reserve('review'), 'blocked', reviewed_hash=candidate_hash(self.candidate))
+        self.assertEqual(result['operation']['stage'], 'needs_revision')
+        revision = self.reserve('revision')
+        self.finish(revision, 'valid', candidate=self.candidate)
+        result = self.finish(self.reserve('review_revision'), 'blocked', reviewed_hash=candidate_hash(self.candidate))
         self.assertEqual(result['operation']['failure_code'], 'review_uncertainty')
-        with self.assertRaises(QualityStateRejected): self.reserve('revision')
+        self.assertFalse(self.reserve('revision')['reserved'])
 
     def test_provider_failure_is_durable_and_repeat_does_not_dispatch(self):
         call = self.reserve('generation'); result = self.finish(call, 'error')

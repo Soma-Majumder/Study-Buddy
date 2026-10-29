@@ -4,6 +4,7 @@ import math
 import os
 from pathlib import Path
 import subprocess
+from study_buddy.cancellation import run_agent_process
 
 from study_buddy.assessment import AssessmentFailure
 
@@ -24,7 +25,7 @@ def run_feedback(context, *, repair_request=None, provider_timeout_ms=60_000, pr
     if provider_timeout_ms != 60_000:
         payload['provider_timeout_ms'] = provider_timeout_ms
     try:
-        process = subprocess.run(
+        process = run_agent_process(
             [os.environ.get('STUDY_BUDDY_NODE', 'node'), str(ROOT / 'backend/feedback-command.mjs')],
             input=json.dumps(payload, allow_nan=False),
             text=True, capture_output=True, cwd=ROOT, timeout=process_timeout_seconds,

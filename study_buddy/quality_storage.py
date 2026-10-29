@@ -208,7 +208,7 @@ def build_private_revision_context(conn, learner_id, call_id):
         report = _load_report(conn, op, saved[0])
         decision = validate_review(report, dict(operation_id=op['operation_id'], candidate_version=0,
                                                handoff=_handoff(op, text, ids), candidate=candidate))
-        if decision['decision'] != 'needs_revision':
+        if decision['decision'] not in ('needs_revision', 'blocked'):
             raise QualityStateRejected('Only validated content failures authorize revision.')
         source = conn.execute('SELECT source_url, license, attribution FROM lessons WHERE lesson_id=? AND version=? AND approved=1',
                               (op['lesson_id'], op['lesson_version'])).fetchone()

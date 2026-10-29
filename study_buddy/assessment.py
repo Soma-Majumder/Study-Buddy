@@ -4,6 +4,7 @@ import math
 import os
 from pathlib import Path
 import subprocess
+from study_buddy.cancellation import run_agent_process
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -48,7 +49,7 @@ def run_assessment_revision(context, *, technical_repair=False, provider_timeout
 
 def _run_command(payload, process_timeout_seconds=70):
     try:
-        process = subprocess.run(
+        process = run_agent_process(
             [os.environ.get('STUDY_BUDDY_NODE', 'node'), str(ROOT / 'backend/assessment-command.mjs')],
             input=json.dumps(payload, allow_nan=False),
             text=True, capture_output=True, cwd=ROOT, timeout=process_timeout_seconds,

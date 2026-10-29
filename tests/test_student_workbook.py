@@ -52,6 +52,76 @@ class StudentWorkbookTests(unittest.TestCase):
         self.assertEqual(code,200,result);self.assertIsNotNone(result['attempts'][-1]['feedback'],result)
         return result
 
+    def test_home_before_start_blocks_a_late_request_without_agents(self):
+        before=dict(self.server.agents.calls)
+        payload=dict(session_id=None,request_id='home_before_start')
+        self.assertEqual(self.request('/api/cancel',payload,token=False)[0],403)
+        self.assertEqual(self.request('/api/cancel',payload)[0],200)
+        code,body=self.request('/api/start',dict(request_id='home_before_start',lesson_id='lesson_cell_membranes',lesson_version=2))
+        self.assertEqual(code,409);self.assertEqual(body['code'],'work_cancelled')
+        self.assertEqual(before,self.server.agents.calls)
+        self.start('fresh_request_after_home')
+
+    def test_home_stops_only_the_owned_session_and_old_quiz_cannot_be_submitted(self):
+        old=self.start('home_old_request');other=self.start('home_other_request')
+        before=dict(self.server.agents.calls)
+        payload=dict(session_id=old['session_id'],request_id='home_old_request')
+        self.assertEqual(self.request('/api/cancel',payload)[0],200)
+        self.assertEqual(self.request('/api/cancel',payload)[0],200)
+        self.assertEqual(self.request('/api/session?session_id='+old['session_id'])[1]['failure']['code'],'user_cancelled')
+        self.assertEqual(self.request('/api/session?session_id='+other['session_id'])[1]['status'],'awaiting_answers')
+        self.assertEqual(self.request('/api/submit',dict(session_id=old['session_id'],quiz_id=old['quiz']['quiz_id'],answers=self.answer(old)))[0],409)
+        self.assertEqual(before,self.server.agents.calls)
+
+    def test_home_fences_a_late_tutor_result_and_prevents_assessment(self):
+        entered=threading.Event();release=threading.Event();responses=[]
+        tutor=self.server.agents.tutor
+        def delayed(context):
+            entered.set();release.wait(5);return tutor(context)
+        def start_request():
+            responses.append(self.request('/api/start',dict(request_id='home_during_tutor',lesson_id='lesson_cell_membranes',lesson_version=2)))
+        with patch.object(self.server.agents,'tutor',side_effect=delayed):
+            thread=threading.Thread(target=start_request);thread.start()
+            try:
+                self.assertTrue(entered.wait(3))
+                code,body=self.request('/api/cancel',dict(session_id=None,request_id='home_during_tutor'))
+                self.assertEqual(code,200)
+            finally:release.set();thread.join(5)
+        self.assertFalse(thread.is_alive());self.assertEqual(responses[0][0],409)
+        self.assertEqual(self.server.agents.calls['assessment'],0)
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM quizzes').fetchone()[0],0)
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM explanations').fetchone()[0],0)
+            self.assertEqual(conn.execute('SELECT status,failure_reason FROM study_sessions').fetchone(),('failed','user_cancelled'))
+
+    def test_home_fences_late_quiz_generation_before_review_or_publication(self):
+        entered=threading.Event();release=threading.Event();responses=[]
+        assessment=self.server.agents.assessment
+        def delayed(handoff,**kwargs):
+            entered.set();release.wait(5);return assessment(handoff,**kwargs)
+        def start_request():
+            responses.append(self.request('/api/start',dict(request_id='home_during_generation',lesson_id='lesson_cell_membranes',lesson_version=2)))
+        with patch.object(self.server.agents,'assessment',side_effect=delayed):
+            thread=threading.Thread(target=start_request);thread.start()
+            try:
+                self.assertTrue(entered.wait(3))
+                self.assertEqual(self.request('/api/cancel',dict(session_id=None,request_id='home_during_generation'))[0],200)
+            finally:release.set();thread.join(5)
+        self.assertFalse(thread.is_alive());self.assertEqual(self.server.agents.calls['reviewer'],0)
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM quizzes').fetchone()[0],0)
+            self.assertEqual(conn.execute('SELECT stage,failure_code FROM quiz_quality_operations').fetchone(),('failed','user_cancelled'))
+            self.assertEqual(conn.execute('SELECT status,outcome FROM quiz_quality_calls').fetchone(),('failed','cancelled'))
+
+    def test_home_cannot_cancel_another_learner(self):
+        old=self.start()
+        with sqlite3.connect(self.path) as conn:
+            conn.execute("INSERT INTO learners VALUES ('learner_otherperson')")
+            conn.execute("UPDATE study_sessions SET learner_id='learner_otherperson' WHERE session_id=?",(old['session_id'],))
+        self.assertEqual(self.request('/api/cancel',dict(session_id=old['session_id'],request_id=None))[0],409)
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(conn.execute('SELECT status FROM study_sessions').fetchone()[0],'awaiting_answers')
+
     def test_start_progress_requires_owned_request_and_exposes_no_candidate(self):
         snap=self.start('progress_owned_request')
         code,body=self.request('/api/start-progress?request_id=progress_owned_request')

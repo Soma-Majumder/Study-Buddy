@@ -43,8 +43,21 @@
 .landing-experience .library-bottom p{max-width:850px;margin:0 auto;font-size:10px;text-align:center;line-height:1.8}
 .landing-experience .journey-strip article:hover{background:transparent}
 @media(max-width:700px){.landing-experience{border-radius:22px}.landing-experience .hero{min-height:550px;padding:45px 24px 60px}.landing-experience .section-heading{padding:30px 24px 12px}.landing-experience .section-heading h2{max-width:none;font-size:28px}.landing-experience .journey-strip{padding:0 26px 20px}.landing-experience .journey-strip article{padding:26px 0 22px}.landing-experience .journey-strip article+article{border-left:0;border-top:1px solid #e3dfd5}.landing-experience .journey-strip .eyebrow{margin-bottom:12px}.landing-experience .library-bottom{margin:0 26px;padding:20px 0 24px}.landing-experience .library-bottom p{text-align:left}}
-/* Lesson selection is a separate screen; browsing never dispatches agents. */
-.lesson-selection{padding:35px 0}.lesson-selection h1{font-weight:450;font-size:clamp(36px,5vw,64px)}.lesson-selection-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:38px}.lesson-option{padding:36px;border:1px solid #dedbd2;border-radius:20px;background:#ffffffc9;box-shadow:0 15px 45px #00000006}.lesson-option h2{font-size:32px;font-weight:500}.lesson-option>p{font-size:14px}.lesson-option>.sample-note{font-size:11px}.lesson-option .button{margin-top:8px}.saved-session-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;background:#f3eddf;border:1px solid #ded3b6;border-radius:15px;padding:20px 24px;margin:28px 0}.saved-session-banner p{margin:0;font-size:14px}@media(max-width:700px){.lesson-selection-grid{grid-template-columns:1fr}.lesson-option{padding:26px}.lesson-option h2{font-size:29px}.saved-session-banner{align-items:flex-start;flex-direction:column}}
+/* Chapter choice stays compact and readable before any AI preparation. */
+.lesson-selection{padding:20px 0;min-width:0}
+.lesson-selection h1{font-weight:500;font-size:clamp(30px,3.6vw,44px);max-width:760px;margin-bottom:16px}
+.lesson-selection>.eyebrow{margin-bottom:14px}
+.lesson-selection>.lede{font-size:16px;line-height:1.65;max-width:720px;margin-bottom:0}
+.lesson-selection-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:28px}
+.lesson-option{display:flex;flex-direction:column;gap:14px;min-width:0;padding:26px;border:1px solid #dedbd2;border-radius:18px;background:#ffffffc9;box-shadow:0 10px 30px #00000004;overflow-wrap:anywhere}
+.lesson-option>.eyebrow{font-size:10px;letter-spacing:.12em;margin:0}
+.lesson-option h2{font-size:clamp(23px,2.3vw,29px);font-weight:550;line-height:1.2;letter-spacing:-.03em;margin:0}
+.lesson-option>.lesson-goal{font-size:15px;line-height:1.6;margin:0 0 6px;max-width:48ch}
+.lesson-card-actions{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-top:auto;padding-top:4px}
+.lesson-card-actions .button{min-height:46px;padding:12px 20px;max-width:100%}
+.saved-session-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;background:#f3eddf;border:1px solid #ded3b6;border-radius:15px;padding:16px 20px;margin:24px 0}
+.saved-session-banner p{margin:0;font-size:14px;line-height:1.5}
+@media(max-width:760px){.lesson-selection-grid{grid-template-columns:1fr;gap:16px}.lesson-option{padding:22px}.lesson-option h2{font-size:25px}.saved-session-banner{align-items:flex-start;flex-direction:column}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.processing-note:before{border-color:var(--blue)}}
 
 .chapter-reading{max-width:880px;margin-inline:auto}.chapter-source{margin-top:35px;border-top:1px solid var(--line);padding-top:30px}.chapter-source p{font-size:17px;line-height:1.95;white-space:pre-line;color:#3c3c3c;margin-bottom:26px}
@@ -53,3 +66,82 @@
 .compatibility-note{border:1px solid #d5c8a9;background:#fbf7ec;border-radius:12px;padding:16px 20px;font-size:12px;color:#6e571e;margin-bottom:26px}
 
 .preparation-footer{margin-top:32px;padding-top:24px;border-top:1px solid var(--line)}.preparation-footer .preparation-stage{margin-bottom:0}.preparation-footer .sample-note{margin-top:12px}.preparation-footer .results-actions{margin-top:20px}
+
+/* Two equal reading paths, with practice as the shared next stage. */
+.chapter-overview{max-width:1100px;margin:0 auto;min-width:0}
+.chapter-overview>.button.secondary{padding:6px 0;min-height:40px;border:0;background:transparent;font-size:13px;margin-bottom:18px}
+.chapter-heading{margin-bottom:28px}.chapter-heading>.eyebrow{margin-bottom:12px}
+.chapter-heading h1{font-size:clamp(30px,4vw,46px);line-height:1.12;font-weight:550;margin-bottom:14px;max-width:900px}
+.chapter-heading .lede{font-size:16px;line-height:1.65;margin:0;max-width:720px}
+.chapter-reading-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.chapter-reading-option{display:flex;flex-direction:column;align-items:flex-start;min-width:0;gap:16px;padding:30px;border:1px solid #dedbd2;border-radius:20px;background:#ffffffd9;overflow-wrap:anywhere}
+.chapter-reading-option>.eyebrow{margin:0;font-size:10px}.chapter-reading-option h2{font-size:clamp(25px,2.7vw,32px);font-weight:500;line-height:1.2;margin:0}
+.chapter-reading-option>.chapter-choice-description{font-size:16px;line-height:1.65;margin:0 0 6px;max-width:40ch}
+.chapter-reading-option>.button{max-width:100%;min-height:48px;padding:13px 20px;text-decoration:none}
+.chapter-ai-option{background:linear-gradient(140deg,#f7f3e9,#fcfaf5);border-color:#ded1ad}
+.chapter-credits{border-top:1px solid #e2ded4;padding-top:16px;margin-top:auto;width:100%}.chapter-credits p{font-size:12px;line-height:1.65;margin:0}.chapter-credits p+p{margin-top:6px}
+.chapter-ai-notice{font-size:12px;line-height:1.65;margin: auto 0 0;padding-top:16px}
+.chapter-next-step{display:flex;align-items:center;flex-wrap:wrap;gap:10px 20px;border-bottom:1px solid #dedbd2;padding:24px 0}
+.chapter-next-step>.eyebrow{margin:0;font-size:10px;white-space:nowrap}.chapter-next-step>p{font-size:14px;line-height:1.65;margin:0;flex:1 1 320px}
+.chapter-study-excerpt.source{margin-top:0;border-top:0;padding:20px 0;font-size:13px}.chapter-study-excerpt .chapter-source{margin-top:18px;padding-top:18px}.chapter-study-excerpt .chapter-source p{font-size:16px;line-height:1.8;margin-bottom:18px}
+@media(max-width:700px){.chapter-reading-choices{grid-template-columns:1fr;gap:16px}.chapter-reading-option{padding:24px}.chapter-heading{margin-bottom:22px}.chapter-reading-option>.button{width:100%}.chapter-next-step{gap:10px;padding:20px 0}}
+
+/* Share row baselines across the two reading choices. */
+.chapter-reading-choices{grid-template-rows:auto auto auto auto auto;row-gap:16px}
+.chapter-reading-option{display:grid;grid-template-rows:subgrid;grid-row:span 5;align-items:start;align-content:start;row-gap:16px}
+.chapter-reading-option>.eyebrow{grid-row:1}.chapter-reading-option>h2{grid-row:2}
+.chapter-reading-option>.chapter-choice-description{grid-row:3;max-width:none;margin:0;line-height:1.65}
+.chapter-reading-option>.button{grid-row:4;justify-self:start;align-self:start}
+.chapter-reading-option>.chapter-credits,.chapter-reading-option>.chapter-ai-notice{grid-row:5;align-self:start;width:100%;margin:0;border-top:1px solid #e2ded4;padding-top:16px;font-size:12px;line-height:1.65}
+@media(max-width:700px){.chapter-reading-choices{grid-template-rows:none}.chapter-reading-option{display:flex;grid-row:auto;gap:16px}.chapter-reading-option>.button{align-self:stretch}.chapter-reading-option>.chapter-ai-notice{margin:0}}
+
+/* Indeterminate animation indicates real work, never an invented percentage. */
+.creation-progress{margin:18px 0 22px}
+.creation-progress-track{position:relative;height:8px;overflow:hidden;border-radius:999px;background:#e7e1d3}
+.creation-progress-fill{position:absolute;inset:0 auto 0 0;width:38%;border-radius:inherit;background:linear-gradient(90deg,#9a6b16,#d2b46c,#9a6b16);animation:creation-sweep 1.65s cubic-bezier(.45,0,.55,1) infinite;will-change:transform}
+@keyframes creation-sweep{from{transform:translateX(-105%)}to{transform:translateX(365%)}}
+.creation-progress-steps{display:flex;justify-content:space-between;gap:16px;list-style:none;padding:0;margin:12px 0 0;font-size:12px;color:#77736c}
+.creation-progress-steps li{display:flex;align-items:center;gap:7px}
+.creation-progress-steps li:before{content:'';width:6px;height:6px;border-radius:50%;background:#d5cec0}
+.creation-progress[data-phase='summary'] li[data-phase='summary'],.creation-progress[data-phase='quiz'] li[data-phase='quiz'],.creation-progress[data-phase='review'] li[data-phase='review']{color:#76551b;font-weight:650}
+.creation-progress[data-phase='summary'] li[data-phase='summary']:before,.creation-progress[data-phase='quiz'] li[data-phase='quiz']:before,.creation-progress[data-phase='review'] li[data-phase='review']:before{background:#9a6b16}
+@media(prefers-reduced-motion:reduce){.creation-progress-fill{animation:none;transform:none;inset:0;width:100%;opacity:.6;will-change:auto}}
+
+/* Read the AI explanation as a continuous short chapter summary. */
+.lesson-summary{max-width:68ch;margin:28px 0 36px}
+.lesson-summary p{margin:0 0 1.35em;line-height:1.8}
+
+.inline-ai-activity{margin:20px 0;padding:20px 24px;border:1px solid #e3d6b7;border-radius:20px;background:#faf7ef}
+.inline-ai-activity>p{margin:0;color:#76551b}
+
+/* Consistent reading columns on the feedback page. */
+.feedback-results{max-width:1060px;padding:clamp(24px,4vw,48px)}
+.feedback-results .results-hero{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:32px;align-items:start;margin-bottom:32px}
+.feedback-results .results-hero>div{min-width:0}
+.feedback-results h1{font-size:clamp(30px,3.3vw,48px);line-height:1.12;letter-spacing:-.04em;margin:0 0 20px;text-wrap:balance}
+.feedback-results .results-hero .eyebrow{margin:0 0 18px}
+.feedback-results .lede{max-width:62ch;margin:0;font-size:16px;line-height:1.7}
+.feedback-results .results-hero>div:last-child{padding-top:34px;text-align:center}
+.feedback-results .score{font-size:72px;letter-spacing:-4px}
+.feedback-results .score small{font-size:26px}
+.feedback-results .score-caption{font-size:10px;line-height:1.5;margin:10px 0 0;text-align:center;letter-spacing:.05em}
+.feedback-results .result-info{padding:24px 28px;margin:0 0 28px}
+.feedback-results .result-info h2{margin:0 0 10px;font-size:22px;line-height:1.3}
+.feedback-results .result-info p{margin:0;max-width:68ch;line-height:1.7}
+.feedback-results .review-item summary{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:14px;align-items:start}
+.feedback-results .review-item .section-index{margin:0;padding-top:2px;line-height:1.6}
+.feedback-results .review-details{padding:8px 0 0 42px;max-width:76ch;line-height:1.75}
+.feedback-results .review-details p{margin:12px 0}
+.feedback-results .review-badge{margin:0;line-height:1.6}
+@media(max-width:700px){
+ .feedback-results .results-hero{grid-template-columns:minmax(0,1fr) 80px;gap:16px}
+ .feedback-results h1{font-size:30px}
+ .feedback-results .lede{font-size:14px}
+ .feedback-results .score{font-size:52px}
+ .feedback-results .score small{font-size:20px}
+ .feedback-results .score-caption{font-size:8px}
+ .feedback-results .review-item summary{grid-template-columns:22px minmax(0,1fr);gap:10px}
+ .feedback-results .review-badge{grid-column:2;justify-self:start}
+ .feedback-results .review-details{padding-left:32px}
+ .feedback-results .result-info{padding:20px}
+}

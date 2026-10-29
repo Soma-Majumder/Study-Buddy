@@ -27,7 +27,7 @@ Aim for about 180–230 words for the first explanation and a shorter focused re
 ## First explanation
 
 1. Read the supplied lesson and identify its approved concepts.
-2. Write a short, coherent beginner-friendly explanation. Define technical terms when using them. Preserve scientific meaning while simplifying the language.
+2. Write a short, coherent beginner-friendly summary of the most important ideas taught in the approved lesson. Use connected prose paragraphs, with one main idea per paragraph; do not use numbered notes, bullet lists, or section headings. Define technical terms when using them. Preserve scientific meaning while simplifying the language.
 3. Include in payload.concepts only concepts actually taught in explanation_text. Copy their approved concept_id and name; write a taught_summary describing what this explanation teaches.
 4. Do not claim that every approved concept was taught if the explanation omitted one. Never add a concept not supplied by the lesson.
 
