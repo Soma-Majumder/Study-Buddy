@@ -1,7 +1,8 @@
 """Local student UI -> existing controller -> persistent SQLite, explicit offline/live adapters.
 
 No authentication or browser-selectable provider configuration is offered. One trusted local profile;
-Host/Origin/token checks protect loopback requests, not public student accounts.
+Host/Origin/token checks protect loopback requests, not public student accounts. `--public-proxy` additionally
+trusts one gateway (the Vercel proxy) that presents a shared secret; see docs/public-demo-tunnel.md.
 """
 import argparse
 from contextlib import closing
@@ -222,9 +223,13 @@ def snapshot(conn, session_id, learner_id=LEARNER, mode=MODE):
 
 
 class WorkbookServer(ThreadingHTTPServer):
-    def __init__(self, database, port=8778, *, agent_mode='offline', allow_paid_calls=False):
+    def __init__(self, database, port=8778, *, agent_mode='offline', allow_paid_calls=False, proxy_secret=None, max_starts_per_day=None):
         if agent_mode not in ('offline','live'):
             raise ValueError('Choose offline or live adapters.')
+        if proxy_secret is not None and (not isinstance(proxy_secret,str) or len(proxy_secret)<32):
+            raise ValueError('The proxy secret must be at least 32 characters.')
+        self.proxy_secret=proxy_secret
+        self.max_starts_per_day=max_starts_per_day
         self.database=Path(database)
         self.agent_mode=agent_mode
         self.mode=LIVE_MODE if agent_mode=='live' else MODE
@@ -285,6 +290,12 @@ class WorkbookServer(ThreadingHTTPServer):
         self.work_registry.cancel(keys)
         return dict(cancelled=True)
 
+    def start_cap_reached(self,conn,request_id):
+        if not self.max_starts_per_day:return False
+        if conn.execute('SELECT 1 FROM session_start_requests WHERE learner_id=? AND request_id=?',(self.learner_id,request_id)).fetchone():return False
+        used=conn.execute("SELECT COUNT(*) FROM session_start_requests WHERE learner_id=? AND date(created_at)=date('now')",(self.learner_id,)).fetchone()[0]
+        return used>=self.max_starts_per_day
+
     def live_ready(self):
         return (self.agent_mode=='live' and self.allow_paid_calls
                 and os.environ.get('STUDY_BUDDY_ALLOW_PAID_CLAUDE')=='true'
@@ -306,8 +317,17 @@ class WorkbookHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def via_proxy(self):
+        secret=self.server.proxy_secret
+        return bool(secret) and secrets.compare_digest(self.headers.get('X-Proxy-Secret',''),secret)
+
     def boundary(self, token=False):
         origin=f'http://127.0.0.1:{self.server.server_port}'
+        if self.via_proxy():
+            # The trusted Vercel proxy holds the secret; browsers never see it. Host/Origin belong to the tunnel.
+            if token and not secrets.compare_digest(self.headers.get('X-Workbook-Token',''),self.server.token):
+                self.reply(403,dict(error='Reload the workbook to reconnect.'));return False
+            return True
         if self.headers.get('Host') != origin[7:]:
             self.reply(403,dict(error='Use the printed loopback URL.'));return False
         if self.headers.get('Origin') not in (None,origin) or self.headers.get('Sec-Fetch-Site')=='cross-site':
@@ -378,6 +398,8 @@ class WorkbookHandler(BaseHTTPRequestHandler):
                     if not conn.execute('SELECT 1 FROM lessons WHERE lesson_id=? AND version=? AND approved=1', (payload['lesson_id'],payload['lesson_version'])).fetchone():raise ValueError('Lesson unavailable.')
                     if self.server.agent_mode=='live' and not self.server.live_ready():
                         return self.reply(409,dict(error='Live agents are connected but paid calls are disabled or the server key is missing. No session was started.'))
+                    if self.server.start_cap_reached(conn,payload['request_id']):
+                        return self.reply(429,dict(error='The daily limit of new study sessions for this demo was reached. Try again tomorrow.'))
                     result=start_quiz_session(conn,self.server.learner_id,payload['lesson_id'],request_id=payload['request_id'],
                         lesson_version=payload['lesson_version'],tutor=agents.tutor,assessment=agents.assessment,
                         reviewer=agents.reviewer,revision_assessment=agents.revision_assessment)
@@ -443,6 +465,8 @@ def main():
     parser.add_argument('--database',type=Path)
     parser.add_argument('--agents',choices=('offline','live'),default='offline')
     parser.add_argument('--allow-paid-calls',action='store_true',help='Trusted server opt-in for user-initiated live sessions')
+    parser.add_argument('--public-proxy',action='store_true',help='Accept the Vercel proxy through a tunnel; needs STUDY_BUDDY_PROXY_SECRET (32+ chars)')
+    parser.add_argument('--max-starts-per-day',type=int,help='Cap new study sessions per UTC day (default 20 with --public-proxy)')
     parser.add_argument('--env-file',type=Path,help='Trusted provider key/model file; never served to the browser')
     args=parser.parse_args()
     if not 1<=args.port<=65535:parser.error('Choose a port between 1 and 65535.')
@@ -457,7 +481,12 @@ def main():
         node=os.environ.get('STUDY_BUDDY_NODE') or shutil.which('node')
         if not node or not Path(node).is_file():parser.error('Node is required for real agents; set STUDY_BUDDY_NODE.')
         os.environ['STUDY_BUDDY_NODE']=node
-    with WorkbookServer(database,args.port,agent_mode=args.agents,allow_paid_calls=args.allow_paid_calls) as server:
+    proxy_secret=os.environ.get('STUDY_BUDDY_PROXY_SECRET') if args.public_proxy else None
+    if args.public_proxy and (not proxy_secret or len(proxy_secret)<32):
+        parser.error('--public-proxy needs STUDY_BUDDY_PROXY_SECRET set to 32 or more characters.')
+    cap=args.max_starts_per_day if args.max_starts_per_day is not None else (20 if args.public_proxy else None)
+    if cap is not None and cap<1:parser.error('--max-starts-per-day must be at least 1.')
+    with WorkbookServer(database,args.port,agent_mode=args.agents,allow_paid_calls=args.allow_paid_calls,proxy_secret=proxy_secret,max_starts_per_day=cap) as server:
         print(f'Student workbook: http://127.0.0.1:{server.server_port}/student/',flush=True)
         print(('Live Tutor, Assessment and Reviewer; paid calls enabled for user actions.' if server.live_ready() else
                'Live adapters wired; paid calls disabled or key missing.' if args.agents=='live' else

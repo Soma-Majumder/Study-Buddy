@@ -419,4 +419,43 @@ class LiveWorkbookWiringTests(unittest.TestCase):
             self.assertNotIn('NODE_OPTIONS',os.environ)
         self.assertFalse(marker.exists())
 
+class PublicProxyTests(unittest.TestCase):
+    SECRET='s'*40
+
+    def setUp(self):
+        self.directory=tempfile.TemporaryDirectory();self.addCleanup(self.directory.cleanup)
+        self.server=WorkbookServer(Path(self.directory.name)/'w.sqlite',0,proxy_secret=self.SECRET,max_starts_per_day=1)
+        self.thread=threading.Thread(target=self.server.serve_forever,daemon=True);self.thread.start()
+        self.addCleanup(lambda:(self.server.shutdown(),self.thread.join(),self.server.server_close()))
+
+    def call(self,path,payload=None,**headers):
+        conn=http.client.HTTPConnection('127.0.0.1',self.server.server_port,timeout=10)
+        self.addCleanup(conn.close)
+        if payload is not None:headers['Content-Type']='application/json'
+        conn.request('POST' if payload is not None else 'GET',path,json.dumps(payload) if payload is not None else None,headers)
+        response=conn.getresponse();return response.status,json.loads(response.read())
+
+    def test_tunnel_host_needs_the_shared_secret(self):
+        tunnel={'Host':'demo.trycloudflare.com'}
+        self.assertEqual(self.call('/api/config',**tunnel)[0],403)
+        self.assertEqual(self.call('/api/config',**tunnel,**{'X-Proxy-Secret':'wrong'})[0],403)
+        self.assertEqual(self.call('/api/config',**tunnel,**{'X-Proxy-Secret':self.SECRET})[0],200)
+
+    def test_secret_does_not_waive_the_session_token(self):
+        headers={'Host':'demo.trycloudflare.com','X-Proxy-Secret':self.SECRET}
+        self.assertEqual(self.call('/api/lessons',**headers)[0],403)
+        self.assertEqual(self.call('/api/lessons',**headers,**{'X-Workbook-Token':self.server.token})[0],200)
+
+    def test_daily_start_cap_blocks_new_requests_but_not_a_resume(self):
+        headers={'X-Workbook-Token':self.server.token}
+        body=lambda rid:dict(request_id=rid,lesson_id='lesson_cell_membranes',lesson_version=2)
+        self.assertEqual(self.call('/api/start',body('cap_first_request'),**headers)[0],200)
+        self.assertEqual(self.call('/api/start',body('cap_first_request'),**headers)[0],200)
+        code,result=self.call('/api/start',body('cap_second_request'),**headers)
+        self.assertEqual(code,429);self.assertIn('daily limit',result['error'])
+
+    def test_short_secret_is_rejected(self):
+        with self.assertRaises(ValueError):WorkbookServer(Path(self.directory.name)/'x.sqlite',0,proxy_secret='short')
+
+
 if __name__=='__main__':unittest.main()
