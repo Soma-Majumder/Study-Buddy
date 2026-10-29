@@ -120,7 +120,7 @@ def store_review_report(conn, learner_id, call_id, report):
         candidate, text, ids = _load_candidate(conn, op, version)
         context = dict(operation_id=op['operation_id'], candidate_version=version,
                        handoff=_handoff(op, text, ids), candidate=candidate)
-        decision = validate_review(report, context)
+        decision = validate_review(report, context, final_revision=version == 1)
         result = complete_quality_call(conn, learner_id, call_id, outcome=decision['decision'],
                                        reviewed_hash=decision['candidate_hash'], manage_transaction=False)
         if not result['applied']:
@@ -141,7 +141,8 @@ def _load_report(conn, op, call_id):
     try:
         report = json.loads(data)
         decision = validate_review(report, dict(operation_id=op['operation_id'], candidate_version=version,
-                                                handoff=_handoff(op, text, ids), candidate=candidate))
+                                                handoff=_handoff(op, text, ids), candidate=candidate),
+                                   final_revision=version == 1)
         if _fingerprint(report) != fingerprint or decision['candidate_hash'] != digest or decision['decision'] != saved_decision:
             raise ValueError()
     except (ValueError, TypeError):
