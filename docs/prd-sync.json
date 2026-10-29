@@ -1,11 +1,11 @@
 {
-  "synchronized_on": "2026-10-26",
+  "synchronized_on": "2026-10-29",
   "status_base_branch": "dev",
   "status_base_commit": "87c800ecb1bbac58dfcbe578132e2e00c40de09d",
   "source_document_url": "https://docs.google.com/document/d/1MuA6lEJigDXQGIhVv3FKvgnLPPqIrBOd5FBY1T0qZXY",
   "source_revision_id": "AHj4eMTtgwF6nmDbgUSXUqDJPzm_jNwCbAEhySgRCjypi99LsA0hNL2Ak2JoJrHkXRt2zlLtsmcHZCOiE_yZQakm3RdtqSWOLmqqyAcdgCQ",
   "pdf_path": "docs/Study-Buddy-PRD.pdf",
-  "pdf_sha256": "92d15ae35d220ff1d45ee42bcbeea3f727e6939e07200f32d5742ab7f8e081c0",
+  "pdf_sha256": "46bcc6fbe6eac8b70ed6d822c20a6e53c64d60e120429428e90a465dc9361f72",
   "under_review_prs": [
     45
   ],
