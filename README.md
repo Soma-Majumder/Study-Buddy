@@ -106,3 +106,21 @@ The current lesson is adapted from *Cell & Molecular Biology*, section 2.1, by M
 ## Backend audit closeout — October 28
 
 The backend review adds durable Tutor repair authorization, offline checks, and four focused factual safeguards/corrections. Read the [audit closeout](docs/evals/backend-audit-closeout-2026-10-28.html) and [local check instructions](LOCAL_CHECKS.md) for validation and remaining limits. The manual corrected retry candidate is not Reviewer-approved or published; no new live-generation success is claimed.
+
+
+## Local student workbook
+
+From an environment with the existing Python backend dependencies installed, run `python3 -B scripts/student_workbook.py --port 8778`, then open `http://127.0.0.1:8778/student/`. The workbook calls the existing controller, grades on the server, and saves local progress to ignored `.student-local/workbook.sqlite`. It uses one trusted local profile and offline fixture agents only: no API key, live provider calls, or paid opt-in. Fixture reviews are synthetic, and focused retry questions may repeat. This is a local assignment demonstration, not an authenticated deployment.
+
+The server serves an explicit asset allowlist and omits unanswered keys. It reuses learner ownership, start request IDs, reviewed-publication retrieval, duplicate submission handling, one retry and final summary persistence. The UI keeps only the current pointer and draft in browser storage; opening a new session preserves old server records. HTTP protections check the loopback Host, Origin and an action token. They are not account authentication.
+
+Run `python3 -B -m unittest tests.test_student_workbook -q` for the sixteen HTTP/controller and live-wiring tests. See `demo/student/verification.json` for offline and browser verification evidence. The frontend branch builds on the backend closeout commit in PR #56; that PR is unchanged.
+
+
+### Real-agent workbook mode
+
+To use the existing Claude adapters, start the local server with `python3 -B scripts/student_workbook.py --port 8778 --agents live --allow-paid-calls --env-file /absolute/path/to/your/.env`. Set `STUDY_BUDDY_NODE` to the Node executable if it is not on PATH, and install the existing locked backend dependencies. `--allow-paid-calls` is a trusted server opt-in; an API request cannot enable it. The explicit environment file supplies only `ANTHROPIC_API_KEY` and optional `ANTHROPIC_MODEL`, never shell commands or paid consent, and its contents are never served. Existing nonempty process settings take precedence.
+
+Live mode uses a separate ignored `workbook-live.sqlite` database/profile and a separate browser draft. The reading page renders the actual saved Tutor explanation. Opening/refreshing the page and retrieving progress do not dispatch agents. Starting a chapter invokes Tutor → Assessment → Reviewer through the existing controller, including the existing bounded revision when needed. Submission grades on the server and requests Assessment feedback. A deliberate low-score continuation invokes Tutor reteaching and the one reviewed retry; completion saves the summary. There is no fixture fallback if a live operation fails.
+
+The live mode was wired and verified offline: 575 Python tests, 98 JavaScript tests and 3/3 scenario groups passed. Sixteen workbook tests include stubbed live-mode routing, real-adapter identity checks and paid-call guards. The earlier browser completion was fixture-based. No new paid session was started by the assistant; live mode is ready for the user’s explicit workbook actions.
