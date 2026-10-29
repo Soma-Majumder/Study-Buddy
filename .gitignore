@@ -10,3 +10,6 @@ backend/evals/results/
 
 # Generated local backend check reports
 .local-checks/
+
+# Dedicated local learner-workbook database (never commit progress)
+.student-local/

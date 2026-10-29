@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f3f5fc"><meta name="description" content="A calmer place to understand a little more. Study Buddy’s local student workbook, connected to the backend controller.">
+<title>Study Buddy — A little more understood.</title>
+<link rel="stylesheet" href="./student.css"><script defer src="./student.js"></script>
+</head>
+<body>
+<a href="#main" class="skip">Skip to content</a>
+<div class="edition"><span>NOTES FOR A CURIOUS MIND</span><span id="connection-label">CONNECTING TO BACKEND <i aria-hidden="true"></i></span></div>
+<header class="masthead"><a class="wordmark" href="./" aria-label="Study Buddy home">Study Buddy<span class="brand-star" aria-hidden="true">✳</span></a><span class="masthead-note">Your learning workbook.<br>One chapter at a time.</span><button class="icon-button" id="about-button" aria-label="About this workbook">?</button></header>
+<nav class="primary-nav" aria-label="Main navigation"><div><button id="library-nav" class="nav-link active">The study room</button><button id="how-button" class="nav-link">How it works <span aria-hidden="true">↗</span></button></div><span class="nav-caption">YOUR PACE. YOUR NEXT CHAPTER.</span></nav>
+<main id="main" tabindex="-1"><div class="loading">Opening your study room…</div></main>
+<footer class="site-footer"><a href="./" class="footer-brand">Study Buddy<span aria-hidden="true">✳</span></a><p>Read. Practice. Make it yours.</p><span>A new page, at your pace.</span></footer>
+<div id="live-status" class="sr-only" role="status" aria-live="polite"></div>
+<dialog id="about-dialog"><button class="dialog-close icon-button" aria-label="Close dialog">×</button><p class="eyebrow">INSIDE YOUR WORKBOOK</p><h2>Learn a little.<br>Make it yours.</h2><ol class="how-list"><li><strong>01 · Learn</strong><p>Read a short explanation built around one lesson.</p></li><li><strong>02 · Practice</strong><p>Try ten questions, at your own pace. Nothing is timed.</p></li><li><strong>03 · Reflect</strong><p>See feedback, revisit missed ideas, take at most one focused retry, and save your summary.</p></li></ol><p class="sample-note" id="backend-description">This workbook is connected to the real backend controller and a dedicated local SQLite database. It uses offline fixture agents and a synthetic passing review report, not live Claude or genuine content-quality approval. Scores, progress, one retry, and summaries are saved on the server. Answer keys stay on the server until submission. One trusted local profile, not real student accounts. Retry questions may repeat.</p><a class="text-link" href="./ux-audit.html" target="_blank" rel="noopener">Read the student UX audit ↗</a></dialog>
+<dialog id="reset-dialog"><p class="eyebrow">A FRESH PAGE</p><h2>Open a new workbook session?</h2><p>Your existing session stays in the backend database. This clears this browser’s current place so you can start a separate session.</p><div class="dialog-actions"><button class="button secondary" id="cancel-reset">Keep my place</button><button class="button" id="confirm-reset">Open a new session <span aria-hidden="true">↗</span></button></div></dialog>
+</body></html>
