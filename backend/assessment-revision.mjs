@@ -35,7 +35,7 @@ export async function runAssessmentRevision(context, {technicalRepair = false, c
       output_schema: JSON.parse(await readFile(new URL('../schemas/v1/quiz_output.schema.json', import.meta.url), 'utf8')),
       ...(technicalRepair ? {repair_request: 'Regenerate the complete content revision with valid quiz structure and unchanged IDs/scope. This consumes the existing shared technical repair; it grants no additional content revision.'} : {})})};
     stage = 'model call';
-    const response = await callClaude(input, {maxTokens:8192, timeoutMs:60_000, effort:'low', ...claudeOptions,
+    const response = await callClaude(input, {maxTokens:8192, timeoutMs:60_000, effort:'low', fastStructuredOutput:true, ...claudeOptions,
       outputSchema: structuredClone(assessmentResponseSchema)});
     let output = null;
     try { output = JSON.parse(response.text)?.result ?? null; } catch { /* controller validates and owns repair */ }

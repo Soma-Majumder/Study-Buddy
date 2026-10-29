@@ -213,3 +213,20 @@ test('trusted boolean opt-in works and explicit false overrides the environment'
   await withLiveSetting('true',()=>assert.rejects(callClaude(input,{apiKey:key,allowPaidCalls:false,
     fetchImpl:()=>assert.fail('No call')}),error=>error.code==='live_calls_disabled'));
 });
+
+test('fast structured Haiku generation explicitly disables default thinking without raising budget', async () => {
+  await callClaude(input, {allowPaidCalls:true,apiKey:key,model:'claude-haiku-5-5',maxTokens:8192,effort:'low',fastStructuredOutput:true,fetchImpl:async (_url,request)=>{
+    const body=JSON.parse(request.body);
+    assert.deepEqual(body.thinking,{type:'disabled'});
+    assert.equal(body.max_tokens,8192);
+    return {ok:true,json:async()=>({stop_reason:'end_turn',model:body.model,content:[{type:'text',text:'{}'}]})};
+  }});
+});
+test('fast structured flag never disables thinking on unsupported models',async()=>{
+ for(const model of ['claude-sonnet-5-5','claude-opus-5-5']){
+  await callClaude(input,{allowPaidCalls:true,apiKey:key,model,effort:'low',fastStructuredOutput:true,fetchImpl:async(_url,request)=>{
+   assert.equal(JSON.parse(request.body).thinking,undefined);
+   return {ok:true,json:async()=>({stop_reason:'end_turn',model,content:[{type:'text',text:'{}'}]})};
+  }});
+ }
+});

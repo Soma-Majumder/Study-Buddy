@@ -14,6 +14,8 @@ import shlex
 import shutil
 import sqlite3
 import sys
+import tempfile
+import time
 from urllib.parse import urlsplit, parse_qs
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -21,12 +23,14 @@ sys.path.insert(0, str(ROOT))
 from scripts.offline_controller_fixtures import OfflineAgents, forbidden
 from study_buddy.controller import (start_quiz_session, submit_answers, explain_results,
     decide_next_step, dispatch_reteaching, dispatch_retry_quiz, finish_session,
-    get_session_status, get_current_quiz, get_saved_summary, run_tutor)
+    get_session_status, get_current_quiz, get_saved_summary, run_tutor, SubmissionRejected)
 from study_buddy.assessment import run_assessment, run_assessment_revision
 from study_buddy.feedback_runner import run_feedback
 from study_buddy.reviewer import run_reviewer
 from study_buddy.answer_keys import get_client_quiz
 from study_buddy.lessons import load_lessons
+from study_buddy.session_start_requests import StartRequestRejected
+from study_buddy.maintenance_worker import run_maintenance_cycle
 
 LEARNER = 'learner_workbook0001'
 MODE = 'real_controller_offline_fixtures'
@@ -120,6 +124,13 @@ def prepare_database(path, learner_id=LEARNER):
                 raise ValueError('This is not an initialized workbook database; choose a new path.')
             if conn.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
                 raise ValueError('Workbook database integrity check failed.')
+        with closing(connect(path)) as conn:
+            with tempfile.TemporaryDirectory() as directory:
+                for source in (ROOT / 'lessons').glob('*.json'):
+                    lesson = json.loads(source.read_text())
+                    if lesson.get('approved') is True and not conn.execute('SELECT 1 FROM lessons WHERE lesson_id=? AND version=?', (lesson['lesson_id'], lesson['version'])).fetchone():
+                        shutil.copyfile(source, Path(directory) / source.name)
+                load_lessons(conn, directory)
         return
     os.close(fd)
     try:
@@ -152,6 +163,35 @@ def _snapshot(conn, session_id, learner_id, mode):
         if status['quiz_available']:
             result['quiz'] = get_current_quiz(conn, learner_id, session_id)['quiz']
             result['quiz']['round'] = quizrow[2]
+    # The latest saved explanation may be a retry being prepared while an old
+    # submitted quiz still exists. Reading never waits for quiz publication.
+    early = conn.execute('SELECT explanation_id,text,round FROM explanations WHERE session_id=? ORDER BY rowid DESC LIMIT 1', (session_id,)).fetchone()
+    if early:
+        concepts = [dict(concept_id=r[0],name=r[1]) for r in conn.execute(
+            'SELECT c.concept_id,c.name FROM explanation_concepts e JOIN concepts c ON c.concept_id=e.concept_id WHERE e.explanation_id=? ORDER BY c.rowid', (early[0],))]
+        result['explanation'] = dict(text=early[1],round=early[2],concepts=concepts)
+    operation = conn.execute('SELECT stage,explanation_id,round FROM quiz_quality_operations WHERE session_id=? ORDER BY rowid DESC LIMIT 1', (session_id,)).fetchone()
+    stage = operation[0] if operation else 'teaching'
+    if status['status']=='reteaching' and (not operation or operation[2]!='retry' or early and operation[1]!=early[0]):stage='reteaching'
+    if status['status']=='grading':stage='feedback'
+    if status['status']=='completed':stage='completed'
+    if status['status']=='pending_save':stage='pending_save'
+    if status['status']=='failed':stage='failed'
+    messages = {'teaching':'Tutor is preparing your explanation.', 'generating':'Assessment is creating your quiz.', 'reviewing':'Reviewer is checking your quiz.', 'revising':'Assessment is improving the flagged questions.', 'reviewing_revision':'Reviewer is checking the revised quiz.', 'approved':'Your quiz is ready.', 'feedback':'Assessment is preparing feedback on your saved answers.', 'reteaching':'Tutor is preparing notes on missed concepts.', 'completed':'Your summary is saved.', 'pending_save':'Your final summary is waiting to be saved.', 'failed':'Quiz preparation stopped. Your saved reading is preserved.'}
+    result['preparation'] = dict(stage=stage,message=messages.get(stage,'Preparing your quiz.'))
+    reason = conn.execute('SELECT failure_reason FROM study_sessions WHERE session_id=? AND learner_id=?',(session_id,learner_id)).fetchone()[0]
+    failures = {
+        'generation_output_truncated':'The AI quiz response was cut short. No incomplete quiz was published.',
+        'content_revision_exhausted':'The quiz still needed corrections after its allowed revision, so it was not published.',
+        'generation_request_timeout':'Quiz generation timed out before a complete response was saved.',
+        'session_start_expired':'This session start expired before preparation completed.',
+        'session_start_deadline':'Preparation stopped before Tutor finished. Start a new session when ready.',
+        'quality_deadline':'Quiz preparation exceeded its deadline and stopped. Your explanation is still available; no unfinished quiz was published.',
+        'review_invalid_report':'The quiz review returned an invalid response. The quiz was not published; your explanation is still available.',
+        'review_uncertainty':'The review could not confirm that the quiz was suitable. The quiz was not published; your explanation is still available.'}
+    if status['status']=='failed':
+        result['failure'] = dict(code=reason if reason in failures else 'session_failed',message=failures.get(reason,'This session stopped before it could finish. Your saved progress is preserved.'))
+        result['message']=result['failure']['message']
     for row in conn.execute('SELECT a.attempt_id,a.quiz_id,q.round,r.score,r.passed,r.feedback '
             'FROM attempts a JOIN quizzes q ON q.quiz_id=a.quiz_id JOIN results r ON r.attempt_id=a.attempt_id '
             'WHERE q.session_id=? AND a.learner_id=? ORDER BY a.rowid', (session_id,learner_id)):
@@ -189,9 +229,23 @@ class WorkbookServer(ThreadingHTTPServer):
         self.learner_id=LIVE_LEARNER if agent_mode=='live' else LEARNER
         self.allow_paid_calls=allow_paid_calls is True
         prepare_database(self.database,self.learner_id)
+        # Reconcile abandoned calls before accepting a reconnect after a restart.
+        # Maintenance only expires records; it never dispatches or retries AI.
+        run_maintenance_cycle(self.database)
+        self.next_maintenance=time.monotonic()+5
         self.token=secrets.token_urlsafe(32)
         self.agents=LiveAgents() if agent_mode=='live' else WorkbookAgents(lambda line:None)
         super().__init__(('127.0.0.1',port),WorkbookHandler)
+
+    def service_actions(self):
+        if time.monotonic()<self.next_maintenance:return
+        self.next_maintenance=time.monotonic()+5
+        try:
+            run_maintenance_cycle(self.database)
+        except sqlite3.OperationalError as error:
+            if getattr(error,'sqlite_errorcode',0)&255 not in (sqlite3.SQLITE_BUSY,sqlite3.SQLITE_LOCKED):raise
+            # A subsequent cycle retries the idempotent bounded sweep.
+            print('Workbook maintenance deferred: database busy.',file=sys.stderr,flush=True)
 
     def live_ready(self):
         return (self.agent_mode=='live' and self.allow_paid_calls
@@ -235,7 +289,7 @@ class WorkbookHandler(BaseHTTPRequestHandler):
         if url.path in assets:
             name,kind=assets[url.path];return self.reply(200,(ROOT/'demo/student'/name).read_bytes(),kind+'; charset=utf-8')
         if url.path=='/api/config':
-            return self.reply(200,dict(token=self.server.token,mode=self.server.mode,paid_calls_enabled=self.server.live_ready(),
+            return self.reply(200,dict(api_version=2,capabilities=['preparation_progress','source_reading','safe_failures'],token=self.server.token,mode=self.server.mode,paid_calls_enabled=self.server.live_ready(),
                 message=('Real Tutor, Assessment and Reviewer adapters. Paid calls run only after your workbook actions.'
                          if self.server.agent_mode=='live' else
                          'Connected to the real controller. Offline fixture agents; synthetic review, not live quality approval.')))
@@ -245,9 +299,16 @@ class WorkbookHandler(BaseHTTPRequestHandler):
             with closing(connect(self.server.database)) as conn:
                 if url.path=='/api/lessons':
                     if url.query:raise ValueError('Unexpected query.')
-                    lessons=[dict(lesson_id=r[0],version=r[1],title=r[2]) for r in conn.execute(
-                        'SELECT lesson_id,version,topic FROM lessons WHERE approved=1 ORDER BY topic')]
+                    lessons=[dict(lesson_id=r[0],version=r[1],title=r[2],source_text=r[3],source_url=r[4],attribution=r[5],license=r[6],adaptation_notice=r[7]) for r in conn.execute(
+                        'SELECT lesson_id,version,topic,source_text,source_url,attribution,license,adaptation_notice FROM lessons WHERE approved=1 '+
+                        ("AND lesson_id='lesson_cell_membranes' AND version=2 " if self.server.agent_mode=='offline' else '')+'ORDER BY topic')]
                     return self.reply(200,dict(lessons=lessons))
+                if url.path=='/api/start-progress':
+                    query=parse_qs(url.query)
+                    if set(query)!={'request_id'} or len(query['request_id'])!=1:raise ValueError('Request ID required.')
+                    row=conn.execute('SELECT session_id FROM session_start_requests WHERE learner_id=? AND request_id=?', (self.server.learner_id,query['request_id'][0])).fetchone()
+                    if not row:return self.reply(200,dict(pending=True))
+                    return self.reply(200,snapshot(conn,row[0],self.server.learner_id,self.server.mode))
                 if url.path=='/api/session':
                     query=parse_qs(url.query)
                     if set(query)!={'session_id'} or len(query['session_id'])!=1:raise ValueError('Session ID required.')
@@ -273,7 +334,8 @@ class WorkbookHandler(BaseHTTPRequestHandler):
                     if set(payload)!={'request_id','lesson_id','lesson_version'}:raise ValueError('Invalid start.')
                     if not isinstance(payload['lesson_version'],int) or isinstance(payload['lesson_version'],bool):raise ValueError('Version required.')
                     # Fixture content is limited to this approved local lesson.
-                    if (payload['lesson_id'],payload['lesson_version'])!=('lesson_cell_membranes',2):raise ValueError('Lesson unavailable.')
+                    if self.server.agent_mode=='offline' and (payload['lesson_id'],payload['lesson_version'])!=('lesson_cell_membranes',2):raise ValueError('Lesson unavailable.')
+                    if not conn.execute('SELECT 1 FROM lessons WHERE lesson_id=? AND version=? AND approved=1', (payload['lesson_id'],payload['lesson_version'])).fetchone():raise ValueError('Lesson unavailable.')
                     if self.server.agent_mode=='live' and not self.server.live_ready():
                         return self.reply(409,dict(error='Live agents are connected but paid calls are disabled or the server key is missing. No session was started.'))
                     result=start_quiz_session(conn,self.server.learner_id,payload['lesson_id'],request_id=payload['request_id'],
@@ -314,8 +376,19 @@ class WorkbookHandler(BaseHTTPRequestHandler):
                         raise ValueError('Session cannot continue.')
                     return self.reply(200,snapshot(conn,payload['session_id'],self.server.learner_id,self.server.mode))
                 return self.reply(404,dict(error='Not found.'))
-        except (ValueError,TypeError,KeyError,IndexError):
-            return self.reply(409,dict(error='This action is unavailable or the answers are incomplete. Reload saved progress before retrying.'))
+        except StartRequestRejected as error:
+            message = ('This start request belongs to a different lesson. Return to lesson selection and choose the chapter again.'
+                if str(error)=='This request ID was already used with different lesson inputs.' else
+                'The saved start request could not be resumed. Reconnect to saved progress before starting again.')
+            return self.reply(409,dict(error=message))
+        except SubmissionRejected as error:
+            messages = {'This quiz was already submitted with different answers.':('answers_already_submitted','This quiz already has saved answers. Reconnect to view the original result; changed resubmissions are not allowed.')}
+            code,message=messages.get(str(error),('submission_rejected','These answers could not be accepted for this quiz. Reconnect, then confirm all ten answers before submitting.'))
+            return self.reply(409,dict(code=code,error=message,next_action='reconnect'))
+        except (ValueError,TypeError,KeyError,IndexError) as error:
+            messages = {'Lesson unavailable.':('lesson_unavailable','This lesson version is unavailable. Refresh the lesson catalog.'), 'Feedback is not ready.':('feedback_not_ready','Feedback is still preparing. Reconnect to read its progress.'), 'Session cannot continue.':('session_not_ready','This session cannot continue from its current state. Reconnect to read the saved next step.'), 'Quiz unavailable.':('quiz_unavailable','This quiz is unavailable in the selected session. Reconnect before answering.')}
+            code,message=messages.get(str(error),('invalid_action','The requested action could not be accepted. Reconnect to the saved session before retrying.'))
+            return self.reply(409,dict(code=code,error=message,next_action='reconnect'))
         except Exception:
             return self.reply(500,dict(error='The action did not finish. Saved progress may exist; reconnect before starting again.'))
 

@@ -202,3 +202,36 @@ globalThis.fetch = async (_url, request) => {
                 finally: release.set()
                 self.assertEqual(first.result(timeout=5)['stage'], 'approved')
             self.assertEqual(calls,[1])
+
+class ConfirmedQuestionFailureRoutingTests(unittest.TestCase):
+    """Authored failure-pattern replay; no model or semantic-quality claim."""
+    def test_confirmed_ambiguity_uses_one_revision_and_full_second_review(self):
+        helper = fixtures.QualityStorageTests();helper.setUp()
+        self.addCleanup(helper.doCleanups)
+        helper.stage()
+        def initial(context, **kwargs):
+            report = helper.report()
+            question = report['questions'][0]
+            question['exactly_one_answer'] = 'fail'
+            question['defensible_options'] = ['a','b']
+            question['issues'] = [dict(code='ambiguous_answer',detail='Replace the competing supported answer.',related_positions=[1])]
+            return report
+        first = dispatch_quality_review(helper.conn, LEARNER, helper.op, reviewer=initial)
+        self.assertEqual(first['stage'],'needs_revision')
+        candidate = copy.deepcopy(helper.candidate)
+        candidate['quiz']['questions'][0]['prompt'] += ' Revised to remove confirmed ambiguity.'
+        calls=[]
+        def revise(context, **kwargs):
+            calls.append('revision')
+            self.assertEqual(context['review_report']['questions'][0]['exactly_one_answer'],'fail')
+            return candidate
+        def review(context, **kwargs):
+            calls.append('review')
+            return helper.report(1,candidate)
+        final = dispatch_quality_revision(helper.conn, LEARNER, helper.op, assessment=revise, reviewer=review)
+        self.assertEqual(final['stage'],'approved')
+        self.assertEqual(calls,['revision','review'])
+        self.assertEqual(helper.conn.execute('SELECT revision_count,review_count FROM quiz_quality_operations').fetchone(),(1,2))
+        self.assertEqual(helper.conn.execute('SELECT COUNT(*) FROM quizzes').fetchone()[0],0)
+        self.assertFalse(dispatch_quality_revision(helper.conn, LEARNER, helper.op, assessment=revise, reviewer=review)['dispatched'])
+        self.assertEqual(calls,['revision','review'])

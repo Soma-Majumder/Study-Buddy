@@ -1,0 +1,50 @@
+{
+  "book": "Cell & Molecular Biology",
+  "authors": "Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University",
+  "license": "CC BY-NC-SA 4.0",
+  "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "lesson_id": "lesson_cell_theory",
+  "version": 1,
+  "title": "Cell Theory & Cell Types",
+  "source_url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/1-1/",
+  "approved": true,
+  "license_notes": "Non-commercial educational adaptation; attribution and ShareAlike required. No source figures copied.",
+  "adaptation_notice": "Adapted from Cell & Molecular Biology, section 1-1, by Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University. CC BY-NC-SA 4.0. Changes: selected concepts paraphrased for beginners; no figures. This adaptation uses the same license.",
+  "source_text_approval": {
+    "approved_by": "Codex source check for local assignment",
+    "approved_on": "2026-10-29",
+    "changes": "Checked these selected introductory concepts against the cited textbook; no human approval or live-agent evaluation claimed."
+  },
+  "concepts": [
+    {
+      "concept_id": "c_cell_theory_living_units",
+      "name": "Cells and organisms",
+      "summary": "Cells and organisms."
+    },
+    {
+      "concept_id": "c_cell_theory_cell_boundary",
+      "name": "Cell boundaries",
+      "summary": "Cell boundaries."
+    },
+    {
+      "concept_id": "c_cell_theory_ribosomes_dna",
+      "name": "Ribosomes and DNA",
+      "summary": "Ribosomes and DNA."
+    },
+    {
+      "concept_id": "c_cell_theory_nucleus",
+      "name": "Two cell types",
+      "summary": "Two cell types."
+    }
+  ],
+  "source_passages": {
+    "c_cell_theory_living_units": "Organisms consist of cells. A cell is the smallest living unit, and new cells come from existing cells.",
+    "c_cell_theory_cell_boundary": "A plasma membrane separates cellular contents from the surroundings; cytoplasm fills the interior.",
+    "c_cell_theory_ribosomes_dna": "Ribosomes assemble proteins. DNA carries inherited instructions that guide cellular activities.",
+    "c_cell_theory_nucleus": "Prokaryotic cells lack a membrane-enclosed nucleus. Eukaryotic cells contain one, separating nuclear DNA from cytoplasm."
+  },
+  "not_covered": [
+    "Other topics in the full source chapter"
+  ],
+  "source_text": "Organisms consist of cells. A cell is the smallest living unit, and new cells come from existing cells.\n\nA plasma membrane separates cellular contents from the surroundings; cytoplasm fills the interior.\n\nRibosomes assemble proteins. DNA carries inherited instructions that guide cellular activities.\n\nProkaryotic cells lack a membrane-enclosed nucleus. Eukaryotic cells contain one, separating nuclear DNA from cytoplasm."
+}

@@ -13,6 +13,11 @@ Apply the existing controller policy when classifying concerns:
 - uncertainty_notes are for unresolved evidence or content judgments: for example, whether the explanation supports a claim, an option is also defensible, or a rationale is accurate. Mark the affected criterion uncertain and explain the concrete unresolved question. Genuine uncertainty, including genuinely indeterminate coverage or diversity, must still be reported and blocks approval.
 - Repetition does not excuse a factual or question-quality problem. Report hard failures independently. If repetition or a count shortfall is the only concern, leave uncertainty_notes empty; do not speculate about policy, independence quotas or publication eligibility.
 
+Distinguish a confirmed defective question from an unresolved evidence judgment:
+- If you can establish that two or more options are defensible from the supplied explanation, exactly_one_answer is fail, not uncertain. List those options and add an actionable ambiguous_answer issue. This is a confirmed question defect eligible for the controller's bounded revision.
+- Evaluate a combined answer and justification as a whole. A correct label does not make an unsupported reason correct. If the explanation establishes why that justification fails, report the affected criterion as fail with an actionable issue; do not call a known defect uncertainty merely because it needs rewriting.
+- If you genuinely cannot establish whether an option or justification is supported, retain uncertain and a specific uncertainty note. Do not infer missing facts, manufacture certainty, suppress uncertainty, or decide routing yourself.
+
 Return one JSON object conforming exactly to output_schema. Copy every controller_context field unchanged. Include positions 1 through 10 once each, with their original concept IDs. For exactly_one_answer=pass, defensible_options must contain only the saved correct option; otherwise report actual defensible options. Never hide uncertainty to get a pass. Review the full candidate even when it is a revision; no earlier verdict is authoritative. Return once; no tools or retries.
 
 

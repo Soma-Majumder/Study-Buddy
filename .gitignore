@@ -13,3 +13,6 @@ backend/evals/results/
 
 # Dedicated local learner-workbook database (never commit progress)
 .student-local/
+
+# Local journey audits and user-session observations
+/reports/

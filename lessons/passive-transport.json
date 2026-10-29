@@ -1,0 +1,50 @@
+{
+  "book": "Cell & Molecular Biology",
+  "authors": "Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University",
+  "license": "CC BY-NC-SA 4.0",
+  "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "lesson_id": "lesson_passive_transport",
+  "version": 1,
+  "title": "Passive Transport & Diffusion",
+  "source_url": "https://cellandmolecularbiology.pressbooks.tru.ca/chapter/2-2/",
+  "approved": true,
+  "license_notes": "Non-commercial educational adaptation; attribution and ShareAlike required. No source figures copied.",
+  "adaptation_notice": "Adapted from Cell & Molecular Biology, section 2-2, by Marg Sonnenfeld and Jonathan (Jung Lynn) Jung, Thompson Rivers University. CC BY-NC-SA 4.0. Changes: selected concepts paraphrased for beginners; no figures. This adaptation uses the same license.",
+  "source_text_approval": {
+    "approved_by": "Codex source check for local assignment",
+    "approved_on": "2026-10-29",
+    "changes": "Checked these selected introductory concepts against the cited textbook; no human approval or live-agent evaluation claimed."
+  },
+  "concepts": [
+    {
+      "concept_id": "c_passive_transport_diffusion",
+      "name": "Diffusion",
+      "summary": "Diffusion."
+    },
+    {
+      "concept_id": "c_passive_transport_equilibrium",
+      "name": "Dynamic equilibrium",
+      "summary": "Dynamic equilibrium."
+    },
+    {
+      "concept_id": "c_passive_transport_facilitated",
+      "name": "Facilitated diffusion",
+      "summary": "Facilitated diffusion."
+    },
+    {
+      "concept_id": "c_passive_transport_permeability",
+      "name": "Selective permeability",
+      "summary": "Selective permeability."
+    }
+  ],
+  "source_passages": {
+    "c_passive_transport_diffusion": "Net diffusion follows a concentration difference, moving a substance from greater concentration toward lower concentration without cellular energy input.",
+    "c_passive_transport_equilibrium": "At equilibrium, particles still move both ways, but their movements balance; there is no overall transfer.",
+    "c_passive_transport_facilitated": "Membrane proteins let certain substances diffuse across the membrane without the cell supplying energy for transport.",
+    "c_passive_transport_permeability": "Oxygen can cross the lipid layer directly; charged ions need transport proteins because the membrane interior resists them."
+  },
+  "not_covered": [
+    "Other topics in the full source chapter"
+  ],
+  "source_text": "Net diffusion follows a concentration difference, moving a substance from greater concentration toward lower concentration without cellular energy input.\n\nAt equilibrium, particles still move both ways, but their movements balance; there is no overall transfer.\n\nMembrane proteins let certain substances diffuse across the membrane without the cell supplying energy for transport.\n\nOxygen can cross the lipid layer directly; charged ions need transport proteins because the membrane interior resists them."
+}
