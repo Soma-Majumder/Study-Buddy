@@ -1,17 +1,13 @@
-# Paid service + persistent disk. Review pricing before creating the service.
+# Free assignment demo: database is temporary and resets after sleep/restart.
 services:
   - type: web
     name: study-buddy-backend
     runtime: docker
-    plan: 0.5c-512mb
+    plan: free
     numInstances: 1
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /healthz
-    disk:
-      name: study-buddy-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -20,4 +16,4 @@ services:
       - key: STUDY_BUDDY_MAX_STARTS_PER_DAY
         value: "20"
       - key: STUDY_BUDDY_DATABASE
-        value: /var/data/workbook-live.sqlite
+        value: /tmp/study-buddy/workbook-live.sqlite
