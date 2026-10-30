@@ -104,6 +104,10 @@ Offline and live modes use separate ignored databases (`.student-local/workbook.
 
 For the separate gateway-facing service, see [Local HTTP API and tunnel](docs/local-api-and-tunnel.md). Its setup, registered learners and bearer authentication are distinct from the local student workbook. Starting the workbook does not start that API or a public tunnel. To show the live workbook on the Vercel site from your own computer, see [Public demo through a Cloudflare Tunnel](docs/public-demo-tunnel.md).
 
+## Hosted assignment demo
+
+To run without a laptop or temporary tunnel, use the [Render backend deployment guide](docs/hosted-demo.md). The root Dockerfile and `render.yaml` configure Python + Node, a protected public listener, and persistent SQLite storage. Hosting requires account setup and plan approval; these files alone do not deploy a running service.
+
 ## Checks and evidence
 
 These checks require no paid model calls:
