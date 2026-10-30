@@ -106,7 +106,7 @@ For the separate gateway-facing service, see [Local HTTP API and tunnel](docs/lo
 
 ## Hosted assignment demo
 
-To run without a laptop or temporary tunnel, use the [Render backend deployment guide](docs/hosted-demo.md). The root Dockerfile and `render.yaml` configure Python + Node, a protected public listener, and persistent SQLite storage. Hosting requires account setup and plan approval; these files alone do not deploy a running service.
+To run without a laptop or temporary tunnel, use the [Render backend deployment guide](docs/hosted-demo.md). The root Dockerfile and `render.yaml` configure Python + Node, a protected public listener, and temporary SQLite storage on the free demo plan. Data resets after sleep or restart; Claude calls are still paid. These files alone do not deploy a running service.
 
 ## Checks and evidence
 
