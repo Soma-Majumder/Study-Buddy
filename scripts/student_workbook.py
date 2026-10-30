@@ -223,11 +223,16 @@ def snapshot(conn, session_id, learner_id=LEARNER, mode=MODE):
 
 
 class WorkbookServer(ThreadingHTTPServer):
-    def __init__(self, database, port=8778, *, agent_mode='offline', allow_paid_calls=False, proxy_secret=None, max_starts_per_day=None):
+    def __init__(self, database, port=8778, *, agent_mode='offline', allow_paid_calls=False, proxy_secret=None, max_starts_per_day=None, host='127.0.0.1'):
         if agent_mode not in ('offline','live'):
             raise ValueError('Choose offline or live adapters.')
         if proxy_secret is not None and (not isinstance(proxy_secret,str) or len(proxy_secret)<32):
             raise ValueError('The proxy secret must be at least 32 characters.')
+        if host not in ('127.0.0.1','0.0.0.0'):
+            raise ValueError('Choose a supported listening address.')
+        if host=='0.0.0.0' and not proxy_secret:
+            raise ValueError('Public listening requires a proxy secret.')
+        self.public_listening=host=='0.0.0.0'
         self.proxy_secret=proxy_secret
         self.max_starts_per_day=max_starts_per_day
         self.database=Path(database)
@@ -243,7 +248,7 @@ class WorkbookServer(ThreadingHTTPServer):
         self.work_registry=WorkRegistry()
         self.token=secrets.token_urlsafe(32)
         self.agents=LiveAgents() if agent_mode=='live' else WorkbookAgents(lambda line:None)
-        super().__init__(('127.0.0.1',port),WorkbookHandler)
+        super().__init__((host,port),WorkbookHandler)
 
     def service_actions(self):
         if time.monotonic()<self.next_maintenance:return
@@ -328,6 +333,8 @@ class WorkbookHandler(BaseHTTPRequestHandler):
             if token and not secrets.compare_digest(self.headers.get('X-Workbook-Token',''),self.server.token):
                 self.reply(403,dict(error='Reload the workbook to reconnect.'));return False
             return True
+        if self.server.public_listening:
+            self.reply(403,dict(error='Use the configured website proxy.'));return False
         if self.headers.get('Host') != origin[7:]:
             self.reply(403,dict(error='Use the printed loopback URL.'));return False
         if self.headers.get('Origin') not in (None,origin) or self.headers.get('Sec-Fetch-Site')=='cross-site':
@@ -337,6 +344,9 @@ class WorkbookHandler(BaseHTTPRequestHandler):
         return True
 
     def do_GET(self):
+        # Hosting health checks reveal no keys, session identifiers, or provider config.
+        if urlsplit(self.path).path=='/healthz':
+            return self.reply(200,dict(status='ok'))
         if not self.boundary():return
         url=urlsplit(self.path)
         assets={'/':('index.html','text/html'),'/student/':('index.html','text/html'),
@@ -461,7 +471,8 @@ class WorkbookHandler(BaseHTTPRequestHandler):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--port',type=int,default=8778)
+    parser.add_argument('--port',type=int,default=int(os.environ.get('PORT','8778')))
+    parser.add_argument('--host',choices=('127.0.0.1','0.0.0.0'),default='127.0.0.1',help='Public listening requires --public-proxy and its secret')
     parser.add_argument('--database',type=Path)
     parser.add_argument('--agents',choices=('offline','live'),default='offline')
     parser.add_argument('--allow-paid-calls',action='store_true',help='Trusted server opt-in for user-initiated live sessions')
@@ -486,8 +497,9 @@ def main():
         parser.error('--public-proxy needs STUDY_BUDDY_PROXY_SECRET set to 32 or more characters.')
     cap=args.max_starts_per_day if args.max_starts_per_day is not None else (20 if args.public_proxy else None)
     if cap is not None and cap<1:parser.error('--max-starts-per-day must be at least 1.')
-    with WorkbookServer(database,args.port,agent_mode=args.agents,allow_paid_calls=args.allow_paid_calls,proxy_secret=proxy_secret,max_starts_per_day=cap) as server:
-        print(f'Student workbook: http://127.0.0.1:{server.server_port}/student/',flush=True)
+    if args.host=='0.0.0.0' and not args.public_proxy:parser.error('Public listening requires --public-proxy.')
+    with WorkbookServer(database,args.port,agent_mode=args.agents,allow_paid_calls=args.allow_paid_calls,proxy_secret=proxy_secret,max_starts_per_day=cap,host=args.host) as server:
+        print(f'Student workbook: http://{args.host}:{server.server_port}/student/',flush=True)
         print(('Live Tutor, Assessment and Reviewer; paid calls enabled for user actions.' if server.live_ready() else
                'Live adapters wired; paid calls disabled or key missing.' if args.agents=='live' else
                'Real controller + saved SQLite; offline fixture agents only. No paid calls.'),flush=True)
