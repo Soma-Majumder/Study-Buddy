@@ -352,11 +352,17 @@ class WorkbookHandler(BaseHTTPRequestHandler):
         assets={'/':('index.html','text/html'),'/student/':('index.html','text/html'),
                 '/student/index.html':('index.html','text/html'),'/student/student.js':('student.js','text/javascript'),
                 '/student/student.css':('student.css','text/css'),'/student/membrane.svg':('membrane.svg','image/svg+xml'),
-                '/student/ux-audit.html':('ux-audit.html','text/html')}
+                '/student/ux-audit.html':('ux-audit.html','text/html'),
+                '/favicon.ico':('favicon.ico','image/x-icon'),
+                '/student/favicon.ico':('favicon.ico','image/x-icon'),
+                '/student/favicon.svg':('favicon.svg','image/svg+xml'),
+                '/student/favicon-32.png':('favicon-32.png','image/png'),
+                '/student/apple-touch-icon.png':('apple-touch-icon.png','image/png'),
+                '/student/social-preview.png':('social-preview.png','image/png')}
         if url.path=='/':
             self.send_response(302);self.send_header('Location','/student/');self.end_headers();return
         if url.path in assets:
-            name,kind=assets[url.path];return self.reply(200,(ROOT/'demo/student'/name).read_bytes(),kind+'; charset=utf-8')
+            name,kind=assets[url.path];return self.reply(200,(ROOT/'demo/student'/name).read_bytes(),kind+('; charset=utf-8' if kind.startswith('text/') or kind=='text/javascript' else ''))
         if url.path=='/api/config':
             return self.reply(200,dict(api_version=2,capabilities=['preparation_progress','source_reading','safe_failures','cancel_work'],token=self.server.token,mode=self.server.mode,paid_calls_enabled=self.server.live_ready(),
                 message=('Real Tutor, Assessment and Reviewer adapters. Paid calls run only after your workbook actions.'

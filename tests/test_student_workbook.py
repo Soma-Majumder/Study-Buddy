@@ -22,6 +22,18 @@ class StudentWorkbookTests(unittest.TestCase):
         self.addCleanup(self.close_server)
         self.port=self.server.server_port
 
+    def test_browser_icons_and_social_preview_are_public_assets(self):
+        for path,mime in [('/student/favicon.ico','image/x-icon'),('/student/favicon.svg','image/svg+xml'),('/student/social-preview.png','image/png')]:
+            conn=http.client.HTTPConnection('127.0.0.1',self.port,timeout=10)
+            try:
+                conn.request('GET',path)
+                response=conn.getresponse();body=response.read()
+                self.assertEqual(response.status,200)
+                self.assertEqual(response.getheader('Content-Type'),mime)
+                self.assertGreater(len(body),100)
+                if path.endswith('.png'):self.assertTrue(body.startswith(b'\x89PNG\r\n\x1a\n'))
+            finally:conn.close()
+
     def close_server(self):
         self.server.shutdown();self.thread.join();self.server.server_close()
 

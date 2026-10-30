@@ -99,3 +99,10 @@ test('quiz regeneration explains the recorded failure without inventing question
  const h=harness();h.run("remote={failure:{code:'review_uncertainty'}}");assert.match(h.run('quizRegenerationReason()'),/could not confidently verify/);
  h.run("remote.failure.code='content_revision_exhausted'");assert.match(h.run('quizRegenerationReason()'),/after its correction attempt/);
 });
+
+test('invalid review response offers deliberate regeneration with an accurate explanation',()=>{
+ const h=harness();h.run("remote={status:'failed',failure:{code:'review_invalid_report'}}");
+ assert.equal(h.run('canGenerateQuizAgain()'),true);
+ assert.match(h.run('quizRegenerationReason()'),/could not read or validate/);
+ h.run("remote.failure.code='user_cancelled'");assert.equal(h.run('canGenerateQuizAgain()'),false);
+});
