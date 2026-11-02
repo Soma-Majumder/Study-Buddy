@@ -93,7 +93,7 @@ def run_durable_tutor(conn, context, *, command=None, timeout_seconds=75):
                         error = body.get('error',{})
                         stage = error.get('stage') if isinstance(error,dict) else None
                         raise TutorFailure(stage if stage in ('input preparation','model call','output validation') else 'provider adapter',
-                                           spent(), 'live_calls_disabled' if isinstance(error,dict) and error.get('code')=='live_calls_disabled' else None)
+                                           spent(), error.get('code') if isinstance(error,dict) else None)
                     result = body['result']
                     if type(result.get('repairCount')) is not int or result['repairCount'] != spent():
                         raise ValueError('Tutor repair count does not match reservation.')

@@ -70,7 +70,7 @@ export async function runTutor(context, claudeOptions = {}, repairState = {count
     }
   } catch (error) {
     const failure = new TutorRunError(stage, repairState.count, usage);
-    if (error instanceof ClaudeCallError && error.code === 'live_calls_disabled') failure.code = error.code;
+    if (error instanceof ClaudeCallError && ['live_calls_disabled','missing_api_key','authentication_failed','rate_limited','provider_unavailable','api_rejected','request_timeout','output_truncated'].includes(error.code)) failure.code = error.code;
     throw failure;
   }
 }

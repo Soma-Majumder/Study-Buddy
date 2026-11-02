@@ -19,7 +19,7 @@ try {
   console.log(JSON.stringify({ok:false, error:{
     stage:error instanceof TutorRunError ? error.stage : 'input preparation',
     repairCount:error instanceof TutorRunError ? error.repairCount : 0,
-    ...(error instanceof TutorRunError && error.code === 'live_calls_disabled' ? {code:error.code} : {}),
+    ...(error instanceof TutorRunError && ['live_calls_disabled','missing_api_key','authentication_failed','rate_limited','provider_unavailable','api_rejected','request_timeout','output_truncated'].includes(error.code) ? {code:error.code} : {}),
   }}));
   process.exitCode = 1;
 } finally {

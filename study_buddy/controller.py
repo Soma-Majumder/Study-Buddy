@@ -40,7 +40,7 @@ class TutorFailure(Exception):
         super().__init__('Tutor could not produce a valid explanation.')
         self.stage = stage
         self.repair_count = repair_count
-        self.code = 'live_calls_disabled' if code == 'live_calls_disabled' else None
+        self.code = code if code in {'live_calls_disabled','missing_api_key','authentication_failed','rate_limited','provider_unavailable','api_rejected','request_timeout','output_truncated'} else None
 
 
 def run_tutor(context):
@@ -170,7 +170,8 @@ def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor, request_id=No
         message = ('Paid Claude calls are disabled. Enable them explicitly in trusted backend configuration.'
                    if isinstance(error, TutorFailure) and error.code == 'live_calls_disabled' else
                    'Tutor did not return a valid explanation. No quiz was started.')
-        return _fail(conn, context, count if type(count) is int and count in (0, 1) else 0, message)
+        code = 'tutor_' + error.code if isinstance(error, TutorFailure) and error.code else 'tutor_invalid_explanation'
+        return _fail(conn, context, count if type(count) is int and count in (0, 1) else 0, message, code=code)
 
     try:
         with conn:
@@ -196,11 +197,11 @@ def start_session(conn, learner_id, lesson_id, *, tutor=run_tutor, request_id=No
                 **({'request_id': request_id, 'reserved': True} if reservation is not None else {}))
 
 
-def _fail(conn, context, repair_count, message):
+def _fail(conn, context, repair_count, message, *, code=None):
     # If recording failure itself fails, propagate the DB error instead of claiming a save.
     with conn:
         conn.execute("UPDATE study_sessions SET status = 'failed', failure_reason = ? WHERE session_id = ?",
-                     (message, context['sessionId']))
+                     (code or message, context['sessionId']))
         conn.execute('UPDATE handoff_repairs SET repair_count = ? WHERE handoff_id = ?',
                      (repair_count, context['handoffId']))
     return dict(session_id=context['sessionId'], status='failed', next_step=None, handoff=None, error=message)
