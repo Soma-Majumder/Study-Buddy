@@ -108,7 +108,7 @@ We shortened and simplified selected sections into **four beginner chapters**:
 1. 🏠 **Open the app** and press **Start learning**.
 2. 🧫 **Pick a biology chapter.** You can read the original textbook chapter right from here.
 3. 🤖 **Tell Study Buddy to get ready.** The Tutor's explanation appears while the quiz is being written and checked in the background.
-4. ✍️ **Answer 10 questions**, then confirm.
+4. ✍️ **Answer 10 questions**, then press **Submit quiz** on the last one.
 5. 💬 **See your results.** Every missed idea gets a friendly explanation.
 6. 🎉 **Scored 8/10 or higher?** Awesome, save your summary!
 7. 🔁 **Scored below 8?** No stress. The Tutor re-teaches what you missed, and you get **one focused retry**.
@@ -141,8 +141,9 @@ We want to be honest about where we are. 🙌
 
 **🟡 Still a work in progress**
 
-- With the **real Claude AI**, a fresh quiz is sometimes rejected by the Reviewer or comes back in a shape we can't use. When that happens, we show nothing rather than a bad quiz. **Smooth live results across all four chapters aren't proven yet.**
-- This is a **local school-project app**. It has one trusted local learner, not student logins or public hosting.
+- With the **real Claude AI**, a fresh quiz is sometimes rejected by the Reviewer or comes back in a shape we can't use. When that happens, we show nothing rather than a bad quiz, explain what went wrong, and offer a **Generate quiz again** button. That button starts a brand-new (paid) try for the same chapter. It never starts by itself. **Smooth live results across all four chapters aren't proven yet.**
+- This is a **school-project demo**, not a finished product. There are no student logins, and everyone who visits shares one learner profile.
+- On the free online demo, **saved progress is temporary**. It resets when the server goes to sleep, restarts, or is redeployed.
 - Passing tests doesn't prove students *learn better*. That would need a real pilot with real students.
 
 ---
@@ -212,6 +213,14 @@ Soma shaped what students learn, how quizzes are made, and how the team measures
 
 ## 🚀 Try It Yourself
 
+### 🌍 Try the online demo
+
+👉 **[Open the Study Buddy online demo](https://study-buddy-demo-seven.vercel.app/student/)**
+
+⏰ It runs on free hosting, so it may take **about a minute to wake up**. Browsing lessons is free, but starting a chapter, asking for feedback, or preparing a retry uses **paid Claude AI calls**.
+
+### 💻 Or run it on your own computer
+
 You'll need **Python 3.12+**, **Node.js 22+**, and **pnpm**. From the project folder:
 
 ```sh
@@ -248,7 +257,7 @@ pnpm --dir backend test
 python3 -B scripts/check_backend_offline.py
 ```
 
-More details: [LOCAL_CHECKS.md](LOCAL_CHECKS.md), [backend guide](backend/README.md), [local API and tunnel](docs/local-api-and-tunnel.md), [public demo setup](docs/public-demo-tunnel.md).
+More details: [LOCAL_CHECKS.md](LOCAL_CHECKS.md), [backend guide](backend/README.md), [local API and tunnel](docs/local-api-and-tunnel.md), [hosted demo setup](docs/hosted-demo.md).
 
 ---
 

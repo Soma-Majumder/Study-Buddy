@@ -1,0 +1,19 @@
+# Free assignment demo: database is temporary and resets after sleep/restart.
+services:
+  - type: web
+    name: study-buddy-backend
+    runtime: docker
+    plan: free
+    numInstances: 1
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: STUDY_BUDDY_PROXY_SECRET
+        sync: false
+      - key: STUDY_BUDDY_MAX_STARTS_PER_DAY
+        value: "20"
+      - key: STUDY_BUDDY_DATABASE
+        value: /tmp/study-buddy/workbook-live.sqlite

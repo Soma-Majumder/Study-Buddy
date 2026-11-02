@@ -1,0 +1,2 @@
+# Same schema validator used by the existing backend; portable Linux installation.
+jsonschema==4.26.0
