@@ -22,6 +22,18 @@ class StudentWorkbookTests(unittest.TestCase):
         self.addCleanup(self.close_server)
         self.port=self.server.server_port
 
+    def test_browser_icons_and_social_preview_are_public_assets(self):
+        for path,mime in [('/student/favicon.ico','image/x-icon'),('/student/favicon.svg','image/svg+xml'),('/student/social-preview.png','image/png')]:
+            conn=http.client.HTTPConnection('127.0.0.1',self.port,timeout=10)
+            try:
+                conn.request('GET',path)
+                response=conn.getresponse();body=response.read()
+                self.assertEqual(response.status,200)
+                self.assertEqual(response.getheader('Content-Type'),mime)
+                self.assertGreater(len(body),100)
+                if path.endswith('.png'):self.assertTrue(body.startswith(b'\x89PNG\r\n\x1a\n'))
+            finally:conn.close()
+
     def close_server(self):
         self.server.shutdown();self.thread.join();self.server.server_close()
 
@@ -453,6 +465,42 @@ class PublicProxyTests(unittest.TestCase):
         self.assertEqual(self.call('/api/start',body('cap_first_request'),**headers)[0],200)
         code,result=self.call('/api/start',body('cap_second_request'),**headers)
         self.assertEqual(code,429);self.assertIn('daily limit',result['error'])
+
+    def test_hosted_health_is_public_but_configuration_stays_private(self):
+        headers={'Host':'study-buddy-backend.onrender.com'}
+        code,body=self.call('/healthz',**headers)
+        self.assertEqual((code,body),(200,{'status':'ok'}))
+        self.assertEqual(self.call('/api/config',**headers)[0],403)
+        self.assertEqual(self.call('/api/config',**headers,**{'X-Proxy-Secret':self.SECRET})[0],200)
+
+    def test_hosted_listener_rejects_spoofed_loopback_host_without_secret(self):
+        server=WorkbookServer(Path(self.directory.name)/'hosted.sqlite',0,host='0.0.0.0',proxy_secret=self.SECRET)
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        self.addCleanup(lambda:(server.shutdown(),thread.join(),server.server_close()))
+        conn=http.client.HTTPConnection('127.0.0.1',server.server_port,timeout=10)
+        self.addCleanup(conn.close)
+        conn.request('GET','/api/config',headers={'Host':f'127.0.0.1:{server.server_port}'})
+        response=conn.getresponse();self.assertEqual(response.status,403);response.read()
+        conn.request('GET','/api/config',headers={'Host':'backend.onrender.com','X-Proxy-Secret':self.SECRET})
+        response=conn.getresponse();self.assertEqual(response.status,200);response.read()
+
+    def test_public_binding_requires_a_secret_before_initializing_database(self):
+        path=Path(self.directory.name)/'public.sqlite'
+        with self.assertRaises(ValueError):WorkbookServer(path,0,host='0.0.0.0')
+        self.assertFalse(path.exists())
+
+    def test_hosted_bind_and_persistence_across_restart(self):
+        path=Path(self.directory.name)/'persist.sqlite'
+        first=WorkbookServer(path,0,host='0.0.0.0',proxy_secret=self.SECRET)
+        first.server_close()
+        with sqlite3.connect(path) as conn:
+            conn.execute("CREATE TABLE deployment_probe (value TEXT)")
+            conn.execute("INSERT INTO deployment_probe VALUES ('preserved')")
+        second=WorkbookServer(path,0,host='0.0.0.0',proxy_secret=self.SECRET)
+        self.addCleanup(second.server_close)
+        self.assertEqual(second.server_address[0],'0.0.0.0')
+        with sqlite3.connect(path) as conn:
+            self.assertEqual(conn.execute('SELECT value FROM deployment_probe').fetchone()[0],'preserved')
 
     def test_short_secret_is_rejected(self):
         with self.assertRaises(ValueError):WorkbookServer(Path(self.directory.name)/'x.sqlite',0,proxy_secret='short')

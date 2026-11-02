@@ -158,3 +158,51 @@
 .feedback-results .inline-ai-activity.activity-idle{visibility:hidden;pointer-events:none}
 .feedback-results .inline-ai-activity>p{min-height:3.5em;line-height:1.75}
 .feedback-results .inline-ai-activity .creation-progress{margin-bottom:0}
+
+/* Final summary: shared left edge, aligned scores, readable concept list. */
+.session-summary{max-width:960px}
+.session-summary h1{font-size:clamp(30px,4vw,46px);line-height:1.12;font-weight:550;letter-spacing:-.045em}
+.session-summary .summary-card{padding:clamp(22px,3vw,36px)}
+.session-summary .summary-card h2{margin:0 0 24px;line-height:1.3;overflow-wrap:anywhere}
+.summary-scores{margin:0 0 28px;max-width:560px}
+.summary-score-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)}
+.summary-score-row dt{color:var(--muted);font-size:16px}
+.summary-score-row dd{margin:0;white-space:nowrap;font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.summary-concepts-title{font-size:16px;margin:0 0 12px;line-height:1.5}
+.summary-concepts{padding-left:22px;margin:0;max-width:65ch}
+.session-summary .summary-concepts li{padding:4px 0 4px 4px;line-height:1.65;overflow-wrap:anywhere}
+.session-summary .summary-card .sample-note{border-top:1px solid var(--line);margin:24px 0 0;padding-top:16px;font-size:12px}
+.session-summary .results-actions{justify-content:flex-start;align-items:center;gap:16px;margin:28px 0}
+.session-summary .results-actions .button-link{flex-basis:100%;text-align:left;margin:0;padding:8px 0}
+.session-summary>.source{margin-top:0}
+@media(max-width:700px){.summary-score-row{gap:16px}.summary-score-row dt{font-size:14px}.summary-score-row dd{font-size:18px}.session-summary .results-actions{align-items:stretch}.session-summary .results-actions .button{width:100%}}
+
+/* Feedback shares one content column, with separate labels for answer values. */
+.feedback-results{--feedback-gutter:42px;max-width:980px}
+.feedback-results .results-hero{grid-template-columns:minmax(0,1fr) 110px;gap:28px}
+.feedback-results .results-hero h1{max-width:22ch;font-size:clamp(30px,3vw,44px);text-wrap:pretty}
+.feedback-results .results-hero .lede{max-width:60ch}
+.feedback-results .score-caption{letter-spacing:0;text-transform:none}
+.feedback-results .result-info{padding-left:var(--feedback-gutter);padding-right:28px}
+.feedback-results .review-item{padding:24px 0}
+.feedback-results .review-item summary{line-height:1.65}
+.feedback-results .review-details{max-width:none;padding-left:var(--feedback-gutter)}
+.feedback-results .answer-detail{display:grid;grid-template-columns:116px minmax(0,1fr);gap:16px;max-width:72ch;align-items:baseline}
+.feedback-results .answer-label{font-size:12px;font-weight:600;color:var(--muted)}
+.feedback-results .review-details .rationale{max-width:68ch;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+@media(max-width:700px){
+ .feedback-results{--feedback-gutter:32px}
+ .feedback-results .results-hero{grid-template-columns:minmax(0,1fr) 76px;gap:16px}
+ .feedback-results .results-hero h1{font-size:30px}
+ .feedback-results .answer-detail{grid-template-columns:1fr;gap:3px}
+ .feedback-results .result-info{padding:20px 20px 20px var(--feedback-gutter)}
+}
+
+/* Score numerator and denominator share a stable typographic baseline. */
+.feedback-results .score{display:flex;align-items:baseline;justify-content:center;gap:3px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+.feedback-results .score small{display:block;line-height:1;letter-spacing:-.03em;flex-shrink:0}
+.feedback-results .score-caption{max-width:110px;margin:12px auto 0;line-height:1.5;text-align:center;overflow-wrap:normal;hyphens:none}
+
+/* Generation status uses the same compact scale as surrounding supporting copy. */
+.inline-ai-activity>p,.preparation-footer .preparation-stage{font-size:14px;line-height:1.65;font-weight:400;letter-spacing:normal}
+.inline-ai-activity .creation-progress-steps,.chapter-ai-notice .creation-progress-steps,.preparation-footer .creation-progress-steps{font-size:12px;line-height:1.5;font-weight:400;letter-spacing:normal}
