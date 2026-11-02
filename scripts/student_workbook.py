@@ -193,8 +193,52 @@ def _snapshot(conn, session_id, learner_id, mode):
         'review_invalid_report':'The quiz review returned an invalid response. The quiz was not published; your explanation is still available.',
         'review_uncertainty':'The review could not confirm that the quiz was suitable. The quiz was not published; your explanation is still available.'}
     if status['status']=='failed':
-        result['failure'] = dict(code=reason if reason in failures else 'session_failed',message=failures.get(reason,'This session stopped before it could finish. Your saved progress is preserved.'))
-        result['message']=result['failure']['message']
+        # Fixed public messages only. Never expose arbitrary persisted/provider text.
+        legacy = {
+            'Tutor did not return a valid explanation. No quiz was started.':'tutor_invalid_explanation',
+            'Could not save the explanation. No quiz was started.':'tutor_save_failed',
+            'Paid Claude calls are disabled. Enable them explicitly in trusted backend configuration.':'tutor_live_calls_disabled',
+        }
+        reason = legacy.get(reason, reason)
+        failures.update({
+            'tutor_invalid_explanation':'Tutor could not produce an explanation that passed validation. No quiz was started. You can try preparation again.',
+            'tutor_save_failed':'The server could not save the explanation. No quiz was started.',
+            'tutor_live_calls_disabled':'AI preparation is disabled on this server. The site owner needs to enable it.',
+            'tutor_missing_api_key':'The AI provider credential is missing. The site owner needs to configure the backend.',
+            'tutor_authentication_failed':'The AI provider rejected the server credential. The site owner needs to check the provider account.',
+            'tutor_api_rejected':'The AI provider rejected the preparation request. The site owner needs to check the model and provider configuration.',
+            'tutor_rate_limited':'The AI provider rate-limited preparation. Wait a moment before trying again; the owner may need to check provider limits.',
+            'tutor_provider_unavailable':'The AI provider was temporarily unavailable. You can try preparation again.',
+            'tutor_request_timeout':'Tutor preparation timed out before a complete explanation was saved. You can try preparation again.',
+            'tutor_output_truncated':'The AI explanation was cut short. No incomplete explanation or quiz was published. You can try preparation again.',
+        })
+        provider_failures = {
+            'authentication_failed':'The AI provider rejected the server credential. The site owner needs to check the provider account.',
+            'missing_api_key':'The server is missing its AI provider credential. The site owner needs to configure it.',
+            'api_rejected':'The AI provider rejected the request. The site owner needs to check the configured model and provider settings.',
+            'live_calls_disabled':'Paid AI preparation is disabled in the backend configuration.',
+            'rate_limited':'The AI provider rate-limited this request. Wait before trying again; the owner may need to check provider limits.',
+            'provider_unavailable':'The AI provider was temporarily unavailable. You can try a fresh preparation attempt.',
+            'request_timeout':'The AI request timed out before completion. You can try preparation again.',
+            'process_timeout':'The AI adapter exceeded its deadline. You can try preparation again.',
+            'process_unavailable':'The backend could not launch an AI adapter. The site owner needs to check the deployment.',
+            'output_truncated':'The AI response was cut short. No incomplete quiz was published.',
+            'transport_error':'The server could not reach the AI provider. You can try preparation again.',
+            'adapter_error':'The AI adapter could not finish its work. You can try a fresh preparation attempt.',
+            'invalid_json':'The AI returned an unreadable response. It was not published.',
+            'invalid_envelope':'The AI adapter returned an invalid response envelope. It was not published.',
+            'empty_response':'The AI provider returned no usable content. You can try preparation again.',
+            'incomplete_response':'The AI provider did not complete its response. No incomplete quiz was published.',
+            'unexpected_response':'The AI provider returned an unexpected response. It was not published.',
+        }
+        for phase in ('generation','review','revision'):
+            for diagnostic,description in provider_failures.items():
+                failures.setdefault(phase+'_'+diagnostic, phase.capitalize()+': '+description)
+        code = reason if reason in failures else 'session_failed'
+        message = failures.get(code, 'Preparation stopped because of an unclassified technical failure. You can start a fresh attempt; the site owner needs to inspect the server diagnostics if it repeats.')
+        configuration_failure = any(code.endswith('_'+suffix) for suffix in ('live_calls_disabled','missing_api_key','authentication_failed','api_rejected','process_unavailable'))
+        result['failure'] = dict(code=code, message=message, retryable=not configuration_failure and code!='user_cancelled')
+        result['message']=message
     for row in conn.execute('SELECT a.attempt_id,a.quiz_id,q.round,r.score,r.passed,r.feedback '
             'FROM attempts a JOIN quizzes q ON q.quiz_id=a.quiz_id JOIN results r ON r.attempt_id=a.attempt_id '
             'WHERE q.session_id=? AND a.learner_id=? ORDER BY a.rowid', (session_id,learner_id)):
@@ -313,6 +357,11 @@ class WorkbookHandler(BaseHTTPRequestHandler):
 
     def reply(self, code, payload, kind='application/json; charset=utf-8'):
         check_agent_work()
+        if isinstance(payload,dict) and payload.get('status')=='failed':
+            failure=payload.get('failure') or {}
+            failure_code=failure.get('code','session_failed')
+            if isinstance(failure_code,str) and failure_code.replace('_','').isalnum() and len(failure_code)<80:
+                print(json.dumps(dict(event='workbook_session_failed',code=failure_code)),flush=True)
         body=payload if isinstance(payload,bytes) else json.dumps(payload).encode()
         self.send_response(code)
         for key,value in {'Content-Type':kind,'Content-Length':str(len(body)),'Cache-Control':'no-store',
@@ -364,7 +413,7 @@ class WorkbookHandler(BaseHTTPRequestHandler):
         if url.path in assets:
             name,kind=assets[url.path];return self.reply(200,(ROOT/'demo/student'/name).read_bytes(),kind+('; charset=utf-8' if kind.startswith('text/') or kind=='text/javascript' else ''))
         if url.path=='/api/config':
-            return self.reply(200,dict(api_version=2,capabilities=['preparation_progress','source_reading','safe_failures','cancel_work'],token=self.server.token,mode=self.server.mode,paid_calls_enabled=self.server.live_ready(),
+            return self.reply(200,dict(api_version=2,capabilities=['preparation_progress','source_reading','safe_failures','cancel_work','failure_recovery_v2'],token=self.server.token,mode=self.server.mode,paid_calls_enabled=self.server.live_ready(),
                 message=('Real Tutor, Assessment and Reviewer adapters. Paid calls run only after your workbook actions.'
                          if self.server.agent_mode=='live' else
                          'Connected to the real controller. Offline fixture agents; synthetic review, not live quality approval.')))

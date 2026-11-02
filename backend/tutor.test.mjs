@@ -164,3 +164,12 @@ test('denied or failed durable reservation prevents the repair provider call', a
     assert.equal(fake.count(),1);
   }
 });
+
+test('safe provider diagnostic codes survive Tutor wrapping without provider bodies',async()=>{
+ const fake=fakeClaude();fake.options.fetchImpl=async()=>({ok:false,status:401,text:async()=> 'private-provider-body'});
+ await assert.rejects(runTutor(context,fake.options),error=>{
+  assert.equal(error.code,'authentication_failed');
+  assert.ok(!JSON.stringify(error).includes('private-provider-body'));
+  return true;
+ });
+});

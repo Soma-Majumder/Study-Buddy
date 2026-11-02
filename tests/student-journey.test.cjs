@@ -106,3 +106,11 @@ test('invalid review response offers deliberate regeneration with an accurate ex
  assert.match(h.run('quizRegenerationReason()'),/could not read or validate/);
  h.run("remote.failure.code='user_cancelled'");assert.equal(h.run('canGenerateQuizAgain()'),false);
 });
+
+test('retryable preparation failures explain the cause and require explicit regeneration',()=>{
+ const h=harness();h.run("remote={status:'failed',failure:{code:'tutor_request_timeout',message:'Tutor preparation timed out.',retryable:true}};");
+ assert.equal(h.run('canGenerateQuizAgain()'),true);
+ assert.equal(h.run('quizRegenerationReason()'),'Tutor preparation timed out.');
+ h.run("remote.failure={code:'tutor_authentication_failed',message:'Provider account needs attention.',retryable:false}");
+ assert.equal(h.run('canGenerateQuizAgain()'),false);
+});

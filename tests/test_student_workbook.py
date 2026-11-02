@@ -156,6 +156,38 @@ class StudentWorkbookTests(unittest.TestCase):
             self.assertIsNone(saved['quiz'])
             self.assertEqual(saved['preparation']['stage'],'teaching')
 
+    def test_failed_snapshot_maps_legacy_tutor_reason_without_leaking_raw_text(self):
+        snap=self.start()
+        calls=dict(self.server.agents.calls)
+        cases=[
+            ('Tutor did not return a valid explanation. No quiz was started.','tutor_invalid_explanation',True),
+            ('tutor_request_timeout','tutor_request_timeout',True),
+            ('tutor_authentication_failed','tutor_authentication_failed',False),
+            ('generation_api_rejected','generation_api_rejected',False),
+            ('review_request_timeout','review_request_timeout',True),
+            ('private-provider-body-SENTINEL','session_failed',True),
+        ]
+        for reason,code,retryable in cases:
+            with sqlite3.connect(self.path) as conn:
+                conn.execute("UPDATE study_sessions SET status='failed',failure_reason=? WHERE session_id=?",(reason,snap['session_id']))
+            status,body=self.request('/api/session?session_id='+snap['session_id'])
+            self.assertEqual(status,200)
+            self.assertEqual(body['failure']['code'],code)
+            self.assertEqual(body['failure']['retryable'],retryable)
+            self.assertNotIn('SENTINEL',json.dumps(body))
+            self.assertNotIn('progress is preserved',body['failure']['message'])
+        self.assertEqual(calls,self.server.agents.calls)
+
+    def test_tutor_provider_failure_code_survives_controller_and_http(self):
+        from study_buddy.controller import TutorFailure
+        with patch.object(self.server.agents,'tutor',side_effect=TutorFailure(code='authentication_failed')):
+            status,body=self.request('/api/start',dict(request_id='typed_tutor_failure',lesson_id='lesson_cell_membranes',lesson_version=2))
+        self.assertEqual(status,200)
+        self.assertEqual(body['status'],'failed')
+        self.assertEqual(body['failure']['code'],'tutor_authentication_failed')
+        self.assertFalse(body['failure']['retryable'])
+        self.assertIsNone(body['quiz'])
+
     def test_config_declares_capabilities_without_dispatch(self):
         before=dict(self.server.agents.calls)
         code,body=self.request('/api/config',token=False)
